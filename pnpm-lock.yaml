@@ -31,7 +31,11 @@ importers:
         specifier: ^12.1.0
         version: 12.1.0
 
-  packages/shared: {}
+  packages/shared:
+    dependencies:
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
 
 packages:
 
