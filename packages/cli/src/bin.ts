@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { log } from '@pyra/shared';
+import { log, loadConfig, getPort } from '@pyra/shared';
 import { DevServer } from '@pyra/core';
 
 const program = new Command();
@@ -13,11 +13,24 @@ program
 program
   .command('dev')
   .description('Start development server with hot module replacement')
-  .option('-p, --port <number>', 'Port to run dev server on', '3000')
+  .option('-p, --port <number>', 'Port to run dev server on')
   .option('-o, --open', 'Open browser on server start')
+  .option('-c, --config <path>', 'Path to config file')
+  .option('--mode <mode>', 'Build mode (development|production)', 'development')
   .action(async (options) => {
     try {
-      const port = parseInt(options.port, 10);
+      // Load configuration
+      const config = await loadConfig({
+        mode: options.mode,
+        configFile: options.config,
+      });
+
+      // CLI options override config file
+      const port = options.port ? parseInt(options.port, 10) : getPort(config);
+      const open = options.open ?? config.server?.open ?? false;
+
+      log.info(`Starting dev server in ${config.mode} mode...`);
+
       const server = new DevServer({ port });
 
       await server.start();
@@ -52,14 +65,36 @@ program
 program
   .command('build')
   .description('Build for production with optimizations')
-  .option('-o, --out-dir <path>', 'Output directory', 'dist')
-  .option('--minify', 'Minify output', true)
-  .option('--sourcemap', 'Generate sourcemaps', false)
-  .action((options) => {
-    log.info(`Building for production...`);
-    log.info(`Output directory: ${options.outDir}`);
-    log.warn('Build not implemented yet - coming soon');
-    // TODO: Import and call build from @pyra/core
+  .option('-o, --out-dir <path>', 'Output directory')
+  .option('--minify', 'Minify output')
+  .option('--sourcemap', 'Generate sourcemaps')
+  .option('-c, --config <path>', 'Path to config file')
+  .option('--mode <mode>', 'Build mode', 'production')
+  .action(async (options) => {
+    try {
+      // Load configuration
+      const config = await loadConfig({
+        mode: options.mode,
+        configFile: options.config,
+      });
+
+      log.info(`Building for ${config.mode}...`);
+
+      // CLI options override config file
+      const outDir = options.outDir || config.build?.outDir || config.outDir || 'dist';
+      const minify = options.minify ?? config.build?.minify ?? true;
+      const sourcemap = options.sourcemap ?? config.build?.sourcemap ?? false;
+
+      log.info(`Entry: ${config.entry}`);
+      log.info(`Output directory: ${outDir}`);
+      log.info(`Minify: ${minify}`);
+      log.info(`Sourcemap: ${sourcemap}`);
+      log.warn('Build not implemented yet - coming soon');
+      // TODO: Import and call build from @pyra/core
+    } catch (error) {
+      log.error(`Build failed: ${error}`);
+      process.exit(1);
+    }
   });
 
 program
