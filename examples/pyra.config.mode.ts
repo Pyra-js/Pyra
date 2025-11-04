@@ -1,4 +1,4 @@
-import { defineConfigFn } from '@pyra/shared';
+import { defineConfigFn } from '@pyra/cli';
 
 /**
  * Mode-based Configuration

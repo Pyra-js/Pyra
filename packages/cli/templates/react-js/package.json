@@ -1,6 +1,6 @@
 {
-  "name": "pyra-config-test",
-  "version": "1.0.0",
+  "name": "{{PROJECT_NAME}}",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "build": "pyra build"
   },
   "dependencies": {
-    "@pyra/shared": "workspace:*"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

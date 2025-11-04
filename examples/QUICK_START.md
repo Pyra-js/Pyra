@@ -25,6 +25,7 @@ npx pyra dev
 ```
 
 Pyra uses these defaults:
+
 - Entry: `src/index.ts`
 - Output: `dist/`
 - Port: `3000`
@@ -38,7 +39,7 @@ Pyra uses these defaults:
 **Create `pyra.config.ts` in your project root:**
 
 ```typescript
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 
 export default defineConfig({
   entry: 'src/main.ts',
@@ -66,18 +67,20 @@ npx pyra dev
 **React:**
 
 ```bash
-# Copy React template
-cp node_modules/@pyra/shared/examples/pyra.config.react.ts pyra.config.ts
+# Use the init command (recommended)
+npx pyra init my-react-app --template react --language typescript
 
 # Start developing
+cd my-react-app
+npm install
 npx pyra dev --open
 ```
 
-**Library/Package:**
+**Or manually copy a template:**
 
 ```bash
-# Copy library template
-cp node_modules/@pyra/shared/examples/pyra.config.library.ts pyra.config.ts
+# Copy React config example from the Pyra repository
+curl -o pyra.config.ts https://raw.githubusercontent.com/pyrajs/pyra/main/examples/pyra.config.react.ts
 
 # Build your package
 npx pyra build
@@ -99,6 +102,7 @@ npx pyra dev --port 4000 --open
 ```
 
 Pyra automatically:
+
 - ✅ Discovers your config
 - ✅ Starts dev server with HMR
 - ✅ Shows you the local URL
@@ -120,7 +124,7 @@ npx pyra build --minify --sourcemap
 
 ```typescript
 // pyra.config.ts
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 
 export default defineConfig({
   entry: 'src/main.tsx',
@@ -185,7 +189,7 @@ fetch('/api/users');
 
 ```typescript
 // pyra.config.ts
-import { defineConfigFn } from '@pyra/shared';
+import { defineConfigFn } from '@pyra/cli';
 
 export default defineConfigFn((mode) => ({
   build: {
@@ -251,7 +255,7 @@ Pyra looks for config files in this order (first found wins):
 Get full IntelliSense by using `defineConfig`:
 
 ```typescript
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 
 export default defineConfig({
   // Your editor shows ALL available options!

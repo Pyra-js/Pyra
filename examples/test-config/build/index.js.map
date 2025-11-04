@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/utils.ts", "../src/index.ts"],
+  "sourcesContent": ["/**\r\n * Simple utility functions for testing module resolution\r\n */\r\n\r\nexport function sum(a: number, b: number): number {\r\n  return a + b;\r\n}\r\n\r\nexport function multiply(a: number, b: number): number {\r\n  return a * b;\r\n}\r\n", "/**\r\n * Demo application entry point\r\n */\r\n\r\n// Test module resolution with a simple utility\r\nimport { sum } from './utils';\r\n\r\nconsole.log('Hello from Pyra! \uD83D\uDD25');\r\nconsole.log('Configuration is working!');\r\n\r\nconst result = sum(2, 3);\r\nconsole.log(`2 + 3 = ${result}`);\r\n"],
+  "mappings": "AAIO,SAASA,EAAIC,EAAWC,EAAmB,CAChD,OAAOD,EAAIC,CACb,CCCA,QAAQ,IAAI,4BAAqB,EACjC,QAAQ,IAAI,2BAA2B,EAEvC,IAAMC,EAASC,EAAI,EAAG,CAAC,EACvB,QAAQ,IAAI,WAAWD,CAAM,EAAE",
+  "names": ["sum", "a", "b", "result", "sum"]
+}

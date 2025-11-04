@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import chokidar, { type FSWatcher } from 'chokidar';
 import { log } from '@pyra/shared';
 import { transformFile } from './transform.js';
+import { bundleFile, invalidateDependentCache } from './bundler.js';
 import type { PyraConfig } from '@pyra/shared';
 
 export interface DevServerOptions {
@@ -83,9 +84,9 @@ export class DevServer {
       let content = fs.readFileSync(filePath, 'utf-8');
       const ext = path.extname(filePath);
 
-      // Transform TypeScript/JSX files
-      if (/\.(tsx?|jsx?)$/.test(ext)) {
-        content = await transformFile(filePath, content);
+      // Bundle and transform TypeScript/JSX files with module resolution
+      if (/\.(tsx?|jsx?|mjs)$/.test(ext)) {
+        content = await bundleFile(filePath, this.root);
         res.writeHead(200, {
           'Content-Type': 'application/javascript',
           'Cache-Control': 'no-cache'
@@ -144,12 +145,20 @@ export class DevServer {
     this.watcher.on('change', (filePath: string) => {
       const relativePath = path.relative(this.root, filePath);
       log.info(`File changed: ${relativePath}`);
+
+      // Invalidate bundle cache for changed files
+      invalidateDependentCache(filePath);
+
       this.notifyClients('reload');
     });
 
     this.watcher.on('add', (filePath: string) => {
       const relativePath = path.relative(this.root, filePath);
       log.info(`File added: ${relativePath}`);
+
+      // Invalidate bundle cache for new files
+      invalidateDependentCache(filePath);
+
       this.notifyClients('reload');
     });
   }

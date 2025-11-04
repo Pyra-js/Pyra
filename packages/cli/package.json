@@ -1,15 +1,22 @@
 {
   "name": "@pyra/cli",
   "version": "0.0.1",
-  "description": "",
-  "main": "index.js",
-  
+  "description": "CLI for Pyra.js - next-gen build tool",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "bin": {
-    "pyra": "./dist/bin.mjs"
+    "pyra": "./dist/bin.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsup src/bin.ts --dts --format esm --out-dir dist",
+    "build": "tsup src/bin.ts src/index.ts src/scaffold.ts --dts --format esm --out-dir dist && cp -r templates dist/templates",
     "dev:run": "tsx src/bin.ts",
     "dev:link": "pnpm build && pnpm link -g"
   },
@@ -20,6 +27,7 @@
   "dependencies": {
     "@pyra/core": "workspace:*",
     "@pyra/shared": "workspace:*",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "@inquirer/prompts": "^7.2.0"
   }
 }

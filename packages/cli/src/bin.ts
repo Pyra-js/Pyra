@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { log, loadConfig, getPort } from '@pyra/shared';
-import { DevServer } from '@pyra/core';
+import { log, loadConfig, getPort, getOutDir } from '@pyra/shared';
+import { DevServer, build } from '@pyra/core';
+import { input, select } from '@inquirer/prompts';
+import { scaffold, type Template, type Language } from './scaffold.js';
+
 
 const program = new Command();
 
@@ -78,19 +81,19 @@ program
         configFile: options.config,
       });
 
-      log.info(`Building for ${config.mode}...`);
-
       // CLI options override config file
-      const outDir = options.outDir || config.build?.outDir || config.outDir || 'dist';
+      const outDir = options.outDir || getOutDir(config);
       const minify = options.minify ?? config.build?.minify ?? true;
       const sourcemap = options.sourcemap ?? config.build?.sourcemap ?? false;
 
-      log.info(`Entry: ${config.entry}`);
-      log.info(`Output directory: ${outDir}`);
-      log.info(`Minify: ${minify}`);
-      log.info(`Sourcemap: ${sourcemap}`);
-      log.warn('Build not implemented yet - coming soon');
-      // TODO: Import and call build from @pyra/core
+      // Call the build function
+      await build({
+        config,
+        outDir,
+        minify,
+        sourcemap,
+      });
+
     } catch (error) {
       log.error(`Build failed: ${error}`);
       process.exit(1);
@@ -98,13 +101,60 @@ program
   });
 
 program
-  .command('init')
+  .command('init [project-name]')
   .description('Initialize a new Pyra.js project')
-  .option('-t, --template <name>', 'Project template (react, vue, svelte, vanilla)', 'vanilla')
-  .action((options) => {
-    log.info(`Initializing new Pyra.js project with ${options.template} template...`);
-    log.warn('Init not implemented yet - coming soon');
-    // TODO: Implement project scaffolding
+  .option('-t, --template <name>', 'Project template (vanilla, react)')
+  .option('-l, --language <lang>', 'Language (typescript, javascript)')
+  .action(async (projectNameArg, options) => {
+    try {
+      // Prompt for project name if not provided
+      const projectName = projectNameArg || await input({
+        message: 'Project name:',
+        default: 'my-pyra-app',
+        validate: (value) => {
+          if (!value || value.trim().length === 0) {
+            return 'Project name is required';
+          }
+          if (!/^[a-z0-9-_]+$/i.test(value)) {
+            return 'Project name can only contain letters, numbers, hyphens, and underscores';
+          }
+          return true;
+        },
+      });
+
+      // Prompt for template if not provided
+      const template: Template = options.template || await select({
+        message: 'Select a template:',
+        choices: [
+          { name: 'Vanilla', value: 'vanilla', description: 'Lightweight vanilla JavaScript/TypeScript' },
+          { name: 'React', value: 'react', description: 'React with modern hooks' },
+        ],
+      });
+
+      // Prompt for language if not provided
+      const language: Language = options.language || await select({
+        message: 'Select a language:',
+        choices: [
+          { name: 'TypeScript', value: 'typescript', description: 'Type-safe development with TypeScript' },
+          { name: 'JavaScript', value: 'javascript', description: 'Classic JavaScript' },
+        ],
+      });
+
+      // Scaffold the project
+      scaffold({
+        projectName: projectName.trim(),
+        template,
+        language,
+      });
+
+    } catch (error) {
+      if (error instanceof Error) {
+        log.error(`Failed to initialize project: ${error.message}`);
+      } else {
+        log.error('Failed to initialize project');
+      }
+      process.exit(1);
+    }
   });
 
 // Show help by default if no command is provided

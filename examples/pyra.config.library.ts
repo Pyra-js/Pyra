@@ -1,4 +1,4 @@
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 
 /**
  * Library/Package Configuration
