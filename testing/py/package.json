@@ -1,0 +1,13 @@
+{
+  "name": "py",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "pyra dev",
+    "build": "pyra build"
+  },
+  "devDependencies": {
+    "pyrajs-cli": "^0.0.3"
+  }
+}

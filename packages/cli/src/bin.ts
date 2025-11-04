@@ -6,6 +6,7 @@ import { input, select } from '@inquirer/prompts';
 import { scaffold, type Template, type Language } from './scaffold.js';
 import { initProject, validateProjectName } from './init.js';
 import type { PMName } from './pm.js';
+import { startTimer, printBanner, printDone, isSilent, useColor } from './utils/reporter.js';
 
 
 const program = new Command();
@@ -75,7 +76,19 @@ program
   .option('--sourcemap', 'Generate sourcemaps')
   .option('-c, --config <path>', 'Path to config file')
   .option('--mode <mode>', 'Build mode', 'production')
+  .option('--silent', 'Suppress banner and timing output')
   .action(async (options) => {
+    const silent = isSilent(process.argv, process.env);
+    const color = useColor(process.argv, process.env);
+
+    // Print banner
+    if (!silent) {
+      printBanner({ silent, color });
+      console.log(''); // Add spacing
+    }
+
+    const stop = startTimer();
+
     try {
       // Load configuration
       const config = await loadConfig({
@@ -96,6 +109,12 @@ program
         sourcemap,
       });
 
+      // Print completion message
+      if (!silent) {
+        console.log(''); // Add spacing
+        printDone({ verb: 'built', elapsedMs: stop(), silent, color });
+      }
+
     } catch (error) {
       log.error(`Build failed: ${error}`);
       process.exit(1);
@@ -107,7 +126,19 @@ program
   .description('Create a new Pyra.js project (simple setup)')
   .option('--pm <manager>', 'Package manager to use (npm, pnpm, yarn, bun)')
   .option('--skip-install', 'Skip dependency installation')
+  .option('--silent', 'Suppress banner and timing output')
   .action(async (projectNameArg, options) => {
+    const silent = isSilent(process.argv, process.env);
+    const color = useColor(process.argv, process.env);
+
+    // Print banner
+    if (!silent) {
+      printBanner({ silent, color });
+      console.log(''); // Add spacing
+    }
+
+    const stop = startTimer();
+
     try {
       // Prompt for project name if not provided
       const projectName = projectNameArg || await input({
@@ -134,6 +165,12 @@ program
         skipInstall: options.skipInstall,
       });
 
+      // Print completion message
+      if (!silent) {
+        console.log(''); // Add spacing
+        printDone({ verb: 'completed', elapsedMs: stop(), silent, color });
+      }
+
     } catch (error) {
       if (error instanceof Error) {
         log.error(`Failed to create project: ${error.message}`);
@@ -150,7 +187,19 @@ program
   .option('-t, --template <name>', 'Project template (vanilla, react)')
   .option('-l, --language <lang>', 'Language (typescript, javascript)')
   .option('--pm <manager>', 'Package manager to use (npm, pnpm, yarn, bun)')
+  .option('--silent', 'Suppress banner and timing output')
   .action(async (projectNameArg, options) => {
+    const silent = isSilent(process.argv, process.env);
+    const color = useColor(process.argv, process.env);
+
+    // Print banner
+    if (!silent) {
+      printBanner({ silent, color });
+      console.log(''); // Add spacing
+    }
+
+    const stop = startTimer();
+
     try {
       // Prompt for project name if not provided
       const projectName = projectNameArg || await input({
@@ -191,6 +240,12 @@ program
         template,
         language,
       });
+
+      // Print completion message
+      if (!silent) {
+        console.log(''); // Add spacing
+        printDone({ verb: 'completed', elapsedMs: stop(), silent, color });
+      }
 
     } catch (error) {
       if (error instanceof Error) {

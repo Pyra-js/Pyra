@@ -1,6 +1,6 @@
 {
   "name": "pyrajs-cli",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "🔥 @Pyra/cli - A cli tool for using core cli commands",
   "type": "module",
   "main": "./dist/index.js",
@@ -58,6 +58,7 @@
     "pyrajs-core": "workspace:*",
     "pyrajs-shared": "workspace:*",
     "commander": "^12.1.0",
-    "@inquirer/prompts": "^7.2.0"
+    "@inquirer/prompts": "^7.2.0",
+    "picocolors": "^1.1.1"
   }
 }

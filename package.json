@@ -1,6 +1,7 @@
 {
   "name": "pyrajs",
   "version": "0.0.1",
+  "private": true,
   "type": "module",
   "description": "Pyra.js is a lightweight, modern bundler designed for speed, simplicity, and creative flow. TypeScript-first. Zero config. Built for developers who love efficiency and elegance.",
   "main": "index.js",
