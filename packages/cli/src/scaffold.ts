@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { log } from 'pyrajs-shared';
+import { addTailwind, type TailwindPreset } from './utils/tailwind.js';
+import { detectPM, type PM } from './pm.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,6 +16,9 @@ export interface ScaffoldOptions {
   template: Template;
   language: Language;
   targetDir?: string;
+  tailwind?: boolean;
+  tailwindPreset?: TailwindPreset;
+  skipInstall?: boolean;
 }
 
 /**
@@ -124,8 +129,16 @@ lerna-debug.log*
 /**
  * Scaffold a new Pyra.js project
  */
-export function scaffold(options: ScaffoldOptions): void {
-  const { projectName, template, language, targetDir } = options;
+export async function scaffold(options: ScaffoldOptions): Promise<void> {
+  const {
+    projectName,
+    template,
+    language,
+    targetDir,
+    tailwind = false,
+    tailwindPreset = 'basic',
+    skipInstall = false,
+  } = options;
 
   // Determine target directory
   const projectDir = targetDir || path.join(process.cwd(), projectName);
@@ -160,11 +173,36 @@ export function scaffold(options: ScaffoldOptions): void {
 
   // Success message
   log.success(`Project created at ${projectDir}`);
+
+  // Add Tailwind CSS if requested
+  if (tailwind) {
+    try {
+      // Detect package manager
+      const pm = await detectPM(projectDir);
+
+      await addTailwind({
+        projectDir,
+        pm,
+        preset: tailwindPreset,
+        framework: template,
+        language,
+        skipInstall,
+      });
+    } catch (error) {
+      log.warn('Failed to set up Tailwind CSS');
+      log.warn('You can set it up manually later');
+    }
+  }
+
   log.info('');
   log.info('Next steps:');
-  log.info(`cd ${projectName}`);
-  log.info('pnpm install (or npm install / yarn install)');
-  log.info('pnpm dev');
+  log.info(`  cd ${projectName}`);
+
+  if (skipInstall) {
+    log.info('  pnpm install (or npm install / yarn install)');
+  }
+
+  log.info('  pnpm dev');
   log.info('');
 }
 

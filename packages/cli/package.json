@@ -59,6 +59,7 @@
     "pyrajs-shared": "workspace:*",
     "commander": "^12.1.0",
     "@inquirer/prompts": "^7.2.0",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "glob": "^10.3.10"
   }
 }

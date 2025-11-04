@@ -2,11 +2,14 @@
 import { Command } from 'commander';
 import { log, loadConfig, getPort, getOutDir } from 'pyrajs-shared';
 import { DevServer, build } from 'pyrajs-core';
-import { input, select } from '@inquirer/prompts';
+import { input, select, confirm } from '@inquirer/prompts';
 import { scaffold, type Template, type Language } from './scaffold.js';
 import { initProject, validateProjectName } from './init.js';
 import type { PMName } from './pm.js';
 import { startTimer, printBanner, printDone, isSilent, useColor } from './utils/reporter.js';
+import type { TailwindPreset } from './utils/tailwind.js';
+import { graphCommand } from './commands/graph.js';
+import type { OutputFormat } from './graph/types.js';
 
 
 const program = new Command();
@@ -187,6 +190,10 @@ program
   .option('-t, --template <name>', 'Project template (vanilla, react)')
   .option('-l, --language <lang>', 'Language (typescript, javascript)')
   .option('--pm <manager>', 'Package manager to use (npm, pnpm, yarn, bun)')
+  .option('--tailwind', 'Add Tailwind CSS')
+  .option('--no-tailwind', 'Skip Tailwind CSS setup')
+  .option('--ui <preset>', 'Tailwind preset (basic, shadcn)')
+  .option('--skip-install', 'Skip dependency installation')
   .option('--silent', 'Suppress banner and timing output')
   .action(async (projectNameArg, options) => {
     const silent = isSilent(process.argv, process.env);
@@ -234,11 +241,53 @@ program
         ],
       });
 
+      // Determine if Tailwind should be added
+      let addTailwind = false;
+      let tailwindPreset: TailwindPreset = 'basic';
+
+      // Check explicit flags first
+      if (options.tailwind === true) {
+        addTailwind = true;
+      } else if (options.tailwind === false || options.noTailwind === true) {
+        addTailwind = false;
+      } else {
+        // Prompt user if no explicit flag
+        addTailwind = await confirm({
+          message: 'Add Tailwind CSS?',
+          default: false,
+        });
+      }
+
+      // If Tailwind is enabled, determine preset
+      if (addTailwind) {
+        if (options.ui) {
+          const preset = options.ui.toLowerCase();
+          if (preset === 'basic' || preset === 'shadcn') {
+            tailwindPreset = preset as TailwindPreset;
+          } else {
+            log.warn(`Invalid UI preset: ${options.ui}, using 'basic'`);
+            tailwindPreset = 'basic';
+          }
+        } else {
+          // Prompt for preset
+          tailwindPreset = await select({
+            message: 'Select Tailwind preset:',
+            choices: [
+              { name: 'Basic', value: 'basic', description: 'Standard Tailwind CSS setup' },
+              { name: 'shadcn/ui', value: 'shadcn', description: 'Tailwind with shadcn/ui design tokens' },
+            ],
+          }) as TailwindPreset;
+        }
+      }
+
       // Scaffold the project
-      scaffold({
+      await scaffold({
         projectName: projectName.trim(),
         template,
         language,
+        tailwind: addTailwind,
+        tailwindPreset,
+        skipInstall: options.skipInstall,
       });
 
       // Print completion message
@@ -253,6 +302,66 @@ program
       } else {
         log.error('Failed to initialize project');
       }
+      process.exit(1);
+    }
+  });
+
+program
+  .command('graph [path]')
+  .description('Visualize dependency graph')
+  .option('--open', 'Open the interactive graph in the browser')
+  .option('--no-open', 'Do not open the browser (for HTML format)')
+  .option('--format <format>', 'Output format: html | svg | png | mermaid | dot (default: html)')
+  .option('--outfile <file>', 'Path to write the output')
+  .option('--internal-only', 'Show only internal workspace packages')
+  .option('--external-only', 'Show only external dependencies')
+  .option('--filter <expr>', 'Include nodes matching glob/regex')
+  .option('--hide-dev', 'Hide devDependencies')
+  .option('--hide-peer', 'Hide peerDependencies')
+  .option('--hide-optional', 'Hide optionalDependencies')
+  .option('--max-depth <n>', 'Limit transitive depth', parseInt)
+  .option('--cycles', 'Highlight dependency cycles')
+  .option('--stats', 'Compute size/metrics if available')
+  .option('--pm <manager>', 'Force package manager detection')
+  .option('--json', 'Output raw JSON graph to stdout')
+  .option('--silent', 'Suppress banner/logs')
+  .action(async (path, options) => {
+    const silent = isSilent(process.argv, process.env);
+    const color = useColor(process.argv, process.env);
+
+    if (!silent) {
+      printBanner({ silent, color });
+      console.log('');
+    }
+
+    const stop = startTimer();
+
+    try {
+      await graphCommand({
+        path,
+        open: options.open,
+        format: options.format as OutputFormat,
+        outfile: options.outfile,
+        internalOnly: options.internalOnly,
+        externalOnly: options.externalOnly,
+        filter: options.filter,
+        hideDev: options.hideDev,
+        hidePeer: options.hidePeer,
+        hideOptional: options.hideOptional,
+        maxDepth: options.maxDepth,
+        cycles: options.cycles,
+        stats: options.stats,
+        pm: options.pm,
+        json: options.json,
+        silent,
+      });
+
+      if (!silent && !options.json) {
+        console.log('');
+        printDone({ verb: 'completed', elapsedMs: stop(), silent, color });
+      }
+    } catch (error) {
+      log.error(`Failed to generate graph: ${error}`);
       process.exit(1);
     }
   });
