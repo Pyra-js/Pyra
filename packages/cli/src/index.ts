@@ -14,6 +14,6 @@ export type {
   BuildConfig,
   ResolveConfig,
   EnvConfig,
-} from '@pyra/shared';
+} from 'pyrajs-shared';
 
-export { defineConfig, defineConfigFn } from '@pyra/shared';
+export { defineConfig, defineConfigFn } from 'pyrajs-shared';

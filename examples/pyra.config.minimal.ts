@@ -1,4 +1,4 @@
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from 'pyrajs-cli';
 
 /**
  * Minimal Pyra Configuration

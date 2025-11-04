@@ -69,6 +69,7 @@ await spawnPM(pm, ['run', 'dev'], { cwd: '/path/to/project' });
 Detects the user's preferred package manager.
 
 **Parameters:**
+
 - `cwd` - Directory to check for lockfiles
 - `override` - Force a specific package manager (`'npm' | 'pnpm' | 'yarn' | 'bun'`)
 
@@ -79,6 +80,7 @@ Detects the user's preferred package manager.
 Spawns the package manager with given arguments.
 
 **Parameters:**
+
 - `pm` - Package manager object from `detectPM()`
 - `args` - Command arguments (e.g., `['install', '--frozen-lockfile']`)
 - `opts.cwd` - Working directory for the command
@@ -111,6 +113,7 @@ type PM = {
 ## Yarn Version Detection
 
 The module automatically detects Yarn version:
+
 - **Yarn v1** (Classic): No `dlx` or `exec` support
 - **Yarn v2+** (Berry): Includes `dlx` and `exec` commands
 
@@ -138,7 +141,7 @@ program
 
 The module provides helpful console output:
 
-```
+```bash
 [pyra] Detected package manager from lockfile: pnpm 9.1.0
 [pyra] (override with --pm <npm|pnpm|yarn|bun>)
 ```
@@ -193,6 +196,7 @@ try {
 ## Testing
 
 The module handles edge cases:
+
 - No lockfiles present
 - No package managers installed (fallback to npm)
 - Invalid user agent format

@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { log, type PyraConfig, getOutDir, getEntry } from '@pyra/shared';
+import { log, type PyraConfig, getOutDir, getEntry } from 'pyrajs-shared';
 import path from 'node:path';
 import fs from 'node:fs';
 

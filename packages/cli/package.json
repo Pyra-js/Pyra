@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsup src/bin.ts src/index.ts src/scaffold.ts src/pm.ts src/init.ts --dts --format esm --out-dir dist && cp -r templates dist/templates",
+    "build": "tsup && node scripts/copy-templates.mjs",
     "dev:run": "tsx src/bin.ts",
     "dev:link": "pnpm build && pnpm link -g",
     "prepublishOnly": "pnpm build"
@@ -55,8 +55,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "pyrajs-core": "^0.0.2",
-    "pyrajs-shared": "^0.0.2",
+    "pyrajs-core": "workspace:*",
+    "pyrajs-shared": "workspace:*",
     "commander": "^12.1.0",
     "@inquirer/prompts": "^7.2.0"
   }

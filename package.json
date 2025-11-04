@@ -1,12 +1,14 @@
 {
   "name": "pyrajs",
   "version": "0.0.1",
+  "type": "module",
   "description": "Pyra.js is a lightweight, modern bundler designed for speed, simplicity, and creative flow. TypeScript-first. Zero config. Built for developers who love efficiency and elegance.",
   "main": "index.js",
   "scripts": {
     "build": "pnpm -r --filter ./packages/* run build",
+    "dev:link": "pnpm build && cd packages/cli && npm link",
+    "dev:unlink": "cd packages/cli && npm unlink -g",
     "clean": "git clean -xfd -e node_modules",
-    "lint": "echo \"(add eslint later)\"",
     "typecheck": "tsc -b"
   },
   "keywords": ["TypeScript", "build tool", "JavaScript", "engine"],
@@ -14,6 +16,7 @@
   "license": "MIT",
   "packageManager": "pnpm@10.17.1",
   "devDependencies": {
+    "pyrajs-cli": "workspace:*",
     "tsup": "^8.5.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"

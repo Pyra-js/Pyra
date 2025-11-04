@@ -8,7 +8,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
-import { log } from '@pyra/shared';
+import { log } from 'pyrajs-shared';
 
 export type PMName = 'npm' | 'pnpm' | 'yarn' | 'bun';
 

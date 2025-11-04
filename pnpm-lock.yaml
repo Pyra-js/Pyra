@@ -12,6 +12,9 @@ importers:
         specifier: ^24.10.0
         version: 24.10.0
     devDependencies:
+      pyrajs-cli:
+        specifier: workspace:*
+        version: link:packages/cli
       tsup:
         specifier: ^8.5.0
         version: 8.5.0(tsx@4.20.6)(typescript@5.9.3)
@@ -24,13 +27,13 @@ importers:
 
   examples:
     dependencies:
-      '@pyra/shared':
+      pyrajs-shared:
         specifier: workspace:*
         version: link:../packages/shared
 
   examples/test-config:
     dependencies:
-      '@pyra/shared':
+      pyrajs-shared:
         specifier: workspace:*
         version: link:../../packages/shared
 
@@ -39,27 +42,27 @@ importers:
       '@inquirer/prompts':
         specifier: ^7.2.0
         version: 7.9.0(@types/node@24.10.0)
-      '@pyra/core':
-        specifier: workspace:*
-        version: link:../core
-      '@pyra/shared':
-        specifier: workspace:*
-        version: link:../shared
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      pyrajs-core:
+        specifier: workspace:*
+        version: link:../core
+      pyrajs-shared:
+        specifier: workspace:*
+        version: link:../shared
 
   packages/core:
     dependencies:
-      '@pyra/shared':
-        specifier: workspace:*
-        version: link:../shared
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
       esbuild:
         specifier: ^0.24.0
         version: 0.24.2
+      pyrajs-shared:
+        specifier: workspace:*
+        version: link:../shared
       ws:
         specifier: ^8.18.0
         version: 8.18.3

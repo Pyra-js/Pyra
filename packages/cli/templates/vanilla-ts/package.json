@@ -8,6 +8,7 @@
     "build": "pyra build"
   },
   "devDependencies": {
+    "pyrajs-cli": "^0.0.3",
     "typescript": "^5.9.3"
   }
 }

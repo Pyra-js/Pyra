@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
-import { log, loadConfig, getPort, getOutDir } from '@pyra/shared';
-import { DevServer, build } from '@pyra/core';
+import { log, loadConfig, getPort, getOutDir } from 'pyrajs-shared';
+import { DevServer, build } from 'pyrajs-core';
 import { input, select } from '@inquirer/prompts';
 import { scaffold, type Template, type Language } from './scaffold.js';
 import { initProject, validateProjectName } from './init.js';

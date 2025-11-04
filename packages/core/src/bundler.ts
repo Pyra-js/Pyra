@@ -1,6 +1,7 @@
 import * as esbuild from 'esbuild';
-import { log } from '@pyra/shared';
+import { log } from 'pyrajs-shared';
 import path from 'node:path';
+import { metricsStore } from './metrics.js';
 
 /**
  * In-memory cache for bundled modules
@@ -34,6 +35,8 @@ export async function bundleFile(
   }
 
   try {
+    const startTime = Date.now();
+
     // Use esbuild's build API with write: false to get output in memory
     const result = await esbuild.build({
       entryPoints: [filePath],
@@ -57,6 +60,16 @@ export async function bundleFile(
 
     if (result.outputFiles && result.outputFiles.length > 0) {
       const code = result.outputFiles[0].text;
+      const compileTime = Date.now() - startTime;
+      const size = Buffer.byteLength(code, 'utf-8');
+
+      // Track metrics
+      metricsStore.addFileMetric({
+        path: path.relative(root, filePath),
+        size,
+        compileTime,
+        timestamp: Date.now(),
+      });
 
       // Cache the result
       bundleCache.set(filePath, {

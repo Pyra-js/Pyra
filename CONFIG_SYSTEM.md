@@ -20,7 +20,7 @@ Pyra's configuration system is designed around three core principles:
 
 When you run `pyra dev` or `pyra build`, Pyra automatically searches for config files:
 
-```
+```bash
 Project Root
 ├── pyra.config.ts    ← Looks here first ⭐
 ├── pyra.config.js    ← Then here
@@ -53,7 +53,7 @@ const port = cliOptions.port || finalConfig.server?.port || 3000;
 
 Settings are applied in this order (later overrides earlier):
 
-```
+```bash
 1. Defaults        (entry: 'src/index.ts', port: 3000, etc.)
    ↓
 2. Config File     (pyra.config.ts values)
@@ -436,12 +436,14 @@ pyra dev  # Loads pyra.config.ts automatically!
 ## Summary
 
 **For Users:**
+
 1. Create `pyra.config.ts` (or don't, for zero-config!)
 2. Run `pyra dev` or `pyra build`
 3. Config is auto-discovered and loaded
 4. Enjoy full TypeScript IntelliSense
 
 **For Contributors:**
+
 - Config types: `packages/shared/src/types.ts`
 - Config loader: `packages/shared/src/config-loader.ts`
 - CLI integration: `packages/cli/src/bin.ts`

@@ -8,6 +8,6 @@
     "build": "pyra build"
   },
   "dependencies": {
-    "@pyra/shared": "workspace:*"
+    "pyrajs-shared": "workspace:*"
   }
 }

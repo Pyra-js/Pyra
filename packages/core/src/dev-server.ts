@@ -3,10 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { WebSocketServer, WebSocket } from 'ws';
 import chokidar, { type FSWatcher } from 'chokidar';
-import { log } from '@pyra/shared';
+import { log } from 'pyrajs-shared';
 import { transformFile } from './transform.js';
 import { bundleFile, invalidateDependentCache } from './bundler.js';
-import type { PyraConfig } from '@pyra/shared';
+import type { PyraConfig } from 'pyrajs-shared';
+import { metricsStore } from './metrics.js';
 
 export interface DevServerOptions {
   port?: number;
@@ -51,6 +52,32 @@ export class DevServer {
       if (cleanUrl === '/__pyra_hmr_client') {
         res.writeHead(200, { 'Content-Type': 'application/javascript' });
         res.end(this.getHMRClientScript());
+        return;
+      }
+
+      // Handle dashboard UI
+      if (cleanUrl === '/_pyra') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(this.getDashboardHTML());
+        return;
+      }
+
+      // Handle dashboard API endpoints
+      if (cleanUrl === '/_pyra/api/metrics') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          summary: metricsStore.getSummary(),
+          latestBuild: metricsStore.getLatestBuild(),
+          buildHistory: metricsStore.getBuildHistory(20),
+          hmrHistory: metricsStore.getHMRHistory(50),
+          dependencyGraph: metricsStore.getDependencyGraph(),
+        }));
+        return;
+      }
+
+      // Handle dashboard WebSocket endpoint for live updates
+      if (cleanUrl === '/_pyra/ws') {
+        // This is handled by the WebSocket server
         return;
       }
 
@@ -146,8 +173,18 @@ export class DevServer {
       const relativePath = path.relative(this.root, filePath);
       log.info(`File changed: ${relativePath}`);
 
+      const startTime = Date.now();
+
       // Invalidate bundle cache for changed files
       invalidateDependentCache(filePath);
+
+      // Track HMR event
+      metricsStore.addHMREvent({
+        type: 'reload',
+        file: relativePath,
+        timestamp: Date.now(),
+        duration: Date.now() - startTime,
+      });
 
       this.notifyClients('reload');
     });
@@ -156,8 +193,18 @@ export class DevServer {
       const relativePath = path.relative(this.root, filePath);
       log.info(`File added: ${relativePath}`);
 
+      const startTime = Date.now();
+
       // Invalidate bundle cache for new files
       invalidateDependentCache(filePath);
+
+      // Track HMR event
+      metricsStore.addHMREvent({
+        type: 'reload',
+        file: relativePath,
+        timestamp: Date.now(),
+        duration: Date.now() - startTime,
+      });
 
       this.notifyClients('reload');
     });
@@ -252,6 +299,497 @@ export class DevServer {
     };
 
     return types[ext] || 'text/plain';
+  }
+
+  /**
+   * Get dashboard HTML page
+   */
+  private getDashboardHTML(): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pyra.js Build Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 20px rgba(255, 107, 53, 0.3);
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo {
+      font-size: 3rem;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 25px;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      border-color: #ff6b35;
+      box-shadow: 0 8px 25px rgba(255, 107, 53, 0.2);
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #ff6b35;
+    }
+
+    .stat-unit {
+      font-size: 1.2rem;
+      color: #aaa;
+      margin-left: 5px;
+    }
+
+    .section {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #ff6b35;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .file-item {
+      background: #0f0f0f;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .file-item:hover {
+      border-color: #ff6b35;
+      background: #151515;
+    }
+
+    .file-name {
+      font-family: "Courier New", monospace;
+      color: #4fc3f7;
+      font-size: 0.95rem;
+    }
+
+    .file-stats {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .file-stat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .file-stat .label {
+      color: #888;
+    }
+
+    .file-stat .value {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .time-fast {
+      color: #4caf50 !important;
+    }
+
+    .time-medium {
+      color: #ff9800 !important;
+    }
+
+    .time-slow {
+      color: #f44336 !important;
+    }
+
+    .hmr-events {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .hmr-event {
+      background: #0f0f0f;
+      border-left: 3px solid #ff6b35;
+      padding: 12px 15px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      font-family: "Courier New", monospace;
+      font-size: 0.9rem;
+    }
+
+    .hmr-event .timestamp {
+      color: #888;
+      font-size: 0.85rem;
+    }
+
+    .hmr-event .file {
+      color: #4fc3f7;
+      margin: 5px 0;
+    }
+
+    .hmr-event .type {
+      display: inline-block;
+      background: #ff6b35;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .chart-container {
+      height: 300px;
+      background: #0f0f0f;
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      overflow-x: auto;
+    }
+
+    .chart-bar {
+      flex: 1;
+      min-width: 40px;
+      background: linear-gradient(to top, #ff6b35, #f7931e);
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .chart-bar:hover {
+      opacity: 0.8;
+      transform: scaleX(1.1);
+    }
+
+    .chart-bar .tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #000;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      margin-bottom: 5px;
+    }
+
+    .chart-bar:hover .tooltip {
+      opacity: 1;
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1a1a;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      margin-left: auto;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #4caf50;
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0a0a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>
+        <span class="logo">🔥</span>
+        Pyra.js Build Dashboard
+      </h1>
+      <div class="subtitle">Real-time build metrics and performance analytics</div>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Latest Build</div>
+        <div class="stat-value" id="latestBuildTime">--<span class="stat-unit">ms</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Build Time</div>
+        <div class="stat-value" id="avgBuildTime">--<span class="stat-unit">ms</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Builds</div>
+        <div class="stat-value" id="totalBuilds">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Bundle Size</div>
+        <div class="stat-value" id="bundleSize">--<span class="stat-unit">KB</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        📊 Build History
+        <div class="live-indicator">
+          <span class="live-dot"></span>
+          Live
+        </div>
+      </div>
+      <div class="chart-container" id="buildHistoryChart"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">📦 File Compilation Times</div>
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🔥 Hot Module Replacement Events</div>
+      <div class="hmr-events" id="hmrEvents"></div>
+    </div>
+  </div>
+
+  <script>
+    // Fetch and display metrics
+    async function fetchMetrics() {
+      try {
+        const response = await fetch('/_pyra/api/metrics');
+        const data = await response.json();
+        updateDashboard(data);
+      } catch (error) {
+        console.error('Failed to fetch metrics:', error);
+      }
+    }
+
+    function updateDashboard(data) {
+      // Update summary stats
+      const summary = data.summary;
+      document.getElementById('latestBuildTime').innerHTML =
+        summary.latestBuild
+          ? \`\${Math.round(summary.latestBuild.totalDuration)}<span class="stat-unit">ms</span>\`
+          : '--<span class="stat-unit">ms</span>';
+
+      document.getElementById('avgBuildTime').innerHTML =
+        \`\${Math.round(summary.averageBuildTime)}<span class="stat-unit">ms</span>\`;
+
+      document.getElementById('totalBuilds').textContent = summary.totalBuilds;
+
+      document.getElementById('bundleSize').innerHTML =
+        summary.latestBuild
+          ? \`\${(summary.latestBuild.bundleSize / 1024).toFixed(1)}<span class="stat-unit">KB</span>\`
+          : '--<span class="stat-unit">KB</span>';
+
+      // Update build history chart
+      updateBuildHistoryChart(data.buildHistory);
+
+      // Update file list
+      updateFileList(summary.latestBuild?.files || []);
+
+      // Update HMR events
+      updateHMREvents(data.hmrHistory);
+    }
+
+    function updateBuildHistoryChart(history) {
+      const container = document.getElementById('buildHistoryChart');
+
+      if (!history || history.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No build history yet</p></div>';
+        return;
+      }
+
+      const maxDuration = Math.max(...history.map(b => b.totalDuration));
+
+      container.innerHTML = history.map(build => {
+        const height = (build.totalDuration / maxDuration) * 100;
+        const date = new Date(build.timestamp);
+        return \`
+          <div class="chart-bar" style="height: \${height}%">
+            <div class="tooltip">
+              \${Math.round(build.totalDuration)}ms<br>
+              \${date.toLocaleTimeString()}
+            </div>
+          </div>
+        \`;
+      }).join('');
+    }
+
+    function updateFileList(files) {
+      const container = document.getElementById('fileList');
+
+      if (!files || files.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📦</div><p>No files compiled yet</p></div>';
+        return;
+      }
+
+      container.innerHTML = files.map(file => {
+        const timeClass = file.compileTime < 10 ? 'time-fast' :
+                          file.compileTime < 50 ? 'time-medium' : 'time-slow';
+
+        return \`
+          <div class="file-item">
+            <div class="file-name">📦 \${file.path}</div>
+            <div class="file-stats">
+              <div class="file-stat">
+                <span class="label">Time:</span>
+                <span class="value \${timeClass}">\${file.compileTime.toFixed(1)}ms</span>
+              </div>
+              <div class="file-stat">
+                <span class="label">Size:</span>
+                <span class="value">\${(file.size / 1024).toFixed(1)}KB</span>
+              </div>
+            </div>
+          </div>
+        \`;
+      }).join('');
+    }
+
+    function updateHMREvents(events) {
+      const container = document.getElementById('hmrEvents');
+
+      if (!events || events.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔥</div><p>No HMR events yet</p></div>';
+        return;
+      }
+
+      container.innerHTML = events.reverse().map(event => {
+        const date = new Date(event.timestamp);
+        return \`
+          <div class="hmr-event">
+            <div><span class="type">\${event.type}</span></div>
+            <div class="file">\${event.file}</div>
+            <div class="timestamp">\${date.toLocaleTimeString()}</div>
+          </div>
+        \`;
+      }).join('');
+    }
+
+    // Initial fetch
+    fetchMetrics();
+
+    // Auto-refresh every 2 seconds
+    setInterval(fetchMetrics, 2000);
+
+    // Page title update
+    document.title = '🔥 Pyra.js Dashboard';
+  </script>
+</body>
+</html>`;
   }
 
   /**

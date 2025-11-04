@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { log } from '@pyra/shared';
+import { log } from 'pyrajs-shared';
 import { detectPM, spawnPM, type PMName } from './pm.js';
 
 export type InitOptions = {
