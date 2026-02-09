@@ -1,0 +1,50 @@
+{
+  "name": "pyrajs-adapter-react",
+  "version": "0.0.1",
+  "description": "React adapter for Pyra.js — SSR, hydration, and JSX compilation",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsup src/index.ts --dts --format esm --out-dir dist",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [
+    "pyra",
+    "react",
+    "adapter",
+    "ssr"
+  ],
+  "author": "Nathaniel Paz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Simpleboi/Pyra",
+    "directory": "packages/adapter-react"
+  },
+  "dependencies": {
+    "pyrajs-shared": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
