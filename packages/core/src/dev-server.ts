@@ -10,6 +10,11 @@ import { bundleFile, invalidateDependentCache } from "./bundler.js";
 import { metricsStore } from "./metrics.js";
 import { scanRoutes } from "./scanner.js";
 import { createRouter } from "./router.js";
+import {
+  createRequestContext,
+  getSetCookieHeaders,
+  escapeJsonForScript,
+} from "./request-context.js";
 import esbuild from "esbuild";
 
 export interface DevServerOptions {
@@ -261,7 +266,40 @@ export class DevServer {
       return;
     }
 
-    // 3. Build RenderContext
+    // 3. Call load() if exported (v0.3)
+    let data: unknown = null;
+    if (typeof mod.load === "function") {
+      const requestContext = createRequestContext({
+        req,
+        params,
+        routeId: route.id,
+        mode: "development",
+      });
+
+      const loadResult = await mod.load(requestContext);
+
+      // If load() returns a Response, short-circuit the SSR pipeline
+      if (loadResult instanceof Response) {
+        await this.sendWebResponse(res, loadResult);
+
+        // Also apply any Set-Cookie headers from the context
+        const setCookies = getSetCookieHeaders(requestContext);
+        for (const cookie of setCookies) {
+          res.appendHeader("Set-Cookie", cookie);
+        }
+        return;
+      }
+
+      data = loadResult;
+
+      // Apply Set-Cookie headers from the request context
+      const setCookies = getSetCookieHeaders(requestContext);
+      for (const cookie of setCookies) {
+        res.appendHeader("Set-Cookie", cookie);
+      }
+    }
+
+    // 4. Build RenderContext
     const headTags: string[] = [];
     const renderContext: RenderContext = {
       url: new URL(pathname, `http://${req.headers.host || "localhost"}`),
@@ -271,29 +309,35 @@ export class DevServer {
       },
     };
 
-    // 4. Call adapter.renderToHTML()
-    // data is null in v0.2 (no load() yet)
-    const bodyHtml = await adapter.renderToHTML(component, null, renderContext);
+    // 5. Call adapter.renderToHTML() with load data
+    const bodyHtml = await adapter.renderToHTML(component, data, renderContext);
 
-    // 5. Get document shell
+    // 6. Get document shell
     const shell = adapter.getDocumentShell?.() || DEFAULT_SHELL;
 
-    // 6. Build the client module URL for hydration
+    // 7. Build the client module URL for hydration
     const clientModulePath = path.relative(this.root, route.filePath);
     // Normalize to posix separators for URL
     const clientModuleUrl =
       "/__pyra/modules/" + clientModulePath.split(path.sep).join("/");
 
-    // 7. Get hydration script from adapter
+    // 8. Get hydration script from adapter
     const hydrationScript = adapter.getHydrationScript(
       clientModuleUrl,
       this.containerId,
     );
 
-    // 8. Inject serialized data for hydration (params for now, load() data in v0.3)
-    const dataScript = `<script id="__pyra_data" type="application/json">${JSON.stringify({ params })}</script>`;
+    // 9. Serialize data for client hydration
+    // Merge load data + params so the client gets the same props as SSR
+    const hydrationData: Record<string, unknown> = {};
+    if (data && typeof data === "object") {
+      Object.assign(hydrationData, data);
+    }
+    hydrationData.params = params;
+    const serializedData = escapeJsonForScript(JSON.stringify(hydrationData));
+    const dataScript = `<script id="__pyra_data" type="application/json">${serializedData}</script>`;
 
-    // 9. Assemble the full HTML
+    // 10. Assemble the full HTML
     let html = shell;
 
     // Replace container ID placeholder if present
@@ -320,6 +364,31 @@ export class DevServer {
       "Cache-Control": "no-cache",
     });
     res.end(html);
+  }
+
+  /**
+   * Send a Web standard Response through Node's ServerResponse.
+   * Used when load() returns a Response (e.g., redirect).
+   */
+  private async sendWebResponse(
+    res: http.ServerResponse,
+    webResponse: Response,
+  ): Promise<void> {
+    // Copy status
+    res.statusCode = webResponse.status;
+
+    // Copy headers
+    webResponse.headers.forEach((value, key) => {
+      res.setHeader(key, value);
+    });
+
+    // Copy body
+    if (webResponse.body) {
+      const body = await webResponse.text();
+      res.end(body);
+    } else {
+      res.end();
+    }
   }
 
   /**
