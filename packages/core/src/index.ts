@@ -9,3 +9,5 @@ export type { FileMetric, PluginMetric, HMREvent, BuildMetrics, DependencyNode }
 export { scanRoutes } from './scanner.js';
 export type { ScanResult, ScannedLayout, ScannedMiddleware } from './scanner.js';
 export { createRouter } from './router.js';
+export { createRequestContext, escapeJsonForScript } from './request-context.js';
+export type { CreateRequestContextOptions } from './request-context.js';
