@@ -260,7 +260,73 @@ export interface SerializedRouteGraph {
   }>;
 }
 
-// ─── End Route Types ──────────────────────────────────────────────────────────
+// Adapter Types
+
+/**
+ * Passed to renderToHTML so adapters can set <head> tags and
+ * read route information during the render pass.
+ */
+export interface RenderContext {
+  /** The request URL. */
+  url: URL;
+  /** Route parameters extracted by the router. */
+  params: Record<string, string>;
+  /** Adapters call this to append tags into <head>. */
+  pushHead(tag: string): void;
+}
+
+/**
+ * The contract every UI framework adapter must implement.
+ * Core calls these methods at build time and request time.
+ * Adapters MUST NOT import or depend on pyrajs-core.
+ */
+export interface PyraAdapter {
+  /** Human-readable name: 'react', 'svelte', 'vue', etc. */
+  readonly name: string;
+
+  /** File extensions this adapter handles: ['.tsx', '.jsx'] for React. */
+  readonly fileExtensions: readonly string[];
+
+  /**
+   * Return esbuild plugins needed to compile this framework's file types.
+   * Called once during build setup and once during dev server init.
+   */
+  esbuildPlugins(): import('esbuild').Plugin[];
+
+  /**
+   * Server-side render a page component to an HTML fragment (the page body).
+   * Core wraps the fragment in the document shell and injects asset tags.
+   *
+   * @param component - The route module's default export (opaque to core).
+   * @param data      - The return value of the route's load() function, or null.
+   * @param context   - Render context with URL, params, and head-management helpers.
+   * @returns HTML string of the rendered page body.
+   */
+  renderToHTML(
+    component: unknown,
+    data: unknown,
+    context: RenderContext,
+  ): Promise<string> | string;
+
+  /**
+   * Return the inline JavaScript needed to hydrate the page on the client.
+   * Core injects this into a <script type="module"> tag in the document.
+   *
+   * @param clientEntryPath - The URL path to the client-side route module.
+   * @param containerId     - The DOM element ID where the app is mounted.
+   */
+  getHydrationScript(clientEntryPath: string, containerId: string): string;
+
+  /**
+   * Return the HTML document shell that wraps rendered page content.
+   * Must include <!--pyra-outlet--> where the page body is injected,
+   * and <!--pyra-head--> where head tags go.
+   * If not provided, core uses a sensible default.
+   */
+  getDocumentShell?(): string;
+}
+
+// ─── End Adapter Types ────────────────────────────────────────────────────────
 
 /**
  * Helper to define config with type safety
