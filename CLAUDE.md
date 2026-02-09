@@ -67,6 +67,16 @@ Config loader is in `packages/shared/src/config-loader.ts`. Auto-discovers files
 - **Templates** (`cli/templates/`): vanilla-ts, vanilla-js, react-ts, react-js. Scaffolding replaces `{{PROJECT_NAME}}` placeholders.
 - **Reporter** (`cli/src/utils/reporter.ts`): `withBanner()` wraps command execution with timing and banner display. Respects `--silent` flag and `PYRA_SILENT` env var.
 
+## Platform Architecture (Planned)
+
+See `docs/ARCHITECTURE.md` for the full design. Pyra is evolving into a full-stack app platform with three differentiators: **app-first** (full hydration by default, SSG opt-in), **zero wrapper syntax** (page.tsx IS your React component), and **radical transparency** (request tracing, build reports, Server-Timing headers).
+
+Strategy through v1.0 is **React-first**: only `pyrajs-adapter-react` ships. Core never imports React — the `PyraAdapter` interface enforces the boundary. Other adapters (Svelte, Vue) come post-v1.0 to validate the framework-agnostic design.
+
+Key concepts: file-based routing in `src/routes/` (`page.tsx` for pages, `route.ts` for APIs), `load()` for server-side data, unified dev server with on-demand SSR, build orchestrator producing `dist/client/` + `dist/server/` + `dist/manifest.json`, `pyra start` production runtime, and a `RequestTracer` that instruments every pipeline stage.
+
+Build order will become: **shared → core → adapter-react → cli**. New package: `packages/adapter-react/`.
+
 ## Tech Stack
 
 - TypeScript (ES2020, strict mode, bundler module resolution)

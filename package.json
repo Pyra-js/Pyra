@@ -1,9 +1,9 @@
 {
   "name": "pyrajs",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
-  "description": "Pyra.js is a lightweight, modern bundler designed for speed, simplicity, and creative flow. TypeScript-first. Zero config. Built for developers who love efficiency and elegance.",
+  "description": "Pyra.js is a framework designed for building modern full-stack web applications with pluggable UI adapters, unified routing, and a shared runtime.",
   "main": "index.js",
   "scripts": {
     "build": "pnpm -r --filter ./packages/* run build",
