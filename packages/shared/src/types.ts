@@ -337,6 +337,111 @@ export interface PyraAdapter {
 
 // ─── End Adapter Types ────────────────────────────────────────────────────────
 
+// ─── Request Context Types (v0.3) ────────────────────────────────────────────
+
+/**
+ * Passed to load() functions, API handlers, and middleware.
+ * Built from Web standard Request and enriched with Pyra's routing data.
+ */
+export interface RequestContext {
+  /** The original Web standard Request object. */
+  request: Request;
+
+  /** Parsed URL (avoids re-parsing in every handler). */
+  url: URL;
+
+  /** Route parameters extracted by the router: { slug: 'hello-world' }. */
+  params: Record<string, string>;
+
+  /** Request headers (alias for request.headers). */
+  headers: Headers;
+
+  /** Parsed cookies from the Cookie header. */
+  cookies: CookieJar;
+
+  /** Environment variables (filtered by the env config prefix). */
+  env: Record<string, string>;
+
+  /** Current mode: 'development' or 'production'. */
+  mode: PyraMode;
+
+  /** The matched route's ID (e.g., '/blog/[slug]'). */
+  routeId: string;
+
+  /** Create a JSON response. */
+  json(data: unknown, init?: ResponseInit): Response;
+
+  /** Create an HTML response. */
+  html(body: string, init?: ResponseInit): Response;
+
+  /** Create a redirect response. */
+  redirect(url: string, status?: number): Response;
+
+  /** Create a plain text response. */
+  text(body: string, init?: ResponseInit): Response;
+}
+
+/**
+ * Cookie jar for reading and writing cookies.
+ * Parsed from the Cookie header on construction.
+ * Mutations are tracked as pending Set-Cookie headers.
+ */
+export interface CookieJar {
+  get(name: string): string | undefined;
+  getAll(): Record<string, string>;
+  set(name: string, value: string, options?: CookieOptions): void;
+  delete(name: string): void;
+}
+
+export interface CookieOptions {
+  maxAge?: number;
+  expires?: Date;
+  path?: string;
+  domain?: string;
+  secure?: boolean;
+  httpOnly?: boolean;
+  sameSite?: "strict" | "lax" | "none";
+}
+
+/**
+ * The export shape core expects from a page route file (e.g., page.tsx).
+ * The default export is opaque to core — it's passed to the adapter.
+ */
+export interface PageRouteModule {
+  /** The page component. Core never inspects this; it's the adapter's input. */
+  default: unknown;
+
+  /** Server-side data loader. Runs on every request (SSR) or at build time (SSG). */
+  load?: (context: RequestContext) => Promise<unknown> | unknown;
+
+  /** Prerender configuration for SSG (v0.7+). */
+  prerender?: boolean | PrerenderConfig;
+
+  /** HTTP cache-control hints for this route (v0.7+). */
+  cache?: CacheConfig;
+
+  /** Static metadata (page title, description). */
+  metadata?: RouteMetadata;
+}
+
+export interface PrerenderConfig {
+  paths(): Promise<Record<string, string>[]> | Record<string, string>[];
+}
+
+export interface CacheConfig {
+  maxAge?: number;
+  sMaxAge?: number;
+  staleWhileRevalidate?: number;
+}
+
+export interface RouteMetadata {
+  title?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+// ─── End Request Context Types ───────────────────────────────────────────────
+
 /**
  * Helper to define config with type safety
  */
