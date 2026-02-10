@@ -6,7 +6,8 @@ import { pathToFileURL } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import chokidar, { type FSWatcher } from "chokidar";
 import { log } from "pyrajs-shared";
-import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResult } from "pyrajs-shared";
+import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResult, RouteMatch } from "pyrajs-shared";
+import { HTTP_METHODS } from "pyrajs-shared";
 import { bundleFile, invalidateDependentCache } from "./bundler.js";
 import { metricsStore } from "./metrics.js";
 import { scanRoutes } from "./scanner.js";
@@ -152,11 +153,7 @@ export class DevServer {
 
         if (match) {
           if (match.route.type === "api") {
-            // API routes are not implemented yet (v0.6)
-            res.writeHead(501, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({ error: "API routes not yet implemented" }),
-            );
+            await this.handleApiRoute(req, res, match);
             return;
           }
 
@@ -247,7 +244,7 @@ export class DevServer {
     req: http.IncomingMessage,
     res: http.ServerResponse,
     pathname: string,
-    match: import("pyrajs-shared").RouteMatch,
+    match: RouteMatch,
   ): Promise<void> {
     const { route, params } = match;
     const adapter = this.adapter!;
@@ -368,6 +365,68 @@ export class DevServer {
       "Cache-Control": "no-cache",
     });
     res.end(html);
+  }
+
+  // ── API Route Handler ─────────────────────────────────────────────────────────
+
+  /**
+   * Handle a matched API route: compile → import → check method → call handler → respond.
+   */
+  private async handleApiRoute(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    match: RouteMatch,
+  ): Promise<void> {
+    const { route, params } = match;
+
+    // 1. Compile the API route module for server
+    const serverModule = await this.compileForServer(route.filePath);
+
+    // 2. Import the compiled module (cache-bust for re-import after recompile)
+    const moduleUrl =
+      pathToFileURL(serverModule).href + `?t=${Date.now()}`;
+    const mod = await import(moduleUrl);
+
+    // 3. Check HTTP method
+    const method = (req.method || "GET").toUpperCase();
+
+    if (typeof mod[method] !== "function") {
+      // Collect available methods for the Allow header
+      const allowedMethods = (HTTP_METHODS as readonly string[]).filter(
+        (m) => typeof mod[m] === "function",
+      );
+      res.writeHead(405, {
+        "Content-Type": "application/json",
+        Allow: allowedMethods.join(", "),
+      });
+      res.end(
+        JSON.stringify({
+          error: `Method ${method} not allowed`,
+          allowed: allowedMethods,
+        }),
+      );
+      return;
+    }
+
+    // 4. Build RequestContext
+    const ctx = createRequestContext({
+      req,
+      params,
+      routeId: route.id,
+      mode: "development",
+    });
+
+    // 5. Call the handler
+    const response: Response = await mod[method](ctx);
+
+    // 6. Send the Response
+    await this.sendWebResponse(res, response);
+
+    // 7. Apply Set-Cookie headers from the context
+    const setCookies = getSetCookieHeaders(ctx);
+    for (const cookie of setCookies) {
+      res.appendHeader("Set-Cookie", cookie);
+    }
   }
 
   /**
