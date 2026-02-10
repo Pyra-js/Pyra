@@ -1,5 +1,5 @@
 import pc from 'picocolors';
-import type { DevServerResult } from 'pyrajs-shared';
+import type { DevServerResult, ProdServerResult } from 'pyrajs-shared';
 import { resolveUrls } from 'pyrajs-shared';
 import { formatDuration } from './reporter.js';
 
@@ -157,6 +157,117 @@ export function printDevBanner(opts: DevBannerOptions): void {
     const ssrValue = color ? pc.dim(detail) : detail;
     lines.push(`  ${a}  ${ssrLabel}     ${ssrValue}`);
   }
+
+  // Blank line
+  lines.push('');
+
+  // Shortcuts hint
+  const shortcutsHint = color
+    ? pc.dim('press ') + pc.bold('h + enter') + pc.dim(' for shortcuts')
+    : 'press h + enter for shortcuts';
+  lines.push(`  ${a}  ${shortcutsHint}`);
+
+  // Print with spacing
+  console.log('');
+  console.log(lines.join('\n'));
+  console.log('');
+
+  // Print warnings after the banner
+  for (const warning of result.warnings) {
+    if (color) {
+      console.warn(`  ${pc.yellow('!')}  ${pc.dim(warning)}`);
+    } else {
+      console.warn(`  !  ${warning}`);
+    }
+  }
+}
+
+// ── Production server banner ────────────────────────────────────────────────
+
+export interface ProdBannerOptions {
+  result: ProdServerResult;
+  version: string;
+  color: boolean;
+  silent: boolean;
+  ci: boolean;
+}
+
+export function printProdBanner(opts: ProdBannerOptions): void {
+  if (opts.silent) return;
+
+  const { result, version, color, ci } = opts;
+  const caps = detectCapabilities();
+  const arrow = getArrow(caps.supportsUnicode);
+  const urls = resolveUrls({
+    protocol: result.protocol,
+    host: result.host,
+    port: result.port,
+  });
+
+  // CI / non-TTY: compact single-line output
+  if (ci) {
+    const time = formatDuration(result.startupMs);
+    console.log(`PYRA v${version} serving in ${time} -- ${urls.local}`);
+    console.log(`  ${result.adapterName} (${result.pageRouteCount} pages, ${result.apiRouteCount} API, ${result.ssgRouteCount} SSG)`);
+    for (const warning of result.warnings) {
+      console.warn(`  warn: ${warning}`);
+    }
+    return;
+  }
+
+  // TTY: full styled banner
+  const lines: string[] = [];
+
+  // Header line — "serving" instead of "ready" to distinguish prod
+  const time = formatDuration(result.startupMs);
+  if (color) {
+    lines.push(
+      `  ${pc.bold(pc.green('PYRA'))} ${pc.green(`v${version}`)}  ${pc.dim('serving in')} ${pc.bold(time)}`
+    );
+  } else {
+    lines.push(`  PYRA v${version}  serving in ${time}`);
+  }
+
+  // Blank line
+  lines.push('');
+
+  // Arrow string (reused)
+  const a = color ? pc.green(arrow) : arrow;
+
+  // Local URL
+  const localLabel = color ? pc.bold('Local:') : 'Local:';
+  lines.push(`  ${a}  ${localLabel}   ${formatUrl(urls.local, color)}`);
+
+  // Network URL(s)
+  const networkLabel = color ? pc.bold('Network:') : 'Network:';
+  if (urls.network.length > 0) {
+    for (const networkUrl of urls.network) {
+      lines.push(`  ${a}  ${networkLabel} ${formatUrl(networkUrl, color)}`);
+    }
+  } else {
+    const hint = color
+      ? pc.dim('use ') + pc.bold('--host') + pc.dim(' to expose')
+      : 'use --host to expose';
+    lines.push(`  ${a}  ${networkLabel} ${hint}`);
+  }
+
+  // Routes summary
+  const routesLabel = color ? pc.bold('Routes:') : 'Routes:';
+  const routeInfo: string[] = [];
+  if (result.pageRouteCount > 0) {
+    routeInfo.push(`${result.pageRouteCount} page${result.pageRouteCount !== 1 ? 's' : ''}`);
+  }
+  if (result.apiRouteCount > 0) {
+    routeInfo.push(`${result.apiRouteCount} API`);
+  }
+  if (result.ssgRouteCount > 0) {
+    routeInfo.push(`${result.ssgRouteCount} SSG`);
+  }
+  const detail = routeInfo.length > 0
+    ? `${result.adapterName} (${routeInfo.join(', ')})`
+    : result.adapterName;
+  const routesValue = color ? pc.dim(detail) : detail;
+  lines.push(`  ${a}  ${routesLabel}  ${routesValue}`);
 
   // Blank line
   lines.push('');
