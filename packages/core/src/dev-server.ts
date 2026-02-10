@@ -1,11 +1,12 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { pathToFileURL } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import chokidar, { type FSWatcher } from "chokidar";
 import { log } from "pyrajs-shared";
-import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext } from "pyrajs-shared";
+import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResult } from "pyrajs-shared";
 import { bundleFile, invalidateDependentCache } from "./bundler.js";
 import { metricsStore } from "./metrics.js";
 import { scanRoutes } from "./scanner.js";
@@ -725,40 +726,41 @@ export class DevServer {
 
   // ── Server lifecycle ────────────────────────────────────────────────────────
 
-  async start(): Promise<void> {
+  async start(): Promise<DevServerResult> {
+    const startTime = performance.now();
+    const warnings: string[] = [];
+    let ssrEnabled = false;
+
     // v0.2: If adapter is configured, scan routes and build the router
     if (this.adapter && this.routesDir) {
       if (!fs.existsSync(this.routesDir)) {
-        log.warn(`Routes directory not found: ${this.routesDir}`);
-        log.warn("Route-aware SSR is disabled. Create src/routes/ to enable it.");
+        warnings.push(`Routes directory not found: ${this.routesDir}`);
+        warnings.push("Route-aware SSR is disabled. Create src/routes/ to enable it.");
       } else {
         await this.buildRouteGraph();
+        ssrEnabled = true;
       }
     }
 
     return new Promise((resolve, reject) => {
       this.server.on("error", (error: NodeJS.ErrnoException) => {
-        if (error.code === "EADDRINUSE") {
-          log.error(`Port ${this.port} is already in use.`);
-          log.info(
-            `Try using a different port: pyra dev -p ${this.port + 1}`,
-          );
-          reject(error);
-        } else {
-          log.error(`Server error: ${error.message}`);
-          reject(error);
-        }
+        reject(error);
       });
 
       this.server.listen(this.port, () => {
-        log.success(`Dev server running at http://localhost:${this.port}`);
-        if (this.router) {
-          log.info(`SSR enabled via ${this.adapter!.name} adapter`);
-        }
-        log.info("Watching for file changes...");
-
         this.setupFileWatcher();
-        resolve();
+
+        resolve({
+          port: this.port,
+          host: "localhost",
+          protocol: "http",
+          ssr: ssrEnabled,
+          adapterName: this.adapter?.name,
+          pageRouteCount: this.router?.pageRoutes().length ?? 0,
+          apiRouteCount: this.router?.apiRoutes().length ?? 0,
+          warnings,
+          startupMs: performance.now() - startTime,
+        });
       });
     });
   }

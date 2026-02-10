@@ -127,9 +127,12 @@ export async function loadConfig(options: {
   root?: string;
   mode?: PyraMode;
   configFile?: string;
+  /** Suppress config loading log messages (default: true). */
+  silent?: boolean;
 } = {}): Promise<PyraConfig> {
   const root = options.root || process.cwd();
   const mode = options.mode || 'development';
+  const silent = options.silent ?? true;
 
   // Find config file
   const configPath = options.configFile || findConfigFile(root);
@@ -137,10 +140,10 @@ export async function loadConfig(options: {
   let userConfig: PyraConfig = {};
 
   if (configPath) {
-    log.info(`Loading config from ${configPath}`);
+    if (!silent) log.info(`Loading config from ${configPath}`);
     userConfig = await loadConfigFile(configPath, mode);
   } else {
-    log.info('No config file found, using defaults');
+    if (!silent) log.info('No config file found, using defaults');
   }
 
   // Set root directory
