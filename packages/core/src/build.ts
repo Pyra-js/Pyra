@@ -9,7 +9,6 @@ import {
   type RouteManifest,
   type ManifestRouteEntry,
   type ManifestAsset,
-  type RouteNode,
   type RouteGraph,
   HTTP_METHODS,
   getOutDir,

@@ -18,8 +18,8 @@ const program = new Command();
 
 program
   .name('pyra')
-  .description('🔥 Pyra.js - Ignite your frontend\nA next-gen build tool for blazing-fast web development')
-  .version('0.0.1');
+  .description('🔥 Pyra.js - Ignite your frontend\nA next-gen framework for blazing-fast full-stack web development')
+  .version('0.4.0');
 
 program
   .command('dev')
@@ -106,17 +106,24 @@ program
         configFile: options.config,
       });
 
+      // Resolve root and adapter
+      const root = config.root || process.cwd();
+      const adapter = createReactAdapter(); // v1.0: React-first
+
       // CLI options override config file
       const outDir = options.outDir || getOutDir(config);
       const minify = options.minify ?? config.build?.minify ?? true;
       const sourcemap = options.sourcemap ?? config.build?.sourcemap ?? false;
 
-      // Call the build function
+      // Call the build orchestrator
       await build({
         config,
+        adapter,
+        root,
         outDir,
         minify,
         sourcemap,
+        silent,
       });
 
       // Print completion message
