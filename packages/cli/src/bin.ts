@@ -16,7 +16,7 @@ import {
   useColor,
   getVersion,
 } from "./utils/reporter.js";
-import { printDevBanner, detectCapabilities } from "./utils/dev-banner.js";
+import { printDevBanner, printProdBanner, detectCapabilities } from "./utils/dev-banner.js";
 import { setupKeyboardShortcuts } from "./utils/keyboard.js";
 import type { TailwindPreset } from "./utils/tailwind.js";
 import { graphCommand } from "./commands/graph.js";
@@ -231,11 +231,7 @@ program
   .action(async (options) => {
     const silent = isSilent(process.argv, process.env);
     const color = useColor(process.argv, process.env);
-
-    if (!silent) {
-      printBanner({ silent, color });
-      console.log("");
-    }
+    const caps = detectCapabilities();
 
     try {
       // Load configuration
@@ -260,7 +256,16 @@ program
         config,
       });
 
-      await server.start();
+      const result = await server.start();
+
+      // Print styled startup banner
+      printProdBanner({
+        result,
+        version: getVersion(),
+        color,
+        silent,
+        ci: caps.isCI,
+      });
 
       // Handle graceful shutdown
       let isShuttingDown = false;
@@ -269,7 +274,8 @@ program
         if (isShuttingDown) return;
         isShuttingDown = true;
 
-        log.info("\nShutting down production server...");
+        console.log('');
+        log.info("Shutting down production server...");
 
         server
           .stop()
@@ -282,6 +288,32 @@ program
 
       process.on("SIGINT", shutdown);
       process.on("SIGTERM", shutdown);
+
+      // Set up keyboard shortcuts (TTY only, not in CI)
+      if (!caps.isCI && process.stdin.isTTY) {
+        const localUrl = `${result.protocol}://localhost:${result.port}/`;
+
+        setupKeyboardShortcuts({
+          onRestart: async () => {
+            // No restart in production — just print a hint
+            log.info("Restart is not available in production. Stop and re-run 'pyra start'.");
+          },
+          onQuit: () => shutdown(),
+          onOpen: () => {
+            import("child_process").then(({ exec }) => {
+              const cmd =
+                process.platform === "win32"
+                  ? `start ${localUrl}`
+                  : process.platform === "darwin"
+                    ? `open ${localUrl}`
+                    : `xdg-open ${localUrl}`;
+              exec(cmd);
+            });
+          },
+          onClear: () => console.clear(),
+          color,
+        });
+      }
     } catch (error) {
       log.error(`Failed to start production server: ${error}`);
       process.exit(1);
