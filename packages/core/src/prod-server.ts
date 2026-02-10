@@ -2,6 +2,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { performance } from "node:perf_hooks";
 import { log } from "pyrajs-shared";
 import type {
   PyraConfig,
@@ -9,6 +10,7 @@ import type {
   RouteManifest,
   ManifestRouteEntry,
   RenderContext,
+  ProdServerResult,
 } from "pyrajs-shared";
 import { HTTP_METHODS } from "pyrajs-shared";
 import {
@@ -212,7 +214,9 @@ export class ProdServer {
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
-  async start(): Promise<void> {
+  async start(): Promise<ProdServerResult> {
+    const startTime = performance.now();
+
     return new Promise((resolve, reject) => {
       this.server.on("error", (error: NodeJS.ErrnoException) => {
         if (error.code === "EADDRINUSE") {
@@ -224,13 +228,31 @@ export class ProdServer {
       });
 
       this.server.listen(this.port, () => {
-        const routeCount = Object.keys(this.manifest.routes).length;
-        log.success(
-          `Production server running at http://localhost:${this.port}`,
-        );
-        log.info(`Serving from ${this.distDir}`);
-        log.info(`${routeCount} route(s) loaded from manifest`);
-        resolve();
+        const routes = Object.values(this.manifest.routes);
+        let pageRouteCount = 0;
+        let apiRouteCount = 0;
+        let ssgRouteCount = 0;
+
+        for (const entry of routes) {
+          if (entry.type === "api") {
+            apiRouteCount++;
+          } else {
+            pageRouteCount++;
+            if (entry.prerendered) ssgRouteCount++;
+          }
+        }
+
+        resolve({
+          port: this.port,
+          host: "localhost",
+          protocol: "http",
+          adapterName: this.adapter.name,
+          pageRouteCount,
+          apiRouteCount,
+          ssgRouteCount,
+          warnings: [],
+          startupMs: performance.now() - startTime,
+        });
       });
     });
   }
