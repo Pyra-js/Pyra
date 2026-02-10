@@ -1,0 +1,10 @@
+// src/routes/api/health/route.ts
+function GET() {
+  return new Response(JSON.stringify({ status: "ok" }), {
+    headers: { "Content-Type": "application/json" }
+  });
+}
+export {
+  GET
+};
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vLi4vc3JjL3JvdXRlcy9hcGkvaGVhbHRoL3JvdXRlLnRzIl0sCiAgInNvdXJjZXNDb250ZW50IjogWyIvLyBIZWFsdGggY2hlY2sgQVBJIHJvdXRlIFx1MjAxNCBHRVQgb25seVxyXG5leHBvcnQgZnVuY3Rpb24gR0VUKCkge1xyXG4gIHJldHVybiBuZXcgUmVzcG9uc2UoSlNPTi5zdHJpbmdpZnkoeyBzdGF0dXM6IFwib2tcIiB9KSwge1xyXG4gICAgaGVhZGVyczogeyBcIkNvbnRlbnQtVHlwZVwiOiBcImFwcGxpY2F0aW9uL2pzb25cIiB9LFxyXG4gIH0pO1xyXG59XHJcbiJdLAogICJtYXBwaW5ncyI6ICI7QUFDTyxTQUFTLE1BQU07QUFDcEIsU0FBTyxJQUFJLFNBQVMsS0FBSyxVQUFVLEVBQUUsUUFBUSxLQUFLLENBQUMsR0FBRztBQUFBLElBQ3BELFNBQVMsRUFBRSxnQkFBZ0IsbUJBQW1CO0FBQUEsRUFDaEQsQ0FBQztBQUNIOyIsCiAgIm5hbWVzIjogW10KfQo=
