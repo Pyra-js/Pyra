@@ -20,6 +20,7 @@ import { printDevBanner, detectCapabilities } from "./utils/dev-banner.js";
 import { setupKeyboardShortcuts } from "./utils/keyboard.js";
 import type { TailwindPreset } from "./utils/tailwind.js";
 import { graphCommand } from "./commands/graph.js";
+import { doctorCommand } from "./commands/doctor.js";
 import type { OutputFormat } from "./graph/types.js";
 
 const program = new Command();
@@ -562,5 +563,25 @@ program
     }
   });
 
+program
+  .command("doctor")
+  .description("Diagnose your Pyra project setup")
+  .option("-c, --config <path>", "Path to config file")
+  .option("--silent", "Suppress output")
+  .action(async (options) => {
+    const silent = isSilent(process.argv, process.env);
+    const color = useColor(process.argv, process.env);
+
+    try {
+      await doctorCommand({
+        config: options.config,
+        silent,
+        color,
+      });
+    } catch (error) {
+      log.error(`Doctor failed: ${error}`);
+      process.exit(1);
+    }
+  });
 
 program.parse();
