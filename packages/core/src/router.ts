@@ -21,6 +21,9 @@ interface TrieNode {
   /** At most one dynamic child (a `:param` segment). */
   dynamicChild: { paramName: string; node: TrieNode } | null;
 
+  /** At most one catch-all child (a `*param` segment). Matches all remaining segments. */
+  catchAllChild: { paramName: string; route: RouteNode } | null;
+
   /** If this node is a terminal, the route it maps to. */
   route: RouteNode | null;
 }
@@ -29,6 +32,7 @@ function createTrieNode(): TrieNode {
   return {
     staticChildren: new Map(),
     dynamicChild: null,
+    catchAllChild: null,
     route: null,
   };
 }
@@ -93,8 +97,20 @@ class Router implements RouteGraph {
     const segments = splitPattern(route.pattern);
     let current = this.root;
 
-    for (const segment of segments) {
-      if (segment.startsWith(':')) {
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+
+      if (segment.startsWith('*')) {
+        // Catch-all segment — must be the last segment
+        const paramName = segment.slice(1);
+        if (current.catchAllChild) {
+          throw new Error(
+            `Route collision: "${route.id}" and "${current.catchAllChild.route.id}" both define a catch-all at the same level.`,
+          );
+        }
+        current.catchAllChild = { paramName, route };
+        return; // Catch-all is always terminal
+      } else if (segment.startsWith(':')) {
         // Dynamic segment
         const paramName = segment.slice(1);
         if (!current.dynamicChild) {
@@ -165,14 +181,14 @@ class Router implements RouteGraph {
 
     const segment = segments[index];
 
-    // 1. Try static match first (higher priority)
+    // 1. Try static match first (highest priority)
     const staticChild = node.staticChildren.get(segment);
     if (staticChild) {
       const result = this.matchSegments(staticChild, segments, index + 1, params);
       if (result) return result;
     }
 
-    // 2. Try dynamic match (lower priority)
+    // 2. Try dynamic match (medium priority)
     if (node.dynamicChild) {
       const { paramName, node: dynamicNode } = node.dynamicChild;
       params[paramName] = segment;
@@ -180,6 +196,13 @@ class Router implements RouteGraph {
       if (result) return result;
       // Backtrack: remove the param if dynamic didn't lead to a match
       delete params[paramName];
+    }
+
+    // 3. Try catch-all match (lowest priority) — consumes all remaining segments
+    if (node.catchAllChild) {
+      const { paramName, route } = node.catchAllChild;
+      params[paramName] = segments.slice(index).join('/');
+      return route;
     }
 
     return null;
