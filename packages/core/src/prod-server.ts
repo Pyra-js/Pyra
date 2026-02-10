@@ -10,6 +10,7 @@ import type {
   ManifestRouteEntry,
   RenderContext,
 } from "pyrajs-shared";
+import { HTTP_METHODS } from "pyrajs-shared";
 import {
   createRequestContext,
   getSetCookieHeaders,
@@ -269,14 +270,9 @@ export class ProdServer {
         return;
       }
 
-      // 3. API routes — not implemented in v0.5
+      // 3. API routes
       if (match.entry.type === "api") {
-        res.writeHead(501, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            error: "API routes in production are not available in this version",
-          }),
-        );
+        await this.handleApiRoute(req, res, match);
         return;
       }
 
@@ -307,6 +303,70 @@ export class ProdServer {
       "Cache-Control": cacheControl,
     });
     res.end(content);
+  }
+
+  // ── API Route Handler ────────────────────────────────────────────────────
+
+  private async handleApiRoute(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    match: MatchResult,
+  ): Promise<void> {
+    const { entry, params } = match;
+    const method = (req.method || "GET").toUpperCase();
+
+    // 1. Check if this method is available (from build-time export detection)
+    const allowedMethods = entry.methods || [];
+    if (!allowedMethods.includes(method)) {
+      res.writeHead(405, {
+        "Content-Type": "application/json",
+        Allow: allowedMethods.join(", "),
+      });
+      res.end(
+        JSON.stringify({
+          error: `Method ${method} not allowed`,
+          allowed: allowedMethods,
+        }),
+      );
+      return;
+    }
+
+    // 2. Import the pre-built server entry
+    if (!entry.serverEntry) {
+      res.writeHead(500, { "Content-Type": "text/plain" });
+      res.end(`API route "${entry.id}" has no server entry in the manifest.`);
+      return;
+    }
+
+    const serverPath = path.join(this.serverDir, entry.serverEntry);
+    const mod = await this.importModule(serverPath);
+
+    if (typeof mod[method] !== "function") {
+      // Shouldn't happen if build detected it, but handle gracefully
+      res.writeHead(500, { "Content-Type": "text/plain" });
+      res.end(`API route "${entry.id}" does not export a ${method} handler.`);
+      return;
+    }
+
+    // 3. Build RequestContext
+    const ctx = createRequestContext({
+      req,
+      params,
+      routeId: entry.id,
+      mode: "production",
+      envPrefix: (this.config?.env?.prefix as string) || "PYRA_",
+    });
+
+    // 4. Call the handler
+    const response: Response = await mod[method](ctx);
+
+    // 5. Send the Response
+    await this.sendWebResponse(res, response);
+
+    // 6. Apply Set-Cookie headers
+    for (const cookie of getSetCookieHeaders(ctx)) {
+      res.appendHeader("Set-Cookie", cookie);
+    }
   }
 
   // ── SSR Pipeline ─────────────────────────────────────────────────────────
