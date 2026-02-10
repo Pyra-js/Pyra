@@ -442,6 +442,116 @@ export interface RouteMetadata {
 
 // ─── End Request Context Types ───────────────────────────────────────────────
 
+// Route Manifest Types (v0.4) 
+
+/**
+ * Written to dist/manifest.json by the build orchestrator.
+ * Read by the prod runtime at startup to map routes to built assets.
+ * Designed to be human-readable.
+ */
+export interface RouteManifest {
+  /** Schema version for forward compatibility. */
+  version: 1;
+
+  /** The adapter that was used for the build. */
+  adapter: string;
+
+  /** Base public path (default '/'). */
+  base: string;
+
+  /** Build timestamp (ISO 8601). */
+  builtAt: string;
+
+  /** Map of route ID → route entry. */
+  routes: Record<string, ManifestRouteEntry>;
+
+  /** Map of asset filename → asset metadata. */
+  assets: Record<string, ManifestAsset>;
+}
+
+export interface ManifestRouteEntry {
+  /** Route ID: '/blog/[slug]'. */
+  id: string;
+
+  /** URL pattern for matching: '/blog/:slug'. */
+  pattern: string;
+
+  /** 'page' or 'api'. */
+  type: 'page' | 'api';
+
+  // --- Page route fields (present when type === 'page') ---
+
+  /** Path to the client entry chunk (relative to dist/client/). */
+  clientEntry?: string;
+
+  /** Additional client chunks this route needs (shared splits). */
+  clientChunks?: string[];
+
+  /** CSS files for this route. */
+  css?: string[];
+
+  /** Path to the SSR module (relative to dist/server/). */
+  ssrEntry?: string;
+
+  /** Whether this route was prerendered to static HTML. */
+  prerendered?: boolean;
+
+  /** Path to prerendered HTML if prerendered is true. */
+  prerenderedFile?: string;
+
+  /** Whether the route module exports a load() function. */
+  hasLoad?: boolean;
+
+  // --- API route fields (present when type === 'api') ---
+
+  /** Path to the server handler module (relative to dist/server/). */
+  serverEntry?: string;
+
+  /** HTTP methods this route handles. */
+  methods?: string[];
+
+  // --- Metadata ---
+
+  /** Layout chain IDs (outermost first). */
+  layouts?: string[];
+
+  /** Middleware file paths. */
+  middleware?: string[];
+}
+
+export interface ManifestAsset {
+  /** Output filename (content-hashed). */
+  file: string;
+
+  /** Content hash for cache busting. */
+  hash: string;
+
+  /** Size in bytes. */
+  size: number;
+
+  /** MIME type. */
+  type: string;
+}
+
+/**
+ * The export shape core expects from an API route file (e.g., route.ts).
+ * Each exported function name corresponds to an HTTP method.
+ */
+export interface APIRouteModule {
+  GET?: (context: RequestContext) => Response | Promise<Response>;
+  POST?: (context: RequestContext) => Response | Promise<Response>;
+  PUT?: (context: RequestContext) => Response | Promise<Response>;
+  DELETE?: (context: RequestContext) => Response | Promise<Response>;
+  PATCH?: (context: RequestContext) => Response | Promise<Response>;
+  HEAD?: (context: RequestContext) => Response | Promise<Response>;
+  OPTIONS?: (context: RequestContext) => Response | Promise<Response>;
+}
+
+/** HTTP methods recognized in API route modules. */
+export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as const;
+
+// ─── End Route Manifest Types ────────────────────────────────────────────────
+
 /**
  * Helper to define config with type safety
  */
