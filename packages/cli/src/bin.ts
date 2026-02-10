@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import path from "node:path";
-import { log, loadConfig, getPort, getOutDir } from "pyrajs-shared";
+import { log, loadConfig, getPort, getOutDir, findAvailablePort } from "pyrajs-shared";
 import { DevServer, build, ProdServer } from "pyrajs-core";
 import { createReactAdapter } from "pyrajs-adapter-react";
 import { input, select, confirm } from "@inquirer/prompts";
@@ -14,7 +14,10 @@ import {
   printDone,
   isSilent,
   useColor,
+  getVersion,
 } from "./utils/reporter.js";
+import { printDevBanner, detectCapabilities } from "./utils/dev-banner.js";
+import { setupKeyboardShortcuts } from "./utils/keyboard.js";
 import type { TailwindPreset } from "./utils/tailwind.js";
 import { graphCommand } from "./commands/graph.js";
 import type { OutputFormat } from "./graph/types.js";
