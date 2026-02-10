@@ -1,0 +1,8 @@
+// src/routes/api/protected/route.ts
+async function GET(context) {
+  return context.json({ message: "Protected data", routeId: context.routeId });
+}
+export {
+  GET
+};
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vLi4vc3JjL3JvdXRlcy9hcGkvcHJvdGVjdGVkL3JvdXRlLnRzIl0sCiAgInNvdXJjZXNDb250ZW50IjogWyJleHBvcnQgYXN5bmMgZnVuY3Rpb24gR0VUKGNvbnRleHQpIHtcclxuICByZXR1cm4gY29udGV4dC5qc29uKHsgbWVzc2FnZTogXCJQcm90ZWN0ZWQgZGF0YVwiLCByb3V0ZUlkOiBjb250ZXh0LnJvdXRlSWQgfSk7XHJcbn1cclxuIl0sCiAgIm1hcHBpbmdzIjogIjtBQUFBLGVBQXNCLElBQUksU0FBUztBQUNqQyxTQUFPLFFBQVEsS0FBSyxFQUFFLFNBQVMsa0JBQWtCLFNBQVMsUUFBUSxRQUFRLENBQUM7QUFDN0U7IiwKICAibmFtZXMiOiBbXQp9Cg==
