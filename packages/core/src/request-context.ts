@@ -220,3 +220,63 @@ export function getSetCookieHeaders(ctx: RequestContext): string[] {
   }
   return [];
 }
+
+export interface BuildTimeRequestContextOptions {
+  /** URL pathname (e.g., '/about' or '/blog/hello'). */
+  pathname: string;
+  params: Record<string, string>;
+  routeId: string;
+  envPrefix?: string;
+}
+
+/**
+ * Create a RequestContext for build-time prerendering.
+ * No real HTTP request exists — uses a synthetic Request object.
+ */
+export function createBuildTimeRequestContext(
+  opts: BuildTimeRequestContextOptions,
+): RequestContext {
+  const { pathname, params, routeId, envPrefix = "PYRA_" } = opts;
+
+  const url = new URL(pathname, "http://localhost");
+  const headers = new Headers();
+  const request = new Request(url.href, { method: "GET", headers });
+  const cookies = new CookieJarImpl(undefined);
+  const env = filterEnv(envPrefix);
+
+  return {
+    request,
+    url,
+    params,
+    headers,
+    cookies,
+    env,
+    mode: "production",
+    routeId,
+
+    json(data: unknown, init?: ResponseInit): Response {
+      return new Response(JSON.stringify(data), {
+        ...init,
+        headers: { "Content-Type": "application/json", ...init?.headers },
+      });
+    },
+
+    html(body: string, init?: ResponseInit): Response {
+      return new Response(body, {
+        ...init,
+        headers: { "Content-Type": "text/html", ...init?.headers },
+      });
+    },
+
+    redirect(redirectUrl: string, status = 302): Response {
+      return new Response(null, { status, headers: { Location: redirectUrl } });
+    },
+
+    text(body: string, init?: ResponseInit): Response {
+      return new Response(body, {
+        ...init,
+        headers: { "Content-Type": "text/plain", ...init?.headers },
+      });
+    },
+  };
+}
