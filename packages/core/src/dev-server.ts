@@ -99,26 +99,28 @@ export class DevServer {
     res: http.ServerResponse,
   ): Promise<void> {
     const url = req.url || "/";
+    const method = req.method || "GET";
 
     // Remove query parameters
     const cleanUrl = url.split("?")[0];
 
+    // v0.9: Create tracer for every request in dev mode
+    const tracer = new RequestTracer(method, cleanUrl);
+
     try {
-      // Handle HMR client script injection
+      // Handle internal Pyra endpoints (no tracing)
       if (cleanUrl === "/__pyra_hmr_client") {
         res.writeHead(200, { "Content-Type": "application/javascript" });
         res.end(this.getHMRClientScript());
         return;
       }
 
-      // Handle dashboard UI
       if (cleanUrl === "/_pyra") {
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(this.getDashboardHTML());
         return;
       }
 
-      // Handle dashboard API endpoints
       if (cleanUrl === "/_pyra/api/metrics") {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
@@ -133,14 +135,40 @@ export class DevServer {
         return;
       }
 
-      // Handle dashboard WebSocket endpoint for live updates
+      // v0.9: Trace API endpoints
+      if (cleanUrl === "/_pyra/api/traces") {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(metricsStore.getRecentTraces()));
+        return;
+      }
+      if (cleanUrl === "/_pyra/api/traces/stats") {
+        const stats = metricsStore.routeStats();
+        const obj: Record<string, any> = {};
+        for (const [key, val] of stats) {
+          obj[key] = val;
+        }
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(obj));
+        return;
+      }
+      if (cleanUrl.startsWith("/_pyra/api/traces/") && cleanUrl !== "/_pyra/api/traces/stats") {
+        const traceId = cleanUrl.slice("/_pyra/api/traces/".length);
+        const trace = metricsStore.getTrace(traceId);
+        if (trace) {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(trace));
+        } else {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Trace not found" }));
+        }
+        return;
+      }
+
       if (cleanUrl === "/_pyra/ws") {
         return;
       }
 
       // ── v0.2: Serve client-side module for hydration ──────────────────
-      // Browser requests /__pyra/modules/<path> to get the compiled client
-      // entry for a route (used by the hydration script).
       if (cleanUrl.startsWith("/__pyra/modules/")) {
         const modulePath = cleanUrl.slice("/__pyra/modules/".length);
         const absolutePath = path.resolve(this.root, modulePath);
@@ -162,9 +190,15 @@ export class DevServer {
 
       // ── v0.2: Route-aware SSR pipeline ────────────────────────────────
       if (this.adapter && this.router) {
+        // v0.9: Trace route matching
+        tracer.start("route-match");
         const match = this.router.match(cleanUrl);
+        tracer.end();
 
         if (match) {
+          tracer.start("route-match", match.route.id);
+          tracer.end();
+
           // Build RequestContext for middleware + handlers
           const ctx = createRequestContext({
             req,
@@ -176,26 +210,44 @@ export class DevServer {
           // Load middleware chain
           const chain = await this.loadMiddlewareChain(match.route.middlewarePaths);
 
-          // Run middleware → route handler
+          // Run middleware → route handler (with tracing)
           const response = await runMiddleware(chain, ctx, async () => {
             if (match.route.type === "api") {
-              return this.handleApiRouteInner(req, ctx, match);
+              return this.handleApiRouteInner(req, ctx, match, tracer);
             }
-            return this.handlePageRouteInner(req, ctx, cleanUrl, match);
+            return this.handlePageRouteInner(req, ctx, cleanUrl, match, tracer);
           });
 
-          // Send response + cookies
-          await this.sendWebResponse(res, response);
+          // v0.9: Finalize trace and set Server-Timing header
+          const trace = tracer.finalize(response.status);
+          metricsStore.recordTrace(trace);
+          console.log(tracer.toDetailedLog(response.status));
+
+          // Send response + cookies + Server-Timing
+          const headers = new Headers(response.headers);
+          headers.set("Server-Timing", tracer.toServerTiming());
+          const tracedResponse = new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+          });
+
+          await this.sendWebResponse(res, tracedResponse);
           const setCookies = getSetCookieHeaders(ctx);
           for (const cookie of setCookies) {
             res.appendHeader("Set-Cookie", cookie);
           }
           return;
         }
-        // No route matched — fall through to static file serving
+
+        // No route matched — log 404 trace
+        const trace = tracer.finalize(404);
+        metricsStore.recordTrace(trace);
+        console.log(tracer.toDetailedLog(404));
       }
 
       // ── Static file serving (existing behavior) ───────────────────────
+      tracer.start("static");
       let filePath = path.join(
         this.root,
         cleanUrl === "/" ? "/index.html" : cleanUrl,
@@ -206,6 +258,10 @@ export class DevServer {
         if (fs.existsSync(filePath + ".html")) {
           filePath = filePath + ".html";
         } else {
+          tracer.end();
+          const trace = tracer.finalize(404);
+          metricsStore.recordTrace(trace);
+          console.log(tracer.toDetailedLog(404));
           res.writeHead(404, { "Content-Type": "text/plain" });
           res.end("404 Not Found");
           return;
@@ -217,6 +273,10 @@ export class DevServer {
       if (stat.isDirectory()) {
         filePath = path.join(filePath, "index.html");
         if (!fs.existsSync(filePath)) {
+          tracer.end();
+          const trace = tracer.finalize(404);
+          metricsStore.recordTrace(trace);
+          console.log(tracer.toDetailedLog(404));
           res.writeHead(404, { "Content-Type": "text/plain" });
           res.end("404 Not Found");
           return;
@@ -226,6 +286,7 @@ export class DevServer {
       // Read file
       let content = fs.readFileSync(filePath, "utf-8");
       const ext = path.extname(filePath);
+      tracer.end();
 
       // Bundle and transform TypeScript/JSX files with module resolution
       if (/\.(tsx?|jsx?|mjs)$/.test(ext)) {
@@ -235,6 +296,10 @@ export class DevServer {
           "Cache-Control": "no-cache",
         });
         res.end(content);
+        // Only log static traces in verbose mode
+        if (this.verbose) {
+          console.log(tracer.toDetailedLog(200));
+        }
         return;
       }
 
@@ -243,6 +308,9 @@ export class DevServer {
         content = this.injectHMRClient(content);
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(content);
+        if (this.verbose) {
+          console.log(tracer.toDetailedLog(200));
+        }
         return;
       }
 
@@ -256,7 +324,17 @@ export class DevServer {
             : "public, max-age=31536000",
       });
       res.end(content);
+      if (this.verbose) {
+        console.log(tracer.toDetailedLog(200));
+      }
     } catch (error) {
+      // v0.9: Log error trace
+      const errMsg = error instanceof Error ? error.message : String(error);
+      tracer.endWithError(errMsg);
+      const trace = tracer.finalize(500);
+      metricsStore.recordTrace(trace);
+      console.log(tracer.toDetailedLog(500));
+
       log.error(`Error serving ${cleanUrl}: ${error}`);
       res.writeHead(500, { "Content-Type": "text/html" });
       res.end(this.getErrorHTML(cleanUrl, error));
@@ -274,11 +352,13 @@ export class DevServer {
     ctx: import("pyrajs-shared").RequestContext,
     pathname: string,
     match: RouteMatch,
+    tracer: RequestTracer,
   ): Promise<Response> {
     const { route, params } = match;
     const adapter = this.adapter!;
 
     // 1. Compile the route module for server (Node target, framework external)
+    tracer.start("compile");
     const serverModule = await this.compileForServer(route.filePath);
 
     // 2. Import the compiled module
@@ -286,6 +366,7 @@ export class DevServer {
       pathToFileURL(serverModule).href + `?t=${Date.now()}`;
     const mod = await import(moduleUrl);
     const component = mod.default;
+    tracer.end();
 
     if (!component) {
       return new Response(
@@ -297,14 +378,23 @@ export class DevServer {
     // 3. Call load() if exported (v0.3)
     let data: unknown = null;
     if (typeof mod.load === "function") {
-      const loadResult = await mod.load(ctx);
+      tracer.start("load");
+      try {
+        const loadResult = await mod.load(ctx);
 
-      // If load() returns a Response, short-circuit the SSR pipeline
-      if (loadResult instanceof Response) {
-        return loadResult;
+        // If load() returns a Response, short-circuit the SSR pipeline
+        if (loadResult instanceof Response) {
+          tracer.end();
+          return loadResult;
+        }
+
+        data = loadResult;
+        tracer.end();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        tracer.endWithError(msg);
+        throw err;
       }
-
-      data = loadResult;
     }
 
     // 4. Load layout components
@@ -339,7 +429,9 @@ export class DevServer {
     };
 
     // 6. Call adapter.renderToHTML() with load data
+    tracer.start("render", `${adapter.name} SSR`);
     const bodyHtml = await adapter.renderToHTML(component, data, renderContext);
+    tracer.end();
 
     // 7. Get document shell
     const shell = adapter.getDocumentShell?.() || DEFAULT_SHELL;
@@ -357,6 +449,7 @@ export class DevServer {
     );
 
     // 10. Serialize data for client hydration
+    tracer.start("inject-assets");
     const hydrationData: Record<string, unknown> = {};
     if (data && typeof data === "object") {
       Object.assign(hydrationData, data);
@@ -380,6 +473,7 @@ export class DevServer {
 
     html = this.injectHMRClient(html);
     html = html.replace("</body>", `  ${scripts}\n</body>`);
+    tracer.end();
 
     return new Response(html, {
       status: 200,
@@ -400,16 +494,19 @@ export class DevServer {
     req: http.IncomingMessage,
     ctx: import("pyrajs-shared").RequestContext,
     match: RouteMatch,
+    tracer: RequestTracer,
   ): Promise<Response> {
     const { route } = match;
 
     // 1. Compile the API route module for server
+    tracer.start("compile");
     const serverModule = await this.compileForServer(route.filePath);
 
     // 2. Import the compiled module (cache-bust for re-import after recompile)
     const moduleUrl =
       pathToFileURL(serverModule).href + `?t=${Date.now()}`;
     const mod = await import(moduleUrl);
+    tracer.end();
 
     // 3. Check HTTP method
     const method = (req.method || "GET").toUpperCase();
@@ -434,7 +531,11 @@ export class DevServer {
     }
 
     // 4. Call the handler with the shared RequestContext
-    return mod[method](ctx);
+    tracer.start("handler", method);
+    const response = await mod[method](ctx);
+    tracer.end();
+
+    return response;
   }
 
   // ── Middleware Loading ──────────────────────────────────────────────────────
