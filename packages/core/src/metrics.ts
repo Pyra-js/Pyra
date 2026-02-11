@@ -1,8 +1,11 @@
 /**
  * Build Metrics Collection System
  *
- * Tracks build performance, bundle sizes, plugin timings, and HMR events
+ * Tracks build performance, bundle sizes, plugin timings, HMR events,
+ * and request traces (v0.9).
  */
+
+import type { RequestTrace, TraceFilter, RouteStats } from 'pyrajs-shared';
 
 export interface FileMetric {
   path: string;
@@ -48,6 +51,10 @@ class MetricsStore {
   private dependencyGraph: Map<string, DependencyNode> = new Map();
   private currentBuild: Partial<BuildMetrics> = {};
   private maxHistorySize = 50; // Keep last 50 builds
+
+  // v0.9: Request trace storage (ring buffer)
+  private traces: RequestTrace[] = [];
+  private maxTraceSize = 200;
 
   /**
    * Start a new build measurement
