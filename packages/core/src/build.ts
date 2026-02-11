@@ -1,5 +1,6 @@
 import * as esbuild from 'esbuild';
 import { builtinModules } from 'node:module';
+import { gzipSync } from 'node:zlib';
 import path from 'node:path';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -17,6 +18,7 @@ import {
   HTTP_METHODS,
   getOutDir,
 } from 'pyrajs-shared';
+import pc from 'picocolors';
 import { scanRoutes, type ScanResult, type ScannedLayout, type ScannedMiddleware } from './scanner.js';
 import { createRouter } from './router.js';
 import {
@@ -483,7 +485,7 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
   const serverOutputCount = Object.keys(serverResult.metafile!.outputs).length;
 
   if (!silent) {
-    printBuildReport(manifest, totalDurationMs, clientOutDir, serverOutDir);
+    printBuildReport(manifest, totalDurationMs, clientOutDir, serverOutDir, options.config);
   }
 
   log.success(`Build completed in ${(totalDurationMs / 1000).toFixed(2)}s`);
@@ -825,26 +827,30 @@ function buildEmptyManifest(adapterName: string, base: string): RouteManifest {
 }
 
 /**
- * Print the build report table to the terminal.
+ * v0.9: Enhanced build report with MW, Layouts, shared chunks, gzip, and size warnings.
  */
 function printBuildReport(
   manifest: RouteManifest,
   totalDurationMs: number,
   clientOutDir: string,
   serverOutDir: string,
+  config?: PyraConfig,
 ): void {
   const sortedRoutes = Object.values(manifest.routes)
     .sort((a, b) => a.pattern.localeCompare(b.pattern));
 
+  const warnSize = config?.buildReport?.warnSize ?? 51200; // 50 KB default
+
   let pageCount = 0;
   let apiCount = 0;
   let ssgCount = 0;
+  let prerenderTotal = 0;
   let totalJS = 0;
   let totalCSS = 0;
 
   console.log('');
-  console.log('  Route                     Type   Mode      JS        CSS      load()');
-  console.log('  ' + '\u2500'.repeat(67));
+  console.log(`  ${pc.bold('Route')}                     Type   Mode      JS        CSS      load()  MW  Layouts`);
+  console.log('  ' + pc.dim('\u2500'.repeat(85)));
 
   for (const entry of sortedRoutes) {
     const routeCol = entry.pattern.padEnd(26);
@@ -854,7 +860,13 @@ function printBuildReport(
       let mode = 'SSR';
       if (entry.prerendered) {
         ssgCount++;
-        mode = entry.prerenderedCount ? `SSG (${entry.prerenderedCount})` : 'SSG';
+        if (entry.prerenderedCount) {
+          mode = `SSG (${entry.prerenderedCount})`;
+          prerenderTotal += entry.prerenderedCount;
+        } else {
+          mode = 'SSG';
+          prerenderTotal += 1;
+        }
       }
 
       // Calculate JS size from manifest assets
@@ -876,28 +888,131 @@ function printBuildReport(
       }
       totalCSS += cssSize;
 
-      const jsSizeStr = formatSize(jsSize).padStart(9);
-      const cssSizeStr = cssSize > 0 ? formatSize(cssSize).padStart(9) : '        -';
-      const hasLoad = entry.hasLoad ? 'yes' : 'no';
+      // v0.9: Size warning
+      const jsSizeRaw = formatSize(jsSize);
+      let jsSizeStr: string;
+      if (jsSize > warnSize) {
+        jsSizeStr = pc.yellow(`\u26A0 ${jsSizeRaw}`).padStart(9 + 10); // account for color codes
+      } else {
+        jsSizeStr = jsSizeRaw.padStart(9);
+      }
 
-      console.log(`  ${routeCol} page   ${mode.padEnd(9)} ${jsSizeStr} ${cssSizeStr}   ${hasLoad}`);
+      const cssSizeStr = cssSize > 0 ? formatSize(cssSize).padStart(9) : '        -';
+      const hasLoad = entry.hasLoad ? 'yes' : 'no ';
+
+      // v0.9: MW count
+      const mwCount = entry.middleware ? entry.middleware.length : 0;
+      const mwStr = String(mwCount).padStart(2);
+
+      // v0.9: Layout chain
+      let layoutStr = '\u2014';
+      if (entry.layouts && entry.layouts.length > 0) {
+        layoutStr = entry.layouts.map(id => {
+          if (id === '/') return 'root';
+          return id.slice(1).split('/').pop() || id;
+        }).join(' \u2192 ');
+      }
+
+      console.log(`  ${routeCol} page   ${mode.padEnd(9)} ${jsSizeStr} ${cssSizeStr}   ${hasLoad}    ${mwStr}  ${pc.dim(layoutStr)}`);
     } else {
       apiCount++;
-      console.log(`  ${routeCol} api    \u2014         \u2014         \u2014        \u2014`);
+      // v0.9: MW count for API routes
+      const mwCount = entry.middleware ? entry.middleware.length : 0;
+      const mwStr = String(mwCount).padStart(2);
+      console.log(`  ${routeCol} api    \u2014         \u2014         \u2014        \u2014     ${mwStr}  \u2014`);
     }
   }
 
-  console.log('  ' + '\u2500'.repeat(67));
-  console.log(`  Totals                    ${pageCount} pg   ${ssgCount} SSG     ${formatSize(totalJS).padStart(9)} ${formatSize(totalCSS).padStart(9)}`);
-  console.log(`                            ${apiCount} api`);
+  console.log('  ' + pc.dim('\u2500'.repeat(85)));
+
+  // Totals line
+  const totalLine1 = `  Totals                    ${pageCount} pg   ${ssgCount} SSG     ${formatSize(totalJS).padStart(9)} ${formatSize(totalCSS).padStart(9)}`;
+  const totalLine2 = `                            ${apiCount} api  ${prerenderTotal > 0 ? `${prerenderTotal} pre` : ''}`;
+
+  // v0.9: Gzip estimation
+  let gzipStr = '';
+  const clientDir = path.dirname(clientOutDir);
+  const gzipSize = estimateGzipSize(clientDir);
+  if (gzipSize > 0) {
+    gzipStr = `    ${pc.dim(`(gzip: ${formatSize(gzipSize)})`)}`;
+  }
+
+  console.log(totalLine1 + gzipStr);
+  console.log(totalLine2);
   console.log('');
 
+  // v0.9: Shared chunks section
+  const sharedChunks = getSharedChunks(manifest);
+  if (sharedChunks.length > 0) {
+    console.log(`  ${pc.bold('Shared chunks')}`);
+    console.log('  ' + pc.dim('\u2500'.repeat(54)));
+    for (const chunk of sharedChunks) {
+      const sizeStr = formatSize(chunk.size).padStart(12);
+      const usageStr = pc.dim(`(used by ${chunk.usedBy} pages)`);
+      console.log(`  ${chunk.name.padEnd(30)} ${sizeStr}   ${usageStr}`);
+    }
+    console.log('');
+  }
+
   // Count output files
-  const clientFiles = countFilesRecursive(path.dirname(clientOutDir)); // dist/client/
+  const clientFiles = countFilesRecursive(clientDir);
   const serverFiles = countFilesRecursive(serverOutDir);
 
   console.log(`  Output:   dist/client/ (${clientFiles} files)  dist/server/ (${serverFiles} files)`);
   console.log('  Manifest: dist/manifest.json');
+  console.log(`  Built in ${(totalDurationMs / 1000).toFixed(1)}s`);
+}
+
+/**
+ * v0.9: Estimate gzip size of all JS/CSS files in the client output.
+ */
+function estimateGzipSize(clientDir: string): number {
+  if (!fs.existsSync(clientDir)) return 0;
+
+  let totalGzipped = 0;
+  const assetsDir = path.join(clientDir, 'assets');
+  if (!fs.existsSync(assetsDir)) return 0;
+
+  try {
+    const files = fs.readdirSync(assetsDir);
+    for (const file of files) {
+      if (file.endsWith('.js') || file.endsWith('.css')) {
+        const content = fs.readFileSync(path.join(assetsDir, file));
+        const gzipped = gzipSync(content, { level: 6 });
+        totalGzipped += gzipped.length;
+      }
+    }
+  } catch {
+    // Ignore errors — gzip estimate is optional
+  }
+
+  return totalGzipped;
+}
+
+/**
+ * v0.9: Identify shared chunks and how many page routes use each.
+ */
+function getSharedChunks(
+  manifest: RouteManifest,
+): { name: string; size: number; usedBy: number }[] {
+  const chunkUsage = new Map<string, number>();
+
+  for (const entry of Object.values(manifest.routes)) {
+    if (entry.type !== 'page') continue;
+    for (const chunk of entry.clientChunks || []) {
+      chunkUsage.set(chunk, (chunkUsage.get(chunk) || 0) + 1);
+    }
+  }
+
+  const result: { name: string; size: number; usedBy: number }[] = [];
+  for (const [chunk, usedBy] of chunkUsage) {
+    const asset = manifest.assets[chunk];
+    const size = asset?.size || 0;
+    const name = path.basename(chunk);
+    result.push({ name, size, usedBy });
+  }
+
+  return result.sort((a, b) => b.size - a.size);
 }
 
 /**
