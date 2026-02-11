@@ -4,7 +4,7 @@ import { log } from "pyrajs-shared";
 import { detectPM, spawnPM, type PMName } from "./pm.js";
 import cli_pkg from "../package.json";
 
-// Project Initialization Utility - Scaffolds a new Pyra project with automatic package manager detection
+// Project Initialization Utility - Scaffolds a new full-stack Pyra project
 
 const pkg_version = cli_pkg.version;
 
@@ -15,87 +15,124 @@ export type InitOptions = {
   template?: string; // Project template
 };
 
-// Generate package.json content
+// Generate package.json content for a full-stack project
 function generatePackageJson(projectName: string): string {
   const pkg = {
     name: projectName,
     version: "0.1.0",
     type: "module",
-    descirption: "A super cool project built with Pyra",
+    description: "A full-stack app built with Pyra",
     private: true,
     scripts: {
       dev: "pyra dev",
       build: "pyra build",
+      start: "pyra start",
+    },
+    dependencies: {
+      react: "^19.0.0",
+      "react-dom": "^19.0.0",
     },
     devDependencies: {
       "pyrajs-cli": `^${pkg_version}`,
+      "@types/react": "^19.0.0",
+      "@types/react-dom": "^19.0.0",
+      typescript: "^5.7.0",
     },
   };
 
   return JSON.stringify(pkg, null, 2) + "\n";
 }
 
-// Generate index.html content
-function generateIndexHtml(projectName: string): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${projectName}</title>
-</head>
-<body>
-  <div id="app"></div>
-  <script type="module" src="/src/index.ts"></script>
-</body>
-</html>
-`;
-}
-
-// Generate src/index.ts content
-function generateIndexTs(): string {
-  return `// Welcome to your Pyra project!
-// Start the dev server with: npm run dev
-
-const app = document.querySelector<HTMLDivElement>('#app');
-
-if (app) {
-  app.innerHTML = \`
-    <h1>🔥 Pyra.js</h1>
-    <p>Your project is ready!</p>
-    <p>Edit <code>src/index.ts</code> to get started.</p>
-  \`;
-}
-
-// Hot Module Replacement (HMR) API
-if (import.meta.hot) {
-  import.meta.hot.accept(() => {
-    console.log('🔥 HMR update');
-  });
-}
-`;
-}
-
-// Generate pyra.config.js content
+// Generate pyra.config.ts content
 function generatePyraConfig(): string {
-  return `import { defineConfig } from 'pyrajs-cli';
+  return `import { defineConfig } from 'pyrajs-shared';
 
 export default defineConfig({
-  // Entry point
-  entry: 'src/index.ts',
-
-  // Dev server configuration
-  server: {
-    port: 3000,
-    open: true,
-  },
-
-  // Build configuration
-  build: {
-    outDir: 'dist',
-    sourcemap: true,
-  },
+  routesDir: 'src/routes',
 });
+`;
+}
+
+// Generate tsconfig.json content
+function generateTsConfig(): string {
+  const config = {
+    compilerOptions: {
+      target: "ES2020",
+      module: "ESNext",
+      moduleResolution: "bundler",
+      jsx: "react-jsx",
+      strict: true,
+      esModuleInterop: true,
+      skipLibCheck: true,
+      forceConsistentCasingInFileNames: true,
+      resolveJsonModule: true,
+      isolatedModules: true,
+    },
+    include: ["src"],
+  };
+
+  return JSON.stringify(config, null, 2) + "\n";
+}
+
+// Generate root layout component
+function generateRootLayout(projectName: string): string {
+  return `import React from 'react';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div>
+      <nav style={{ padding: '1rem', borderBottom: '1px solid #eee', display: 'flex', gap: '1rem' }}>
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+      </nav>
+      <main style={{ padding: '2rem' }}>
+        {children}
+      </main>
+      <footer style={{ padding: '1rem', borderTop: '1px solid #eee', textAlign: 'center', color: '#999' }}>
+        ${projectName} &mdash; built with Pyra.js
+      </footer>
+    </div>
+  );
+}
+`;
+}
+
+// Generate home page component
+function generateHomePage(projectName: string): string {
+  return `export default function Home() {
+  return (
+    <div>
+      <h1>Welcome to ${projectName}</h1>
+      <p>Your full-stack Pyra.js project is ready.</p>
+      <p>Edit <code>src/routes/page.tsx</code> to get started.</p>
+    </div>
+  );
+}
+`;
+}
+
+// Generate about page component (prerendered)
+function generateAboutPage(): string {
+  return `export const prerender = true;
+
+export default function About() {
+  return (
+    <div>
+      <h1>About</h1>
+      <p>This page is statically prerendered at build time.</p>
+    </div>
+  );
+}
+`;
+}
+
+// Generate health check API route
+function generateHealthRoute(): string {
+  return `import type { RequestContext } from 'pyrajs-shared';
+
+export function GET(ctx: RequestContext) {
+  return ctx.json({ status: 'ok', timestamp: new Date().toISOString() });
+}
 `;
 }
 
@@ -135,7 +172,7 @@ pnpm-debug.log*
 }
 
 /**
- * Initialize a new Pyra project
+ * Initialize a new full-stack Pyra project
  *
  * @param options - Initialization options
  */
@@ -154,45 +191,52 @@ export async function initProject(options: InitOptions): Promise<void> {
   log.info(`Creating new Pyra project: ${projectName}`);
   log.info("");
 
-  // 1. Create project directory
+  // 1. Create directories
   mkdirSync(projectDir, { recursive: true });
-  log.success(`✓ Created directory: ${projectName}/`);
+  log.success("Created directory: " + projectName + "/");
 
-  // 2. Create src directory
-  const srcDir = join(projectDir, "src");
-  mkdirSync(srcDir, { recursive: true });
-  log.success(`✓ Created directory: ${projectName}/src/`);
+  const routesDir = join(projectDir, "src", "routes");
+  const aboutDir = join(routesDir, "about");
+  const apiHealthDir = join(routesDir, "api", "health");
+  mkdirSync(routesDir, { recursive: true });
+  mkdirSync(aboutDir, { recursive: true });
+  mkdirSync(apiHealthDir, { recursive: true });
+  log.success("Created directory: src/routes/");
 
-  // 3. Write package.json
-  const packageJsonPath = join(projectDir, "package.json");
-  writeFileSync(packageJsonPath, generatePackageJson(projectName), "utf-8");
-  log.success(`✓ Created package.json`);
+  // 2. Write package.json
+  writeFileSync(join(projectDir, "package.json"), generatePackageJson(projectName), "utf-8");
+  log.success("Created package.json");
 
-  // 4. Write index.html
-  const indexHtmlPath = join(projectDir, "index.html");
-  writeFileSync(indexHtmlPath, generateIndexHtml(projectName), "utf-8");
-  log.success(`✓ Created index.html`);
+  // 3. Write pyra.config.ts
+  writeFileSync(join(projectDir, "pyra.config.ts"), generatePyraConfig(), "utf-8");
+  log.success("Created pyra.config.ts");
 
-  // 5. Write src/index.ts
-  const indexTsPath = join(srcDir, "index.ts");
-  writeFileSync(indexTsPath, generateIndexTs(), "utf-8");
-  log.success(`✓ Created src/index.ts`);
+  // 4. Write tsconfig.json
+  writeFileSync(join(projectDir, "tsconfig.json"), generateTsConfig(), "utf-8");
+  log.success("Created tsconfig.json");
 
-  // 6. Write pyra.config.js
-  const configPath = join(projectDir, "pyra.config.js");
-  writeFileSync(configPath, generatePyraConfig(), "utf-8");
-  log.success(`✓ Created pyra.config.js`);
+  // 5. Write route files
+  writeFileSync(join(routesDir, "layout.tsx"), generateRootLayout(projectName), "utf-8");
+  log.success("Created src/routes/layout.tsx");
 
-  // 7. Write .gitignore
-  const gitignorePath = join(projectDir, ".gitignore");
-  writeFileSync(gitignorePath, generateGitignore(), "utf-8");
-  log.success(`✓ Created .gitignore`);
+  writeFileSync(join(routesDir, "page.tsx"), generateHomePage(projectName), "utf-8");
+  log.success("Created src/routes/page.tsx");
+
+  writeFileSync(join(aboutDir, "page.tsx"), generateAboutPage(), "utf-8");
+  log.success("Created src/routes/about/page.tsx");
+
+  writeFileSync(join(apiHealthDir, "route.ts"), generateHealthRoute(), "utf-8");
+  log.success("Created src/routes/api/health/route.ts");
+
+  // 6. Write .gitignore
+  writeFileSync(join(projectDir, ".gitignore"), generateGitignore(), "utf-8");
+  log.success("Created .gitignore");
 
   log.info("");
   log.success("Project scaffolded successfully!");
   log.info("");
 
-  // 8. Detect package manager and install dependencies
+  // 7. Detect package manager and install dependencies
   if (!skipInstall) {
     log.info("Installing dependencies...");
     log.info("");
@@ -204,7 +248,7 @@ export async function initProject(options: InitOptions): Promise<void> {
       await spawnPM(pm, ["install"], { cwd: projectDir });
 
       log.info("");
-      log.success("✓ Dependencies installed");
+      log.success("Dependencies installed");
     } catch (error) {
       log.warn("Failed to install dependencies");
       log.warn("Run the install command manually:");
@@ -214,9 +258,9 @@ export async function initProject(options: InitOptions): Promise<void> {
     }
   }
 
-  // 9. Show next steps
+  // 8. Show next steps
   log.info("");
-  log.info("🎉 All done! Next steps:");
+  log.info("All done! Next steps:");
   log.info("");
   log.info(`  cd ${projectName}`);
 
@@ -226,7 +270,6 @@ export async function initProject(options: InitOptions): Promise<void> {
 
   log.info(`  npm run dev`);
   log.info("");
-  log.info("Happy coding! 🔥");
 }
 
 /**

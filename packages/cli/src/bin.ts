@@ -310,7 +310,7 @@ program
         isShuttingDown = true;
 
         console.log("");
-        log.info("Shutting down production server...");
+        log.info("Graceful shutdown initiated, finishing in-flight requests...");
 
         server
           .stop()
