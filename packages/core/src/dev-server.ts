@@ -579,8 +579,9 @@ export class DevServer {
       const compiled = await this.compileForServer(filePath);
       const moduleUrl = pathToFileURL(compiled).href + `?t=${Date.now()}`;
       const mod = await import(moduleUrl);
-      if (typeof mod.default === "function") {
-        chain.push(mod.default);
+      const fn = typeof mod.default === "function" ? mod.default : typeof mod.middleware === "function" ? mod.middleware : null;
+      if (fn) {
+        chain.push(fn);
       }
     }
     return chain;

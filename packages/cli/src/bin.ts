@@ -473,7 +473,7 @@ program
             {
               name: "React",
               value: "react",
-              description: "React with modern hooks",
+              description: "Full-stack React with file-based routing and SSR",
             },
           ],
         }));

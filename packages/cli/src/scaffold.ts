@@ -24,9 +24,13 @@ export interface ScaffoldOptions {
 
 /**
  * Get the template directory name based on template and language
+ * React templates use the full-stack variant with file-based routing
  */
 function getTemplateName(template: Template, language: Language): string {
   const langSuffix = language === 'typescript' ? 'ts' : 'js';
+  if (template === 'react') {
+    return `react-${langSuffix}-fullstack`;
+  }
   return `${template}-${langSuffix}`;
 }
 

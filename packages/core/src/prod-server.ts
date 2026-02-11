@@ -685,8 +685,9 @@ export class ProdServer {
     for (const entry of entries) {
       const absPath = path.join(this.serverDir, entry);
       const mod = await this.importModule(absPath);
-      if (typeof mod.default === "function") {
-        chain.push(mod.default);
+      const fn = typeof mod.default === "function" ? mod.default : typeof mod.middleware === "function" ? mod.middleware : null;
+      if (fn) {
+        chain.push(fn);
       }
     }
     return chain;
