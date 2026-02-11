@@ -14,3 +14,4 @@ export type { CreateRequestContextOptions, BuildTimeRequestContextOptions } from
 export { ProdServer } from './prod-server.js';
 export type { ProdServerOptions } from './prod-server.js';
 export { runMiddleware } from './middleware.js';
+export { RequestTracer, shouldTrace, resetTraceIdCounter } from './tracer.js';
