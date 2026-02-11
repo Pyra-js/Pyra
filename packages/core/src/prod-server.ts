@@ -12,6 +12,7 @@ import type {
   RenderContext,
   ProdServerResult,
   Middleware,
+  ErrorPageProps,
 } from "pyrajs-shared";
 import { HTTP_METHODS } from "pyrajs-shared";
 import { runMiddleware } from "./middleware.js";
@@ -309,8 +310,21 @@ export class ProdServer {
           tracer.start("route-match", "(no match)");
           tracer.end();
         }
-        res.writeHead(404, { "Content-Type": "text/html" });
-        res.end(this.get404HTML(cleanUrl));
+        // v1.0: Try custom 404 page from manifest
+        const notFoundResponse = await this.renderNotFoundPage(req, cleanUrl, tracer);
+        if (tracer) {
+          const trace = tracer.finalize(404);
+          const headers = new Headers(notFoundResponse.headers);
+          headers.set("Server-Timing", tracer.toServerTiming());
+          const tracedResponse = new Response(notFoundResponse.body, {
+            status: 404,
+            statusText: notFoundResponse.statusText,
+            headers,
+          });
+          await this.sendWebResponse(res, tracedResponse);
+        } else {
+          await this.sendWebResponse(res, notFoundResponse);
+        }
         return;
       }
 
@@ -329,22 +343,38 @@ export class ProdServer {
       // 4. Load middleware chain
       const chain = await this.loadMiddlewareChain(match.entry.middleware || []);
 
-      // 5. Run middleware → route handler
-      const response = await runMiddleware(chain, ctx, async () => {
-        if (match.entry.type === "api") {
-          tracer?.start("handler", method);
-          const apiResponse = await this.handleApiRouteInner(req, ctx, match);
-          tracer?.end();
-          return apiResponse;
-        }
-        if (match.entry.prerendered) {
-          tracer?.start("serve-prerendered");
-          const preResponse = this.servePrerenderedPageInner(cleanUrl, match);
-          tracer?.end();
-          return preResponse;
-        }
-        return this.handlePageRouteInner(req, ctx, cleanUrl, match, tracer);
-      });
+      // 5. Run middleware → route handler (v1.0: wrapped in try-catch)
+      let response: Response;
+      try {
+        response = await runMiddleware(chain, ctx, async () => {
+          if (match.entry.type === "api") {
+            tracer?.start("handler", method);
+            try {
+              const apiResponse = await this.handleApiRouteInner(req, ctx, match);
+              tracer?.end();
+              return apiResponse;
+            } catch (apiError) {
+              const msg = apiError instanceof Error ? apiError.message : String(apiError);
+              tracer?.endWithError(msg);
+              // Prod: no error details exposed
+              return new Response(
+                JSON.stringify({ error: "Internal Server Error" }),
+                { status: 500, headers: { "Content-Type": "application/json" } },
+              );
+            }
+          }
+          if (match.entry.prerendered) {
+            tracer?.start("serve-prerendered");
+            const preResponse = this.servePrerenderedPageInner(cleanUrl, match);
+            tracer?.end();
+            return preResponse;
+          }
+          return this.handlePageRouteInner(req, ctx, cleanUrl, match, tracer);
+        });
+      } catch (pipelineError) {
+        // v1.0: Catch errors from middleware/load/render and render error boundary
+        response = await this.renderErrorPage(req, cleanUrl, pipelineError, match.entry, tracer);
+      }
 
       // 6. v0.9: Add Server-Timing header if tracing
       if (tracer) {
@@ -653,6 +683,149 @@ export class ProdServer {
     } else {
       res.end();
     }
+  }
+
+  // ── Error Boundaries (v1.0) ──────────────────────────────────────────────
+
+  /**
+   * Render the nearest error boundary for a caught error.
+   * In production, error details are sanitized (no stack traces).
+   * Falls back to a generic error page if no error boundary or rendering fails.
+   */
+  private async renderErrorPage(
+    req: http.IncomingMessage,
+    pathname: string,
+    error: unknown,
+    entry: ManifestRouteEntry,
+    tracer: RequestTracer | null,
+  ): Promise<Response> {
+    const message = error instanceof Error ? error.message : String(error);
+    log.error(`Error serving ${pathname}: ${message}`);
+
+    if (entry.errorBoundaryEntry) {
+      try {
+        tracer?.start("error-boundary", entry.errorBoundaryEntry);
+        const serverPath = path.join(this.serverDir, entry.errorBoundaryEntry);
+        const mod = await this.importModule(serverPath);
+
+        if (mod.default) {
+          // Prod: generic message, no stack trace
+          const errorProps: ErrorPageProps = {
+            message: "Internal Server Error",
+            statusCode: 500,
+            pathname,
+          };
+
+          const headTags: string[] = [];
+          const renderContext: RenderContext = {
+            url: new URL(pathname, `http://${req.headers.host || "localhost"}`),
+            params: {},
+            pushHead: (tag) => headTags.push(tag),
+            error: errorProps,
+          };
+
+          const bodyHtml = await this.adapter.renderToHTML(mod.default, errorProps, renderContext);
+          tracer?.end();
+
+          const shell = this.adapter.getDocumentShell?.() || DEFAULT_SHELL;
+          let html = shell.replace("__CONTAINER_ID__", this.containerId);
+          html = html.replace("<!--pyra-outlet-->", bodyHtml);
+          html = html.replace("<!--pyra-head-->", headTags.join("\n  "));
+
+          return new Response(html, {
+            status: 500,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
+        tracer?.end();
+      } catch (renderError) {
+        const errMsg = renderError instanceof Error ? renderError.message : String(renderError);
+        tracer?.endWithError(errMsg);
+        log.error(`Error boundary rendering failed: ${errMsg}`);
+      }
+    }
+
+    // Fallback: generic error page
+    return new Response(this.getErrorHTML(), {
+      status: 500,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+
+  /**
+   * Render the custom 404 page or a default 404 page.
+   */
+  private async renderNotFoundPage(
+    req: http.IncomingMessage,
+    pathname: string,
+    tracer: RequestTracer | null,
+  ): Promise<Response> {
+    const notFoundEntry = this.manifest.routes["__404"];
+
+    if (notFoundEntry?.ssrEntry) {
+      try {
+        tracer?.start("404-page");
+        const serverPath = path.join(this.serverDir, notFoundEntry.ssrEntry);
+        const mod = await this.importModule(serverPath);
+
+        if (mod.default) {
+          const headTags: string[] = [];
+          const renderContext: RenderContext = {
+            url: new URL(pathname, `http://${req.headers.host || "localhost"}`),
+            params: {},
+            pushHead: (tag) => headTags.push(tag),
+          };
+
+          const bodyHtml = await this.adapter.renderToHTML(
+            mod.default,
+            { pathname },
+            renderContext,
+          );
+          tracer?.end();
+
+          const shell = this.adapter.getDocumentShell?.() || DEFAULT_SHELL;
+          let html = shell.replace("__CONTAINER_ID__", this.containerId);
+          html = html.replace("<!--pyra-outlet-->", bodyHtml);
+          html = html.replace("<!--pyra-head-->", headTags.join("\n  "));
+
+          return new Response(html, {
+            status: 404,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
+        tracer?.end();
+      } catch (renderError) {
+        const errMsg = renderError instanceof Error ? renderError.message : String(renderError);
+        tracer?.endWithError(errMsg);
+        log.error(`Custom 404 page rendering failed: ${errMsg}`);
+      }
+    }
+
+    return new Response(this.get404HTML(pathname), {
+      status: 404,
+      headers: { "Content-Type": "text/html" },
+    });
+  }
+
+  /**
+   * Generic error page for production (no details exposed).
+   */
+  private getErrorHTML(): string {
+    return `<!DOCTYPE html>
+<html><head><title>500 Internal Server Error</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #e0e0e0;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .container { text-align: center; }
+  h1 { font-size: 4rem; color: #ff6b35; margin: 0; }
+  p { color: #999; margin-top: 1rem; }
+</style></head>
+<body>
+  <div class="container">
+    <h1>500</h1>
+    <p>Internal Server Error</p>
+  </div>
+</body></html>`;
   }
 
   private get404HTML(pathname: string): string {
