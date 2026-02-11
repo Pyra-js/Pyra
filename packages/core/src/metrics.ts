@@ -186,6 +186,94 @@ class MetricsStore {
     };
   }
 
+  // ── v0.9: Request Trace Methods ──────────────────────────────────────────
+
+  /**
+   * Set the max trace buffer size.
+   */
+  setTraceBufferSize(size: number): void {
+    this.maxTraceSize = size;
+    if (this.traces.length > this.maxTraceSize) {
+      this.traces = this.traces.slice(-this.maxTraceSize);
+    }
+  }
+
+  /**
+   * Push a completed trace into the store.
+   */
+  recordTrace(trace: RequestTrace): void {
+    this.traces.push(trace);
+    if (this.traces.length > this.maxTraceSize) {
+      this.traces = this.traces.slice(-this.maxTraceSize);
+    }
+  }
+
+  /**
+   * Get traces filtered by route, status, or time range.
+   */
+  queryTraces(filter?: TraceFilter): RequestTrace[] {
+    if (!filter) return [...this.traces];
+
+    return this.traces.filter((t) => {
+      if (filter.routeId && t.routeId !== filter.routeId) return false;
+      if (filter.status !== undefined && t.status !== filter.status) return false;
+      if (filter.minMs !== undefined && t.totalMs < filter.minMs) return false;
+      if (filter.since !== undefined && t.timestamp < filter.since) return false;
+      return true;
+    });
+  }
+
+  /**
+   * Get a single trace by ID.
+   */
+  getTrace(id: string): RequestTrace | undefined {
+    return this.traces.find((t) => t.id === id);
+  }
+
+  /**
+   * Get the last N traces.
+   */
+  getRecentTraces(limit = 50): RequestTrace[] {
+    return this.traces.slice(-limit);
+  }
+
+  /**
+   * Get aggregate stats: avg/p50/p95/p99 response times per route.
+   */
+  routeStats(): Map<string, RouteStats> {
+    const byRoute = new Map<string, number[]>();
+
+    for (const trace of this.traces) {
+      if (!trace.routeId) continue;
+      let times = byRoute.get(trace.routeId);
+      if (!times) {
+        times = [];
+        byRoute.set(trace.routeId, times);
+      }
+      times.push(trace.totalMs);
+    }
+
+    const result = new Map<string, RouteStats>();
+
+    for (const [routeId, times] of byRoute) {
+      const sorted = [...times].sort((a, b) => a - b);
+      const count = sorted.length;
+      const avg = sorted.reduce((s, v) => s + v, 0) / count;
+
+      result.set(routeId, {
+        routeId,
+        count,
+        avgMs: round(avg),
+        p50Ms: percentile(sorted, 50),
+        p95Ms: percentile(sorted, 95),
+        p99Ms: percentile(sorted, 99),
+        lastMs: sorted[sorted.length - 1],
+      });
+    }
+
+    return result;
+  }
+
   /**
    * Clear all metrics
    */
@@ -194,7 +282,20 @@ class MetricsStore {
     this.hmrHistory = [];
     this.dependencyGraph.clear();
     this.currentBuild = {};
+    this.traces = [];
   }
+}
+
+/** Round to 1 decimal place. */
+function round(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/** Calculate a percentile from a sorted array. */
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const idx = Math.ceil((p / 100) * sorted.length) - 1;
+  return sorted[Math.max(0, Math.min(idx, sorted.length - 1))];
 }
 
 // Export singleton instance

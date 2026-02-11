@@ -6,7 +6,7 @@ import { pathToFileURL } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import chokidar, { type FSWatcher } from "chokidar";
 import { log } from "pyrajs-shared";
-import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResult, RouteMatch, Middleware } from "pyrajs-shared";
+import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResult, RouteMatch, Middleware, RouteNode } from "pyrajs-shared";
 import { HTTP_METHODS } from "pyrajs-shared";
 import { runMiddleware } from "./middleware.js";
 import { bundleFile, invalidateDependentCache } from "./bundler.js";
@@ -18,7 +18,9 @@ import {
   getSetCookieHeaders,
   escapeJsonForScript,
 } from "./request-context.js";
+import { RequestTracer } from "./tracer.js";
 import esbuild from "esbuild";
+import pc from "picocolors";
 
 export interface DevServerOptions {
   port?: number;
@@ -56,9 +58,12 @@ export class DevServer {
   private routesDir: string | undefined;
   private router: RouteGraph | null = null;
   private containerId: string;
+  private config: PyraConfig | undefined;
   private serverCompileCache: Map<string, { outPath: string; timestamp: number }> =
     new Map();
   private pyraTmpDir: string;
+  // v0.9: verbose flag for static asset trace logging
+  private verbose: boolean;
 
   constructor(options: DevServerOptions = {}) {
     this.port = options.port || options.config?.port || 3000;
@@ -66,7 +71,14 @@ export class DevServer {
     this.adapter = options.adapter;
     this.routesDir = options.routesDir;
     this.containerId = options.config?.appContainerId || "app";
+    this.config = options.config;
     this.pyraTmpDir = path.join(this.root, ".pyra", "server");
+    this.verbose = false;
+
+    // v0.9: Configure trace buffer size
+    if (options.config?.trace?.bufferSize) {
+      metricsStore.setTraceBufferSize(options.config.trace.bufferSize);
+    }
 
     // Create HTTP server
     this.server = http.createServer(this.handleRequest.bind(this));
