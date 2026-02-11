@@ -1335,12 +1335,561 @@ Update the build report (already implemented in v0.4) with the final columns now
 
 **Does not include:** Visual dev dashboard UI (the existing HTML dashboard is replaced by the structured trace system — a visual dashboard is a post-v1.0 feature).
 
+#### v0.9.1 — RequestTracer Implementation
+
+The `RequestTracer` is a class, not an interface or abstraction layer. It lives in `packages/core/src/tracer.ts` as a single file with no external dependencies beyond `picocolors` (for terminal formatting) and the `RequestTrace` / `TraceStage` types from shared.
+
+```typescript
+// packages/core/src/tracer.ts
+
+import pc from 'picocolors';
+import type { RequestTrace, TraceStage, RequestTracer as IRequestTracer } from 'pyrajs-shared';
+
+let traceIdCounter = 0;
+
+export class RequestTracer implements IRequestTracer {
+  private readonly id: string;
+  private readonly method: string;
+  private readonly pathname: string;
+  private readonly timestamp: number;
+  private readonly stages: TraceStage[] = [];
+  private activeStage: { name: string; start: number; detail?: string } | null = null;
+
+  constructor(method: string, pathname: string) {
+    this.id = `req-${++traceIdCounter}`;
+    this.method = method;
+    this.pathname = pathname;
+    this.timestamp = Date.now();
+  }
+
+  start(name: string, detail?: string): void {
+    // Auto-close the previous stage if the caller forgot to call end().
+    // This is defensive — pipeline code should always pair start/end,
+    // but a missing end() shouldn't corrupt the trace.
+    if (this.activeStage) {
+      this.end();
+    }
+    this.activeStage = { name, start: performance.now(), detail };
+  }
+
+  end(): void {
+    if (!this.activeStage) return;
+    this.stages.push({
+      name: this.activeStage.name,
+      durationMs: round(performance.now() - this.activeStage.start),
+      detail: this.activeStage.detail,
+    });
+    this.activeStage = null;
+  }
+
+  finalize(status: number): RequestTrace {
+    // Close any still-open stage.
+    if (this.activeStage) this.end();
+
+    const totalMs = this.stages.reduce((sum, s) => sum + s.durationMs, 0);
+
+    return {
+      id: this.id,
+      method: this.method,
+      pathname: this.pathname,
+      routeId: this.extractRouteId(),
+      routeType: this.extractRouteType(),
+      stages: this.stages,
+      totalMs: round(totalMs),
+      status,
+      timestamp: this.timestamp,
+    };
+  }
+
+  toServerTiming(): string {
+    // Server-Timing header format per the spec:
+    // https://w3c.github.io/server-timing/#the-server-timing-header-field
+    //
+    // Each entry: metric-name;dur=milliseconds;desc="description"
+    // Chrome DevTools renders this as a waterfall in the Network panel's
+    // Timing tab — no extension required.
+    return this.stages
+      .map((s) => {
+        const name = sanitizeTimingName(s.name);
+        const parts = [`${name};dur=${s.durationMs}`];
+        if (s.detail) parts[0] += `;desc="${s.detail}"`;
+        return parts[0];
+      })
+      .join(', ');
+  }
+
+  toLogLine(): string {
+    const trace = this.finalize(0); // status doesn't matter for formatting
+    const statusColor = trace.status >= 500 ? pc.red
+      : trace.status >= 400 ? pc.yellow
+      : trace.status >= 300 ? pc.cyan
+      : pc.green;
+
+    const method = pc.bold(pc.white(this.method.padEnd(7)));
+    const path = this.pathname;
+    const status = statusColor(String(trace.status));
+    const total = pc.dim(`${trace.totalMs}ms`);
+
+    const breakdown = trace.stages
+      .filter((s) => s.durationMs >= 0.1) // hide sub-0.1ms noise
+      .map((s) => `${s.name}:${s.durationMs}ms`)
+      .join(' ');
+
+    return `  ${method} ${path} ${status} ${total} ${pc.dim(`(${breakdown})`)}`;
+  }
+
+  private extractRouteId(): string | null {
+    const match = this.stages.find((s) => s.name === 'route-match');
+    return match?.detail ?? null;
+  }
+
+  private extractRouteType(): 'page' | 'api' | 'static' | null {
+    if (this.stages.some((s) => s.name === 'render')) return 'page';
+    if (this.stages.some((s) => s.name === 'handler')) return 'api';
+    if (this.stages.some((s) => s.name === 'static')) return 'static';
+    return null;
+  }
+}
+
+/** Round to 1 decimal place. */
+function round(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/** Server-Timing metric names must be tokens (no spaces, no special chars). */
+function sanitizeTimingName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+```
+
+**Why `performance.now()` and not `Date.now()`:** `performance.now()` provides microsecond precision and is monotonic (unaffected by clock adjustments). `Date.now()` has millisecond precision and can jump on clock sync. Since we're measuring sub-millisecond pipeline stages, `performance.now()` is the correct choice. Node.js supports it natively since v8.5.
+
+**Why a counter for trace IDs and not `crypto.randomUUID()`:** The trace ID is for terminal log correlation during a single dev session, not for distributed tracing. A monotonic counter is faster, shorter, and easier to scan visually (`req-1`, `req-2`, ..., `req-47`). If distributed tracing is added post-v1.0, a UUID or trace-context header can be layered on.
+
+**Why auto-close on missing `end()`:** Defensive design. If an error is thrown between `start()` and `end()`, the trace should still produce useful output rather than silently dropping stages. The auto-close in `start()` means the worst case is an inaccurate duration for one stage, not a corrupted trace.
+
+#### v0.9.2 — Pipeline Instrumentation
+
+The tracer integrates into the existing request pipeline through paired `start()`/`end()` calls at each stage boundary. This is not middleware or a wrapper — it is inline instrumentation in the pipeline handler function. The total addition to the pipeline is roughly 15 lines.
+
+Here is the instrumented pipeline in pseudocode, showing exactly where tracer calls are added. Comments prefixed with `[TRACE]` mark the new lines:
+
+```typescript
+async function handleRequest(req: Request, routeGraph: RouteGraph, adapter: PyraAdapter): Promise<Response> {
+  const url = new URL(req.url);
+  const tracer = new RequestTracer(req.method, url.pathname);  // [TRACE] create
+
+  // --- Static asset check ---
+  tracer.start('static-check');                                 // [TRACE]
+  const staticResult = tryServeStatic(url.pathname);
+  tracer.end();                                                 // [TRACE]
+  if (staticResult) {
+    const trace = tracer.finalize(200);
+    // No Server-Timing for static assets — they bypass the pipeline.
+    return staticResult;
+  }
+
+  // --- Route matching ---
+  tracer.start('route-match');                                  // [TRACE]
+  const match = routeGraph.match(url.pathname);
+  tracer.end();                                                 // [TRACE]
+
+  if (!match) {
+    const trace = tracer.finalize(404);
+    logTrace(trace);                                            // [TRACE]
+    return new Response('Not Found', { status: 404 });
+  }
+
+  tracer.start('route-match', match.route.id);                  // [TRACE] re-log with detail
+
+  // --- Request context ---
+  const ctx = buildRequestContext(req, url, match);
+
+  // --- Middleware ---
+  // Each middleware is traced individually with its name.
+  const middlewareChain = collectMiddleware(match);
+  for (const mw of middlewareChain) {
+    tracer.start(`middleware:${mw.name}`, mw.filePath);         // [TRACE]
+  }
+  // The actual middleware execution uses the next() pattern.
+  // The tracer.end() calls happen inside the middleware runner
+  // as each middleware completes, preserving correct nesting.
+
+  // --- Page route ---
+  if (match.route.type === 'page') {
+    tracer.start('compile');                                    // [TRACE]
+    const mod = await compileAndImport(match.route.filePath);
+    tracer.end();                                               // [TRACE]
+
+    if (mod.load) {
+      tracer.start('load');                                     // [TRACE]
+      const data = await mod.load(ctx);
+      tracer.end();                                             // [TRACE]
+    }
+
+    tracer.start('render', `${adapter.name} SSR`);              // [TRACE]
+    const html = await adapter.renderToHTML(mod.default, data, renderCtx);
+    tracer.end();                                               // [TRACE]
+
+    tracer.start('inject-assets');                              // [TRACE]
+    const fullHtml = injectAssets(html, match, manifest);
+    tracer.end();                                               // [TRACE]
+
+    const trace = tracer.finalize(200);
+    const response = new Response(fullHtml, {
+      headers: {
+        'Content-Type': 'text/html',
+        'Server-Timing': tracer.toServerTiming(),               // [TRACE]
+      },
+    });
+    logTrace(trace);                                            // [TRACE]
+    return response;
+  }
+
+  // --- API route ---
+  if (match.route.type === 'api') {
+    tracer.start('handler', `${req.method}`);                   // [TRACE]
+    const response = await callApiHandler(match, ctx);
+    tracer.end();                                               // [TRACE]
+
+    const trace = tracer.finalize(response.status);
+    response.headers.set('Server-Timing', tracer.toServerTiming()); // [TRACE]
+    logTrace(trace);                                            // [TRACE]
+    return response;
+  }
+}
+```
+
+**Middleware tracing detail:** Middleware uses the `next()` continuation pattern, which means middleware execution is nested — outer middleware wraps inner middleware. The tracer handles this by treating each middleware as a flat stage (measuring wall time from start to `next()` return), not a nested waterfall. This is a deliberate simplification: a nested waterfall would be more accurate but harder to read in a terminal log. The flat model tells you "auth middleware took 2ms total" which is what you care about. If you need to know how much of that 2ms was the middleware itself vs downstream processing, the individual stage times add up to the total — the difference is the middleware's own overhead.
+
+#### v0.9.3 — Terminal Output Formats
+
+**Request trace log (dev mode):**
+
+Every request in dev mode produces a trace log. The format is designed to be scannable at a glance — the most important information (method, path, status, total time) is on the first line, and the per-stage breakdown is indented below.
+
+```
+  GET     /dashboard/settings 200 56ms
+    ├─ route-match     0.5ms   dashboard/settings/page.tsx
+    ├─ middleware:root  1.2ms   middleware.ts
+    ├─ middleware:auth  0.8ms   dashboard/middleware.ts
+    ├─ compile         0.0ms   (cached)
+    ├─ load            43.0ms
+    ├─ render          11.0ms  React SSR
+    └─ inject-assets   0.2ms   1 JS · 1 CSS
+```
+
+When a stage takes longer than 50% of the total request time, it is highlighted in yellow. When it takes longer than 80%, it is highlighted in red. This draws the eye to bottlenecks immediately.
+
+```
+  GET     /blog/hello-world 200 312ms
+    ├─ route-match     0.4ms   blog/[slug]/page.tsx
+    ├─ compile         2.1ms
+    ├─ load            298.0ms  ← highlighted red (96% of total)
+    ├─ render          11.0ms  React SSR
+    └─ inject-assets   0.3ms   1 JS · 1 CSS
+```
+
+**Error trace format:** When a pipeline stage throws, the trace logs the error inline:
+
+```
+  GET     /dashboard 500 24ms
+    ├─ route-match       0.3ms   dashboard/page.tsx
+    ├─ middleware:root   1.0ms   middleware.ts
+    ├─ middleware:auth   0.5ms   dashboard/middleware.ts
+    ├─ load              22.0ms  ✗ DatabaseError: connection refused
+    └─ error-boundary    0.4ms   error.tsx
+```
+
+**Static asset requests** are not traced to the terminal by default — they would flood the log. A `--verbose` flag (or `PYRA_VERBOSE=1`) enables static asset logging:
+
+```
+  GET     /assets/page-a1b2c3.js 200 0.3ms (static)
+  GET     /assets/page-a1b2c3.css 200 0.2ms (static)
+```
+
+**API route trace format:**
+
+```
+  POST    /api/users 201 8ms
+    ├─ route-match       0.3ms   api/users/route.ts
+    ├─ middleware:root   0.9ms   middleware.ts
+    └─ handler           6.8ms   POST
+```
+
+**404 trace format:**
+
+```
+  GET     /nonexistent 404 0.6ms
+    └─ route-match     0.5ms   (no match)
+```
+
+#### v0.9.4 — Dev Startup Route Table
+
+When the dev server starts, it prints a route table showing all discovered routes. This replaces the current minimal startup message with a comprehensive overview that lets the developer verify the route structure is correct before making any requests.
+
+```
+  pyra dev
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │  Pyra v0.9.0  ·  React  ·  http://localhost:3000               │
+  └─────────────────────────────────────────────────────────────────┘
+
+  Routes (9 routes, 6 pages, 3 APIs)
+
+  Page Routes
+  ──────────────────────────────────────────────────────────────────
+  /                       page.tsx
+  /about                  page.tsx
+  /blog                   page.tsx             layout: blog
+  /blog/:slug             page.tsx             layout: blog
+  /dashboard              page.tsx             mw: root, auth
+  /dashboard/settings     page.tsx             mw: root, auth
+
+  API Routes
+  ──────────────────────────────────────────────────────────────────
+  /api/health             route.ts             GET
+  /api/users              route.ts             GET POST
+  /api/users/:id          route.ts             GET PUT DELETE
+
+  Middleware
+  ──────────────────────────────────────────────────────────────────
+  middleware.ts            → all routes (root)
+  dashboard/middleware.ts  → /dashboard/**
+
+  Layouts
+  ──────────────────────────────────────────────────────────────────
+  layout.tsx               → all pages (root)
+  blog/layout.tsx          → /blog, /blog/:slug
+
+  Watching for changes...
+```
+
+The route table is generated from the `RouteGraph` that already exists at startup. No additional filesystem scan is required. The middleware and layout sections are derived from the `middlewarePaths` and `layoutId` fields on each `RouteNode`.
+
+API route methods are discovered by importing the route module and checking which HTTP method exports exist (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS`). This import happens lazily on first request in the normal pipeline, but for the startup table, the scanner reads the file contents and checks for `export` statements matching HTTP method names — a simple regex scan, not a full import. This avoids loading all API modules at startup.
+
+```typescript
+// Detect exported HTTP methods from source text without importing.
+const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
+
+function detectExportedMethods(source: string): string[] {
+  return HTTP_METHODS.filter((method) => {
+    // Match: export function GET, export const GET, export async function GET
+    const pattern = new RegExp(`export\\s+(async\\s+)?function\\s+${method}\\b|export\\s+(const|let)\\s+${method}\\b`);
+    return pattern.test(source);
+  });
+}
+```
+
+#### v0.9.5 — Server-Timing Header
+
+The `Server-Timing` header is a W3C standard that Chrome, Edge, and Firefox DevTools all render natively. When the header is present on a response, the Network panel's Timing tab shows each metric as a labeled bar in a waterfall view. This gives developers framework-level visibility without installing any browser extension or debug tool.
+
+Format produced by `toServerTiming()`:
+
+```
+Server-Timing: route-match;dur=0.5;desc="blog/[slug]/page.tsx",
+  middleware_root;dur=1.2;desc="middleware.ts",
+  middleware_auth;dur=0.8;desc="dashboard/middleware.ts",
+  load;dur=43.0,
+  render;dur=11.0;desc="React SSR",
+  inject-assets;dur=0.2
+```
+
+**Naming constraints:** The Server-Timing spec requires metric names to be tokens (no whitespace, no special characters except `-` and `_`). The `sanitizeTimingName()` function in the tracer replaces any non-token characters with underscores. Middleware names like `middleware:root` become `middleware_root` in the header.
+
+**Description field:** The `desc` parameter is optional per the spec. The tracer includes it when the stage has a `detail` string — this shows the source file or adapter name in DevTools without cluttering the metric name.
+
+**Header size:** A typical page request with root middleware, one directory middleware, load, render, and asset injection produces a Server-Timing header of approximately 200-300 bytes. Even requests through deeply nested middleware chains with 10+ stages stay well under 1KB. This is negligible compared to the HTML response body.
+
+#### v0.9.6 — Production Trace Support
+
+Production tracing is controlled by `config.trace.production` with three modes:
+
+**`'off'` (default):** No tracing. The pipeline does not create a `RequestTracer` instance. The only overhead is a single boolean check at the start of request handling. This is the right default because even microsecond overhead matters when handling thousands of requests per second.
+
+**`'header'`:** Trace when the incoming request includes the `X-Pyra-Trace: 1` header. This is the recommended production mode — it lets developers diagnose specific requests by adding the header via `curl`, browser DevTools, or a proxy. The pipeline checks for the header immediately after parsing the request. If present, a tracer is created and the response includes `Server-Timing`. If absent, no tracer overhead.
+
+```bash
+# Diagnose a slow production page:
+curl -H "X-Pyra-Trace: 1" -I https://myapp.com/dashboard/settings
+
+# Response headers include:
+# Server-Timing: route-match;dur=0.3, middleware_auth;dur=1.1, load;dur=89.0, render;dur=14.2
+```
+
+**`'on'`:** Trace every request. Useful for staging environments or during incident investigation. Adds the `Server-Timing` header to all responses and logs traces to stdout (if the logger level permits). The overhead per request is roughly 0.1-0.5ms — acceptable for staging, potentially noticeable at very high throughput in production.
+
+**Implementation in the pipeline:**
+
+```typescript
+function shouldTrace(req: Request, config: PyraConfig, mode: PyraMode): boolean {
+  // Always trace in development.
+  if (mode === 'development') return true;
+
+  const prodTrace = config.trace?.production ?? 'off';
+  if (prodTrace === 'on') return true;
+  if (prodTrace === 'header') return req.headers.get('x-pyra-trace') === '1';
+  return false;
+}
+
+// In the pipeline handler:
+const tracing = shouldTrace(req, config, mode);
+const tracer = tracing ? new RequestTracer(method, pathname) : null;
+
+// Each stage conditionally calls the tracer:
+tracer?.start('route-match');
+const match = routeGraph.match(pathname);
+tracer?.end();
+```
+
+The `?.` optional chaining means that when tracing is off, each stage's overhead is a single nullish check — effectively zero.
+
+**Security consideration:** The `X-Pyra-Trace` header reveals internal timing information (middleware names, load duration, render duration). In production, this could help an attacker profile your infrastructure. Two mitigations:
+
+1. The `'header'` mode requires the caller to explicitly opt in — it's not exposed by default.
+2. For sensitive deployments, use `'off'` and only switch to `'header'` during incident investigation. Or restrict the trace header via your reverse proxy / CDN so only internal traffic can send it.
+
+Pyra does not add an authentication mechanism for the trace header. That's the responsibility of the deployment infrastructure (API gateway, CDN rules, internal-only routing). Adding auth to the framework would be over-engineering — most users who enable `'header'` mode are debugging their own staging environments.
+
+#### v0.9.7 — Enhanced Build Report
+
+The build report was first implemented in v0.4 with basic per-route size information. Now that middleware (v0.8), layouts (v0.8), and SSG (v0.7) are all implemented, the report gains its final columns.
+
+```
+pyra build
+
+  Route                     Type   Mode      JS        CSS      load()  MW  Layouts
+  ─────────────────────────────────────────────────────────────────────────────────────
+  /                         page   SSR       12.4 KB   2.1 KB   yes     1   root
+  /about                    page   SSG       8.2 KB    1.8 KB   no      1   root
+  /blog                     page   SSR       9.1 KB    2.1 KB   yes     1   root → blog
+  /blog/[slug]              page   SSG (14)  15.1 KB   2.1 KB   yes     1   root → blog
+  /dashboard                page   SSR       22.3 KB   4.2 KB   yes     2   root
+  /dashboard/settings       page   SSR       18.7 KB   3.8 KB   yes     2   root
+  /pricing                  page   SSR       6.8 KB    1.2 KB   no      1   root
+  /api/health               api    —         —         —        —       1   —
+  /api/users                api    —         —         —        —       1   —
+  /api/users/[id]           api    —         —         —        —       1   —
+  ─────────────────────────────────────────────────────────────────────────────────────
+  Totals                    7 pg   2 SSG     92.6 KB   17.3 KB
+                            3 api  16 pre    (gzip: 30.8 KB)
+
+  Shared chunks
+  ──────────────────────────────────────────────────────────
+  chunk-react-vendor.js     42.1 KB   (used by 7 pages)
+  chunk-shared-utils.js     3.2 KB    (used by 4 pages)
+
+  Output:   dist/client/ (24 files)  dist/server/ (10 files)
+  Manifest: dist/manifest.json
+  Built in 1.4s
+```
+
+**New columns:**
+
+- **MW** — Count of middleware files that apply to this route (plugin middleware + file-based middleware). A quick indicator of pipeline complexity per route.
+- **Layouts** — The layout chain for page routes, displayed as a `→`-separated list from outermost to innermost. Helps verify that layout nesting is correct.
+
+**Shared chunks section:** Lists esbuild's code-split shared chunks with their sizes and usage counts. This helps developers understand what code is shared across pages and whether the splitting strategy is effective. If a shared chunk is used by only 1 page, it should probably be inlined — the report makes this visible.
+
+**Gzip size estimation:** The parenthetical gzip total uses Node's built-in `zlib.gzipSync()` on the concatenated client output. This runs once at the end of the build (not per-file) and takes negligible time. It provides a realistic estimate of transfer size without requiring a separate tool.
+
+**Size warnings:** Routes with client JS exceeding 50 KB (configurable via `build.warnSize`) are highlighted with a yellow warning marker:
+
+```
+  /dashboard                page   SSR       ⚠ 52.3 KB  4.2 KB   yes   2   root
+```
+
+This is not an error — it's a visibility feature. The warning threshold is configurable, and there's no enforcement. Some pages are legitimately large (dashboards with charts, editors). The point is that the developer sees the size in the build output and can make an informed decision.
+
+**Report data source:** Every value in the report comes from two sources that already exist at build completion: the `RouteManifest` (route metadata, asset mappings) and esbuild's `metafile` (byte-accurate output sizes). No separate analysis pass is needed. The report function reads these two data structures and formats them.
+
+#### v0.9.8 — Metrics Integration
+
+The existing `MetricsStore` singleton (from `packages/core/src/metrics.ts`) already tracks compile times, HMR events, and build history. v0.9 extends it with request trace storage.
+
+```typescript
+// Addition to the existing MetricsStore
+
+interface MetricsStore {
+  // ... existing fields ...
+
+  /** Last N request traces (ring buffer, default 200). */
+  traces: RequestTrace[];
+
+  /** Push a completed trace into the store. */
+  recordTrace(trace: RequestTrace): void;
+
+  /** Get traces filtered by route, status, or time range. */
+  queryTraces(filter?: TraceFilter): RequestTrace[];
+
+  /** Get aggregate stats: avg/p50/p95/p99 response times per route. */
+  routeStats(): RouteStatsMap;
+}
+
+interface TraceFilter {
+  routeId?: string;
+  status?: number;
+  minMs?: number;
+  since?: number; // timestamp
+}
+
+interface RouteStats {
+  routeId: string;
+  count: number;
+  avgMs: number;
+  p50Ms: number;
+  p95Ms: number;
+  p99Ms: number;
+  lastMs: number;
+}
+
+type RouteStatsMap = Map<string, RouteStats>;
+```
+
+The trace store is a fixed-size ring buffer (last 200 traces by default). This keeps memory bounded regardless of how many requests the dev server handles. The size is configurable via `config.trace.bufferSize` but 200 is a sensible default — enough to spot patterns, small enough to not matter.
+
+`routeStats()` computes aggregate timing statistics per route. This data powers a future visual dashboard (post-v1.0) but is immediately useful via the dev dashboard API endpoint:
+
+```
+GET /_pyra/api/traces         → last N traces as JSON
+GET /_pyra/api/traces/stats   → per-route aggregate stats
+GET /_pyra/api/traces/:id     → single trace detail
+```
+
+These API endpoints are served by the existing dev dashboard system (the `/_pyra` route). They return JSON. No UI is built in v0.9 — the data is available for `curl`, browser fetch, or a future dashboard frontend.
+
+#### v0.9.9 — Implementation Order
+
+Within v0.9, implement in this sequence:
+
+1. **`RequestTracer` class** (`core/src/tracer.ts`) — The standalone class with `start()`, `end()`, `finalize()`, `toServerTiming()`, `toLogLine()`. Unit test it in isolation: create a tracer, simulate stages, verify the output formats.
+
+2. **Pipeline instrumentation** — Add the tracer calls to the existing request pipeline handler. This is a modification to `core/src/dev-server.ts` (and later `core/src/prod-runtime.ts`), not a new file. Verify manually that dev requests now produce terminal trace logs and `Server-Timing` headers.
+
+3. **Terminal formatting** — Implement the tree-style trace output with color coding and bottleneck highlighting. Integrate with the existing logger so that `--silent` suppresses traces and the `PYRA_SILENT` env var works.
+
+4. **Dev startup route table** — Modify the dev server startup sequence to print the route table after scanning. Implement the regex-based API method detection for the methods column.
+
+5. **Metrics integration** — Extend `MetricsStore` with the trace ring buffer and aggregate stats. Add the `/_pyra/api/traces` endpoints.
+
+6. **Production trace support** — Add the `shouldTrace()` gate to the prod runtime pipeline. Implement the `X-Pyra-Trace` header check. Add the `trace` config field to `PyraConfig`.
+
+7. **Enhanced build report** — Add the MW and Layouts columns. Add the shared chunks section. Add the gzip size estimation. Add the size warning threshold.
+
+Each step is independently testable and deployable. Steps 1-3 are the core deliverable — after those, every dev request produces visible trace output. Steps 4-7 are polish that completes the transparency story.
+
 **Acceptance criteria:**
 1. Every dev request logs a trace to the terminal showing route match, middleware stages, load time, render time, and asset injection time.
 2. Chrome DevTools Network panel shows `Server-Timing` entries for each pipeline stage on every dev request.
 3. `pyra build` prints a complete per-route report with accurate sizes, render modes, middleware counts, and layout chains.
 4. Production tracing works when enabled via `X-Pyra-Trace` header.
 5. Tracing adds less than 1ms overhead per request (it's timestamp collection, not profiling).
+6. The dev startup route table accurately reflects all discovered routes, their types, middleware chains, and layout nesting.
+7. The `/_pyra/api/traces` endpoint returns the last N traces as JSON.
+8. Stages exceeding 50% of total request time are visually highlighted in the terminal output.
+9. Routes exceeding the `build.warnSize` threshold are flagged in the build report.
 
 ---
 

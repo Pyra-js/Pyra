@@ -640,6 +640,72 @@ export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'O
 
 // ─── End Route Manifest Types ────────────────────────────────────────────────
 
+// ─── Request Trace Types (v0.9) ─────────────────────────────────────────────
+
+/**
+ * Collected during request processing. Every request produces a trace.
+ * In dev mode, traces are always emitted. In production, traces are
+ * opt-in via config or request header.
+ */
+export interface RequestTrace {
+  /** Unique request ID. */
+  id: string;
+  /** HTTP method. */
+  method: string;
+  /** Request URL pathname. */
+  pathname: string;
+  /** Matched route ID, or null if 404. */
+  routeId: string | null;
+  /** Route type: 'page', 'api', or 'static'. */
+  routeType: 'page' | 'api' | 'static' | null;
+  /** Ordered list of timed pipeline stages. */
+  stages: TraceStage[];
+  /** Total request duration in milliseconds. */
+  totalMs: number;
+  /** HTTP status code of the response. */
+  status: number;
+  /** Timestamp when the request started. */
+  timestamp: number;
+  /** Error message if a stage threw. */
+  error?: string;
+}
+
+export interface TraceStage {
+  /** Stage name: 'route-match', 'middleware:auth', 'load', 'render', 'inject-assets'. */
+  name: string;
+  /** Duration of this stage in milliseconds. */
+  durationMs: number;
+  /** Optional detail (e.g., middleware file path, load() data source). */
+  detail?: string;
+  /** Error message if this stage threw. */
+  error?: string;
+}
+
+/**
+ * Filter for querying stored traces.
+ */
+export interface TraceFilter {
+  routeId?: string;
+  status?: number;
+  minMs?: number;
+  since?: number;
+}
+
+/**
+ * Aggregate timing statistics for a single route.
+ */
+export interface RouteStats {
+  routeId: string;
+  count: number;
+  avgMs: number;
+  p50Ms: number;
+  p95Ms: number;
+  p99Ms: number;
+  lastMs: number;
+}
+
+// ─── End Request Trace Types ────────────────────────────────────────────────
+
 /**
  * Helper to define config with type safety
  */
