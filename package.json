@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Pyra.js is a framework designed for building modern full-stack web applications with pluggable UI adapters, unified routing, and a shared runtime.",
+  "author": "Nathaniel Paz",  
   "main": "index.js",
   "scripts": {
     "build": "pnpm -r --filter ./packages/* run build",
@@ -13,7 +14,6 @@
     "typecheck": "tsc -b"
   },
   "keywords": ["TypeScript", "build tool", "JavaScript", "engine"],
-  "author": "Nathaniel Paz",
   "license": "MIT",
   "packageManager": "pnpm@10.17.1",
   "devDependencies": {
