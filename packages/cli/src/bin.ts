@@ -33,27 +33,39 @@ import { graphCommand } from "./commands/graph.js";
 import { doctorCommand } from "./commands/doctor.js";
 import type { OutputFormat } from "./graph/types.js";
 import chalk from "chalk";
+import pkg from "../../../package.json";
 
 const program = new Command();
+const version = pkg.version;
 
-// If no arguments are provided and the user types "pyra", it'll show this as the default
-program
-  .name("pyra")
-  .description(
-    chalk.red(`
+const logo = `
 ██████╗ ██╗   ██╗██████╗  █████╗
 ██╔══██╗╚██╗ ██╔╝██╔══██╗██╔══██╗
 ██████╔╝ ╚████╔╝ ██████╔╝███████║
 ██╔═══╝   ╚██╔╝  ██╔══██╗██╔══██║
 ██║        ██║   ██║  ██║██║  ██║
 ╚═╝        ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝
-`) +
+`;
+
+// If no arguments are provided and the user types "pyra", it'll show this as the default
+program
+  .name("pyra")
+  .description(
+    chalk.red(`${logo}`) +
       chalk.dim(`
 Ignite your web stack.
 Next-gen full-stack framework.
 `),
   )
-  .version("0.9.4");
+  .version(`${version}`)
+  .action(() => {
+    console.log(chalk.red(logo))
+    console.log(chalk.bold(`Pyra v${version}`));
+    console.log("Ignite your web stack.")
+    console.log("Next-gen full-stack framework.")
+    console.log();
+    console.log(chalk.cyan("▶ Run `pyra --help` for all commands\n"));
+  });
 
 program
   .command("dev")
