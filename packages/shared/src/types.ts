@@ -174,6 +174,26 @@ export type PyraConfig = {
 
   /** DOM element ID where the app mounts on the client. Default: 'app' */
   appContainerId?: string;
+
+  /** Transparency / tracing configuration (v0.9). */
+  trace?: {
+    /**
+     * Enable request tracing in production.
+     * 'off' = no tracing (default in prod).
+     * 'header' = trace when X-Pyra-Trace header is present.
+     * 'on' = trace every request.
+     * In dev mode, tracing is always on regardless of this setting.
+     */
+    production?: 'off' | 'header' | 'on';
+    /** Number of traces to keep in the ring buffer (default: 200). */
+    bufferSize?: number;
+  };
+
+  /** Build configuration extras. */
+  buildReport?: {
+    /** Client JS size warning threshold in bytes (default: 51200 = 50 KB). */
+    warnSize?: number;
+  };
 };
 
 /**
