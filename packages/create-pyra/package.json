@@ -5,9 +5,10 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "create-pyra": "./dist/index.js"
+    "create-pyra": "bin/create-pyra.js"
   },
   "files": [
+    "bin",
     "dist"
   ],
   "scripts": {
@@ -27,7 +28,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Simpleboi/Pyra",
+    "url": "git+https://github.com/Simpleboi/Pyra.git",
     "directory": "packages/create-pyra"
   },
   "homepage": "https://github.com/Simpleboi/Pyra#readme",

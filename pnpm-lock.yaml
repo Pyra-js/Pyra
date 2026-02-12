@@ -31,6 +31,28 @@ importers:
         specifier: workspace:*
         version: link:../packages/shared
 
+  examples/pyra-blog:
+    dependencies:
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.4(react@19.2.4)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.13
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.13)
+      pyrajs-cli:
+        specifier: workspace:*
+        version: link:../../packages/cli
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   examples/test-config:
     dependencies:
       pyrajs-shared:
@@ -104,6 +126,15 @@ importers:
       '@types/ws':
         specifier: ^8.5.13
         version: 8.18.1
+
+  packages/create-pyra:
+    dependencies:
+      '@inquirer/prompts':
+        specifier: ^7.2.0
+        version: 7.9.0(@types/node@24.10.0)
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
 
   packages/shared:
     dependencies:
