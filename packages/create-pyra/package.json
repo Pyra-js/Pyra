@@ -1,6 +1,6 @@
 {
   "name": "create-pyra",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Scaffold a new Pyra.js project",
   "type": "module",
   "main": "./dist/index.js",
