@@ -26,8 +26,7 @@ import {
   escapeJsonForScript,
 } from './request-context.js';
 
-// ─── Public API ──────────────────────────────────────────────────────────────
-
+// Public API
 export interface BuildOrchestratorOptions {
   config: PyraConfig;
   adapter: PyraAdapter;
@@ -56,7 +55,7 @@ export interface BuildResult {
 export async function build(options: BuildOrchestratorOptions): Promise<BuildResult> {
   const startTime = performance.now();
 
-  // ── 1. Resolve defaults ────────────────────────────────────────────────
+  // Resolve defaults
   const root = options.root || options.config.root || process.cwd();
   const outDir = path.resolve(root, options.outDir || getOutDir(options.config) || 'dist');
   const base = options.config.build?.base || '/';
@@ -72,14 +71,14 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
 
   log.info('Building for production...');
 
-  // ── 2. Clean output directory ──────────────────────────────────────────
+  // Clean output directory
   if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true, force: true });
   }
   fs.mkdirSync(clientOutDir, { recursive: true });
   fs.mkdirSync(serverOutDir, { recursive: true });
 
-  // ── 3. Scan routes ─────────────────────────────────────────────────────
+  // Scan routes
   const scanResult = await scanRoutes(routesDir, [...adapter.fileExtensions]);
   const router = createRouter(scanResult);
   const pageRoutes = router.pageRoutes();
@@ -103,7 +102,7 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
     };
   }
 
-  // ── 4. Generate client entry wrappers ──────────────────────────────────
+  // Generate client entry wrappers
   const buildTmpDir = path.join(root, '.pyra', 'build', 'client-entries');
   fs.mkdirSync(buildTmpDir, { recursive: true });
 
@@ -138,7 +137,7 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
     clientLayoutMap.set(layout.id, layout.filePath);
   }
 
-  // v1.0: Add error boundary files to client build
+  // Add error boundary files to client build
   const clientErrorMap = new Map<string, string>(); // dirId → client entry file path
   for (const err of scanResult.errors) {
     const safeName = 'error__' + routeIdToSafeName(err.dirId);
@@ -146,12 +145,12 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
     clientErrorMap.set(err.dirId, err.filePath);
   }
 
-  // v1.0: Add 404 page to client build
+  // Add 404 page to client build
   if (scanResult.notFoundPage) {
     clientEntryPoints['page__404'] = scanResult.notFoundPage;
   }
 
-  // ── 5. Client build ────────────────────────────────────────────────────
+  // Client build
   log.info('Building client bundles...');
 
   const clientResult = await esbuild.build({
@@ -181,7 +180,7 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
     },
   });
 
-  // ── 6. Server build ────────────────────────────────────────────────────
+  // Server build
   log.info('Building server bundles...');
 
   const serverEntryPoints: Record<string, string> = {};
@@ -210,13 +209,13 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
     serverEntryPoints[key] = layout.filePath;
   }
 
-  // v1.0: Add error boundary files to server build
+  // Add error boundary files to server build
   for (const err of scanResult.errors) {
     const key = 'error__' + routeIdToSafeName(err.dirId);
     serverEntryPoints[key] = err.filePath;
   }
 
-  // v1.0: Add 404 page to server build
+  //  Add 404 page to server build
   if (scanResult.notFoundPage) {
     serverEntryPoints['page__404'] = scanResult.notFoundPage;
   }
@@ -259,7 +258,7 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
     },
   });
 
-  // ── 7. Detect exports (hasLoad, prerender, cache, API methods) ──────────
+  // Detect exports (hasLoad, prerender, cache, API methods) 
   const hasLoadMap = new Map<string, boolean>();
   const apiMethodsMap = new Map<string, string[]>();
   const prerenderMap = new Map<string, true | PrerenderConfig>();
@@ -345,7 +344,7 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
     root,
   );
 
-  // v1.0: Build client output map for error boundaries
+  //  Build client output map for error boundaries
   const clientErrorOutputMap = buildClientLayoutOutputMap(
     clientResult.metafile!,
     clientErrorMap,
@@ -411,7 +410,7 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
           pathname = pathname.replace(`:${key}`, value);
         }
 
-        // Call load() if present (v1.0: wrapped in try-catch)
+        // Call load() if present ( wrapped in try-catch)
         let data: unknown = null;
         if (entry.hasLoad && typeof mod.load === 'function') {
           const ctx = createBuildTimeRequestContext({
@@ -723,9 +722,7 @@ function buildClientLayoutOutputMap(
   return result;
 }
 
-/**
- * Assemble the final RouteManifest from all collected data.
- */
+// Assemble the final RouteManifest from all collected data.
 function assembleManifest(
   adapter: PyraAdapter,
   base: string,
@@ -759,7 +756,7 @@ function assembleManifest(
     if (serverPath) layoutServerPaths.set(layout.id, serverPath);
   }
 
-  // v1.0: Build lookup: error boundary dirId → server output relative path
+  // Build lookup: error boundary dirId → server output relative path
   const errorServerPaths = new Map<string, string>();
   for (const err of scanResult.errors) {
     const serverPath = serverMwLayoutOutputMap.get(err.filePath);
@@ -803,7 +800,7 @@ function assembleManifest(
       .filter(Boolean);
     const mwBundled = resolveMiddlewareBundledPaths(route.middlewarePaths);
 
-    // v1.0: Resolve error boundary for this route
+    // Resolve error boundary for this route
     const errorBoundaryEntry = route.errorBoundaryId
       ? errorServerPaths.get(route.errorBoundaryId)
       : undefined;
@@ -835,7 +832,7 @@ function assembleManifest(
     const serverEntry = serverOutputMap.get(route.id);
     const mwBundled = resolveMiddlewareBundledPaths(route.middlewarePaths);
 
-    // v1.0: Resolve error boundary for API routes too
+    // Resolve error boundary for API routes too
     const errorBoundaryEntry = route.errorBoundaryId
       ? errorServerPaths.get(route.errorBoundaryId)
       : undefined;
@@ -855,7 +852,7 @@ function assembleManifest(
     };
   }
 
-  // v1.0: Add 404 page to manifest if present
+  // Add 404 page to manifest if present
   if (scanResult.notFoundPage) {
     const notFoundServerPath = serverMwLayoutOutputMap.get(scanResult.notFoundPage);
     routes['__404'] = {
@@ -900,9 +897,7 @@ function assembleManifest(
   };
 }
 
-/**
- * Build an empty manifest when no routes are found.
- */
+// Build an empty manifest when no routes are found.
 function buildEmptyManifest(adapterName: string, base: string): RouteManifest {
   return {
     version: 1,
@@ -914,9 +909,7 @@ function buildEmptyManifest(adapterName: string, base: string): RouteManifest {
   };
 }
 
-/**
- * v0.9: Enhanced build report with MW, Layouts, shared chunks, gzip, and size warnings.
- */
+// Enhanced build report with MW, Layouts, shared chunks, gzip, and size warnings.
 function printBuildReport(
   manifest: RouteManifest,
   totalDurationMs: number,
@@ -976,7 +969,7 @@ function printBuildReport(
       }
       totalCSS += cssSize;
 
-      // v0.9: Size warning
+      // Size warning
       const jsSizeRaw = formatSize(jsSize);
       let jsSizeStr: string;
       if (jsSize > warnSize) {
@@ -988,11 +981,11 @@ function printBuildReport(
       const cssSizeStr = cssSize > 0 ? formatSize(cssSize).padStart(9) : '        -';
       const hasLoad = entry.hasLoad ? 'yes' : 'no ';
 
-      // v0.9: MW count
+      // MW count
       const mwCount = entry.middleware ? entry.middleware.length : 0;
       const mwStr = String(mwCount).padStart(2);
 
-      // v0.9: Layout chain
+      // Layout chain
       let layoutStr = '\u2014';
       if (entry.layouts && entry.layouts.length > 0) {
         layoutStr = entry.layouts.map(id => {
@@ -1004,7 +997,7 @@ function printBuildReport(
       console.log(`  ${routeCol} page   ${mode.padEnd(9)} ${jsSizeStr} ${cssSizeStr}   ${hasLoad}    ${mwStr}  ${pc.dim(layoutStr)}`);
     } else {
       apiCount++;
-      // v0.9: MW count for API routes
+      // MW count for API routes
       const mwCount = entry.middleware ? entry.middleware.length : 0;
       const mwStr = String(mwCount).padStart(2);
       console.log(`  ${routeCol} api    \u2014         \u2014         \u2014        \u2014     ${mwStr}  \u2014`);
@@ -1017,7 +1010,7 @@ function printBuildReport(
   const totalLine1 = `  Totals                    ${pageCount} pg   ${ssgCount} SSG     ${formatSize(totalJS).padStart(9)} ${formatSize(totalCSS).padStart(9)}`;
   const totalLine2 = `                            ${apiCount} api  ${prerenderTotal > 0 ? `${prerenderTotal} pre` : ''}`;
 
-  // v0.9: Gzip estimation
+  // Gzip estimation
   let gzipStr = '';
   const clientDir = path.dirname(clientOutDir);
   const gzipSize = estimateGzipSize(clientDir);
@@ -1029,7 +1022,7 @@ function printBuildReport(
   console.log(totalLine2);
   console.log('');
 
-  // v0.9: Shared chunks section
+  // Shared chunks section
   const sharedChunks = getSharedChunks(manifest);
   if (sharedChunks.length > 0) {
     console.log(`  ${pc.bold('Shared chunks')}`);
@@ -1051,9 +1044,7 @@ function printBuildReport(
   console.log(`  Built in ${(totalDurationMs / 1000).toFixed(1)}s`);
 }
 
-/**
- * v0.9: Estimate gzip size of all JS/CSS files in the client output.
- */
+// Estimate gzip size of all JS/CSS files in the client output.
 function estimateGzipSize(clientDir: string): number {
   if (!fs.existsSync(clientDir)) return 0;
 
@@ -1077,9 +1068,7 @@ function estimateGzipSize(clientDir: string): number {
   return totalGzipped;
 }
 
-/**
- * v0.9: Identify shared chunks and how many page routes use each.
- */
+// Identify shared chunks and how many page routes use each.
 function getSharedChunks(
   manifest: RouteManifest,
 ): { name: string; size: number; usedBy: number }[] {
@@ -1103,9 +1092,7 @@ function getSharedChunks(
   return result.sort((a, b) => b.size - a.size);
 }
 
-/**
- * Format a byte count as a human-readable size string.
- */
+// Format a byte count as a human-readable size string.
 function formatSize(bytes: number): string {
   if (bytes === 0) return '-';
   const kb = bytes / 1024;
@@ -1113,9 +1100,7 @@ function formatSize(bytes: number): string {
   return `${kb.toFixed(1)} KB`;
 }
 
-/**
- * Count all files in a directory recursively.
- */
+// Count all files in a directory recursively.
 function countFilesRecursive(dir: string): number {
   if (!fs.existsSync(dir)) return 0;
   let count = 0;
@@ -1144,9 +1129,7 @@ const DEFAULT_SHELL = `<!DOCTYPE html>
 </body>
 </html>`;
 
-/**
- * Generate <link> and <script> tags for a prerendered page's manifest-declared assets.
- */
+// Generate <link> and <script> tags for a prerendered page's manifest-declared assets.
 function buildPrerenderAssetTags(
   entry: ManifestRouteEntry,
   base: string,
@@ -1166,9 +1149,7 @@ function buildPrerenderAssetTags(
   return { head: headParts.join('\n  '), body: '' };
 }
 
-/**
- * Get MIME type from file extension.
- */
+// Get MIME type from file extension.
 function getMimeType(ext: string): string {
   const mimeTypes: Record<string, string> = {
     '.js': 'application/javascript',
