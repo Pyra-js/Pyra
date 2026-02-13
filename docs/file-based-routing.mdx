@@ -1,0 +1,440 @@
+# File-Based Routing
+
+Automatically generate routes from your file system.
+
+**File-based routing** lets you define your application's routes by creating files and folders inside a designated directory. Instead of manually wiring up every route in a configuration file, Pyra scans your directory tree and maps it directly to URL paths — no extra setup required.
+
+---
+
+## How It Works
+
+Pyra scans the `src/routes/` directory and converts its structure into routes. Each folder can contain **sentinel files** — specially named files that tell Pyra what exists at that path:
+
+| Sentinel File | Purpose |
+|---------------|---------|
+| `page.tsx` | Page route (renders UI) |
+| `route.ts` | API route (handles HTTP methods) |
+| `layout.tsx` | Layout wrapper (wraps child routes) |
+| `middleware.ts` | Request middleware (runs before handlers) |
+
+The folder structure becomes the URL structure:
+
+```bash
+src/routes/
+├── layout.tsx              # Root layout (wraps all pages)
+├── page.tsx                # /
+├── about/
+│   └── page.tsx            # /about
+├── blog/
+│   ├── page.tsx            # /blog
+│   └── [slug]/
+│       └── page.tsx        # /blog/:slug
+├── docs/
+│   └── [...path]/
+│       └── page.tsx        # /docs/* (any depth)
+└── api/
+    └── users/
+        ├── route.ts        # /api/users (GET, POST, etc.)
+        └── [id]/
+            └── route.ts    # /api/users/:id
+```
+
+Add a folder with a `page.tsx`, get a route. Delete it, the route disappears. The dev server picks up changes instantly via HMR, no restart needed.
+
+---
+
+## Configuration
+
+File-based routing is enabled by default for full-stack apps. The only config you might change is the routes directory:
+
+```ts
+import { defineConfig } from "pyrajs-shared";
+
+export default defineConfig({
+  routesDir: "src/routes", // default
+});
+```
+
+Pyra auto-discovers config files in this order: `pyra.config.ts` > `.js` > `.mjs` > `.cjs` > `.pyrarc.ts` > `.pyrarc.js` > `.pyrarc.mjs`.
+
+---
+
+## Page Routes
+
+A `page.tsx` (or `page.jsx`, `page.ts`, `page.js`) file in any directory under `src/routes/` registers a page route. The directory path becomes the URL:
+
+| Directory | Route |
+|-----------|-------|
+| `src/routes/page.tsx` | `/` |
+| `src/routes/about/page.tsx` | `/about` |
+| `src/routes/blog/page.tsx` | `/blog` |
+| `src/routes/dashboard/settings/page.tsx` | `/dashboard/settings` |
+
+### Page Module Exports
+
+Each page file must default-export a component. It can also export optional server-side functions:
+
+```tsx
+// src/routes/blog/[slug]/page.tsx
+
+// Required: default export is the page component
+export default function BlogPost({ title, content, params }) {
+  return (
+    <article>
+      <h1>{title}</h1>
+      <div>{content}</div>
+    </article>
+  );
+}
+
+// Optional: server-side data loader (runs on every request)
+export async function load(context) {
+  const { slug } = context.params;
+  const post = await fetchPost(slug);
+  return { title: post.title, content: post.content };
+}
+
+// Optional: page metadata
+export const metadata = {
+  title: "Blog Post",
+  description: "Read our latest blog post",
+};
+
+// Optional: cache-control hints
+export const cache = {
+  maxAge: 3600,              // Browser cache: 1 hour
+  sMaxAge: 86400,            // CDN cache: 1 day
+  staleWhileRevalidate: 604800,
+};
+
+// Optional: prerender to static HTML at build time
+export const prerender = true;
+// Or with dynamic paths:
+export const prerender = {
+  paths() {
+    return [
+      { slug: "hello-world" },
+      { slug: "getting-started" },
+    ];
+  },
+};
+```
+
+The `load()` function receives a `RequestContext` with the full Web standard `Request`, parsed URL, route params, cookies, environment variables, and response helpers. The object it returns is spread into the component's props alongside `params`.
+
+---
+
+## API Routes
+
+A `route.ts` (or `route.js`) file registers an API endpoint. Export named functions for each HTTP method you want to handle:
+
+```ts
+// src/routes/api/users/[id]/route.ts
+
+import type { RequestContext } from "pyrajs-shared";
+
+export function GET(context: RequestContext) {
+  const { id } = context.params;
+  return context.json({ userId: id });
+}
+
+export async function PUT(context: RequestContext) {
+  const body = await context.request.json();
+  return context.json({ updated: true });
+}
+
+export function DELETE(context: RequestContext) {
+  return context.json({ deleted: true });
+}
+```
+
+Supported methods: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS`. Any method not exported returns a `405 Method Not Allowed` automatically.
+
+> A directory cannot contain both `page.tsx` and `route.ts`. A path is either a page or an API endpoint, not both.
+
+---
+
+## Dynamic Routes
+
+Wrap a folder name in square brackets to create a dynamic URL segment. The bracket content becomes the parameter name:
+
+```bash
+src/routes/
+├── users/
+│   └── [id]/
+│       └── page.tsx          # /users/:id
+├── blog/
+│   └── [slug]/
+│       └── page.tsx          # /blog/:slug
+└── shop/
+    └── [category]/
+        └── [productId]/
+            └── page.tsx      # /shop/:category/:productId
+```
+
+Parameters are available in `load()` via `context.params` and passed as props to the component:
+
+```tsx
+// src/routes/users/[id]/page.tsx
+
+export async function load(context) {
+  const { id } = context.params; // { id: "123" }
+  const user = await fetchUser(id);
+  return { user };
+}
+
+export default function UserPage({ user, params }) {
+  return <h1>{user.name} (ID: {params.id})</h1>;
+}
+```
+
+---
+
+## Catch-All Routes
+
+Use the spread syntax `[...param]` to match any number of remaining path segments:
+
+```bash
+src/routes/
+└── docs/
+    └── [...path]/
+        └── page.tsx          # /docs/*
+```
+
+This matches `/docs/getting-started`, `/docs/api/reference`, `/docs/guides/auth/oauth`, etc. The entire remaining path is captured as a single string:
+
+```tsx
+// src/routes/docs/[...path]/page.tsx
+
+export async function load(context) {
+  const { path } = context.params; // e.g. "guides/auth/oauth"
+  const doc = await loadDoc(path);
+  return { doc };
+}
+
+export default function DocsPage({ doc }) {
+  return <article>{doc.content}</article>;
+}
+```
+
+---
+
+## Route Groups
+
+Wrap a folder name in parentheses to create a **route group**. Groups let you organize files into logical sections without affecting the URL:
+
+```bash
+src/routes/
+├── (marketing)/
+│   ├── pricing/
+│   │   └── page.tsx          # /pricing (not /marketing/pricing)
+│   └── contact/
+│       └── page.tsx          # /contact
+├── (app)/
+│   ├── dashboard/
+│   │   └── page.tsx          # /dashboard
+│   └── settings/
+│       └── page.tsx          # /settings
+```
+
+The parenthesized segment is stripped from the URL entirely. This is useful for co-locating related routes, sharing layouts within a group, or separating concerns without creating extra URL nesting.
+
+> Route groups must not create collisions. Two groups that resolve to the same URL path will cause a build error.
+
+---
+
+## Route Priority
+
+When multiple routes could match a URL, Pyra uses a trie-based router with this priority order:
+
+1. **Static** segments match first (exact string match)
+2. **Dynamic** segments match next (`[param]`)
+3. **Catch-all** segments match last (`[...param]`)
+
+For example, given these routes:
+
+```bash
+src/routes/blog/featured/page.tsx      # /blog/featured (static)
+src/routes/blog/[slug]/page.tsx        # /blog/:slug (dynamic)
+src/routes/blog/[...path]/page.tsx     # /blog/* (catch-all)
+```
+
+- `/blog/featured` matches the static route
+- `/blog/hello-world` matches the dynamic route
+- `/blog/2024/01/hello` matches the catch-all route
+
+---
+
+## Layouts
+
+A `layout.tsx` file wraps all sibling and descendant routes in that directory. Layouts nest automatically from the root down to the matched route:
+
+```bash
+src/routes/
+├── layout.tsx                # Root layout (wraps everything)
+├── page.tsx                  # / (wrapped by root layout)
+├── dashboard/
+│   ├── layout.tsx            # Dashboard layout (nested inside root)
+│   ├── page.tsx              # /dashboard
+│   └── settings/
+│       └── page.tsx          # /dashboard/settings
+```
+
+A layout receives its child content via the `children` prop:
+
+```tsx
+// src/routes/layout.tsx (root layout)
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <head><title>My App</title></head>
+      <body>
+        <nav>{/* site navigation */}</nav>
+        <main>{children}</main>
+        <footer>{/* site footer */}</footer>
+      </body>
+    </html>
+  );
+}
+```
+
+```tsx
+// src/routes/dashboard/layout.tsx (nested layout)
+
+export default function DashboardLayout({ children }) {
+  return (
+    <div className="dashboard">
+      <aside>Sidebar</aside>
+      <section>{children}</section>
+    </div>
+  );
+}
+```
+
+When a user visits `/dashboard/settings`, the rendering nests as:
+
+```
+RootLayout → DashboardLayout → SettingsPage
+```
+
+Each route uses the **nearest ancestor layout** — if no layout exists in a route's own directory, Pyra walks up the tree until it finds one. The root `layout.tsx` is required for full-stack apps.
+
+---
+
+## Middleware
+
+A `middleware.ts` file intercepts requests for all routes in that directory and its descendants. Middleware runs before the route handler and can short-circuit the pipeline by returning a `Response` without calling `next()`:
+
+```ts
+// src/routes/middleware.ts (applies to all routes)
+
+import type { Middleware } from "pyrajs-shared";
+
+const logger: Middleware = async (context, next) => {
+  console.log(`${context.request.method} ${context.url.pathname}`);
+  const response = await next();
+  console.log(`Response: ${response.status}`);
+  return response;
+};
+
+export default logger;
+```
+
+```ts
+// src/routes/dashboard/middleware.ts (applies to /dashboard/*)
+
+import type { Middleware } from "pyrajs-shared";
+
+const auth: Middleware = async (context, next) => {
+  const token = context.request.headers.get("authorization");
+  if (!token) {
+    return context.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return next();
+};
+
+export default auth;
+```
+
+Middleware stacks from **outermost to innermost**. For a request to `/dashboard/settings`, Pyra runs:
+
+1. `src/routes/middleware.ts` (root)
+2. `src/routes/dashboard/middleware.ts` (dashboard)
+3. Route handler
+
+If any middleware returns a response without calling `next()`, the chain stops and that response is sent.
+
+---
+
+## 404 Page
+
+Place a `404.tsx` file at the root of your routes directory to handle unmatched URLs:
+
+```bash
+src/routes/
+├── 404.tsx                   # Rendered when no route matches
+├── layout.tsx
+└── page.tsx
+```
+
+The `404.tsx` file is only recognized at the routes root — not in subdirectories.
+
+---
+
+## Full Example
+
+Here's a complete route structure for a typical application:
+
+```bash
+src/routes/
+├── layout.tsx                # Root layout
+├── page.tsx                  # /
+├── 404.tsx                   # Not found page
+├── middleware.ts             # Global middleware (logging, etc.)
+│
+├── (marketing)/              # Route group — no URL impact
+│   ├── about/
+│   │   └── page.tsx          # /about
+│   ├── pricing/
+│   │   └── page.tsx          # /pricing
+│   └── contact/
+│       └── page.tsx          # /contact
+│
+├── blog/
+│   ├── page.tsx              # /blog (list)
+│   └── [slug]/
+│       └── page.tsx          # /blog/:slug (detail)
+│
+├── docs/
+│   └── [...path]/
+│       └── page.tsx          # /docs/* (any nesting depth)
+│
+├── dashboard/
+│   ├── layout.tsx            # Dashboard-specific layout
+│   ├── middleware.ts          # Auth middleware for dashboard/*
+│   ├── page.tsx              # /dashboard
+│   ├── settings/
+│   │   └── page.tsx          # /dashboard/settings
+│   └── profile/
+│       └── page.tsx          # /dashboard/profile
+│
+└── api/
+    ├── middleware.ts          # API-level middleware
+    ├── health/
+    │   └── route.ts          # GET /api/health
+    └── users/
+        ├── route.ts          # GET, POST /api/users
+        └── [id]/
+            └── route.ts      # GET, PUT, DELETE /api/users/:id
+```
+
+---
+
+## Tips
+
+- **Use sentinel files, not file names.** Routes are defined by `page.tsx` and `route.ts` inside directories — not by the directory name itself. The directory structure is the URL.
+- **Keep it flat when possible.** Deep nesting creates long URLs. Use dynamic segments and route groups to keep paths short and meaningful.
+- **Use layouts for shared chrome.** Navigation, sidebars, and footers belong in `layout.tsx`, not duplicated across pages.
+- **Use middleware for cross-cutting concerns.** Authentication, logging, and rate limiting can be applied to entire route subtrees with a single `middleware.ts` file.
+- **Separate pages from APIs.** While not enforced by directory name, keeping API routes under `api/` is a clear convention. Remember that `page.tsx` and `route.ts` cannot coexist in the same directory.
