@@ -216,8 +216,8 @@ function copyDir(
       copyDir(srcPath, destPath, projectName, rel);
     } else {
       let content = readFileSync(srcPath, "utf-8");
-      content = content.replaceAll("{{PROJECT_NAME}}", projectName);
-      content = content.replaceAll("{{PYRA_VERSION}}", VERSION);
+      content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
+      content = content.replace(/\{\{PYRA_VERSION\}\}/g, VERSION);
       writeFileSync(destPath, content);
       log.success(rel);
     }
