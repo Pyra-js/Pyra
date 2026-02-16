@@ -187,7 +187,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<void> {
   createGitignore(projectDir);
 
   // Success message
-  log.success(`Project created at ${projectDir}`);
+  log.success(`Project scaffolded at ${projectDir}`);
 
   // Add Tailwind CSS if requested
   if (tailwind) {
@@ -208,16 +208,28 @@ export async function scaffold(options: ScaffoldOptions): Promise<void> {
       log.warn('You can set it up manually later');
     }
   }
+}
 
-  log.info('');
-  log.info('Next steps:');
-  log.info(`  cd ${projectName}`);
-
-  if (skipInstall) {
-    log.info('  pnpm install (or npm install / yarn install)');
+/**
+ * Validate a project name for use in package.json and directory names
+ */
+export function validateProjectName(name: string): true | string {
+  if (!name || name.trim().length === 0) {
+    return 'Project name is required';
   }
 
-  log.info('  pnpm dev');
-  log.info('');
+  if (!/^[a-z0-9-_]+$/i.test(name)) {
+    return 'Project name can only contain letters, numbers, hyphens, and underscores';
+  }
+
+  if (name.startsWith('.') || name.startsWith('-') || name.startsWith('_')) {
+    return 'Project name cannot start with a dot, hyphen, or underscore';
+  }
+
+  if (name.length > 214) {
+    return 'Project name is too long (max 214 characters)';
+  }
+
+  return true;
 }
 

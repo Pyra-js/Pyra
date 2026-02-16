@@ -13,7 +13,7 @@ const external = [
 ];
 
 export default defineConfig({
-  entry: ['src/bin.ts', 'src/index.ts', 'src/scaffold.ts', 'src/pm.ts', 'src/init.ts'],
+  entry: ['src/bin.ts', 'src/index.ts', 'src/scaffold.ts', 'src/pm.ts'],
   format: ['esm'],
   dts: true,
   outDir: 'dist',
