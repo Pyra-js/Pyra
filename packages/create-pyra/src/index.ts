@@ -140,9 +140,18 @@ async function autoDetectPM(): Promise<PMName> {
   return "npm";
 }
 
-function spawnPM(pm: PMName, args: string[], cwd: string): Promise<void> {
+function spawnPM(
+  pm: PMName,
+  args: string[],
+  cwd: string,
+  quiet = false,
+): Promise<void> {
   return new Promise((res, reject) => {
-    const child = spawn(pm, args, { cwd, stdio: "inherit", shell: true });
+    const child = spawn(pm, args, {
+      cwd,
+      stdio: quiet ? "pipe" : "inherit",
+      shell: true,
+    });
     child.on("close", (code) =>
       code === 0
         ? res()
@@ -704,7 +713,7 @@ async function main(): Promise<void> {
     spin.start(`Installing dependencies with ${S.bold(chosenPM)}...`);
 
     try {
-      await spawnPM(chosenPM, ["install"], projectDir);
+      await spawnPM(chosenPM, ["install"], projectDir, true);
       spin.stop(S.success("Dependencies installed"));
     } catch {
       spin.stop(S.warn("Failed to install dependencies"));
