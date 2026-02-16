@@ -21,13 +21,14 @@ const CONFIG_FILES = [
  * Default configuration values
  */
 export const DEFAULT_CONFIG: Required<
-  Pick<PyraConfig, 'entry' | 'outDir' | 'port' | 'mode' | 'root'>
+  Pick<PyraConfig, 'entry' | 'outDir' | 'port' | 'mode' | 'root' | 'renderMode'>
 > = {
   entry: 'src/index.ts',
   outDir: 'dist',
   port: 3000,
   mode: 'development',
   root: process.cwd(),
+  renderMode: 'ssr',
 };
 
 /**

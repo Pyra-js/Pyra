@@ -15,3 +15,4 @@ export { ProdServer } from './prod-server.js';
 export type { ProdServerOptions } from './prod-server.js';
 export { runMiddleware } from './middleware.js';
 export { RequestTracer, shouldTrace, resetTraceIdCounter } from './tracer.js';
+export { resolveRouteRenderMode } from './render-mode.js';
