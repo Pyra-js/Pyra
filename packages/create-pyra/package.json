@@ -9,7 +9,11 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "template-react-ts",
+    "template-react-js",
+    "template-vanilla-ts",
+    "template-vanilla-js"
   ],
   "scripts": {
     "build": "tsup",
