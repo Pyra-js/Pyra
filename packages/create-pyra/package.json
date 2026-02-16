@@ -54,7 +54,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.2.0",
+    "@clack/prompts": "^0.9.1",
     "picocolors": "^1.1.1"
   }
 }

@@ -9,36 +9,21 @@ import {
 import { join, resolve, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { input, select, confirm } from "@inquirer/prompts";
-import pc from "picocolors";
 import { createRequire } from "node:module";
+import * as p from "@clack/prompts";
+import pc from "picocolors";
+import { S, stepLabel, summaryRow } from "./theme.js";
+import { formatFileTree } from "./tree.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const LOGO = `
-██████╗ ██╗   ██╗██████╗  █████╗
-██╔══██╗╚██╗ ██╔╝██╔══██╗██╔══██╗
-██████╔╝ ╚████╔╝ ██████╔╝███████║
-██╔═══╝   ╚██╔╝  ██╔══██╗██╔══██║
-██║        ██║   ██║  ██║██║  ██║
-╚═╝        ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝
-`;
-
-// Logger
-const log = {
-  info: (msg: string) => console.log(`${pc.cyan("[pyra]")} ${msg}`),
-  success: (msg: string) => console.log(`${pc.green("[pyra]")} ${msg}`),
-  warn: (msg: string) => console.warn(`${pc.yellow("[pyra]")} ${msg}`),
-  error: (msg: string) => console.error(`${pc.red("[pyra]")} ${msg}`),
-};
-
-// Version
+// ── Version ──────────────────────────────────────────────────────────
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json");
 const VERSION: string = pkg.version;
 
-// Types
+// ── Types ────────────────────────────────────────────────────────────
 type PMName = "npm" | "pnpm" | "yarn" | "bun";
 type Framework = "vanilla" | "react" | "preact";
 type AppMode = "ssr" | "spa";
@@ -51,7 +36,7 @@ interface CliArgs {
   skipInstall: boolean;
 }
 
-// Arg parsing
+// ── Arg Parsing ──────────────────────────────────────────────────────
 function parseArgs(argv: string[]): CliArgs {
   const args = argv.slice(2);
   let projectName: string | undefined;
@@ -74,8 +59,8 @@ function parseArgs(argv: string[]): CliArgs {
     if (arg === "--pm" && args[i + 1]) {
       const val = args[++i] as PMName;
       if (!["npm", "pnpm", "yarn", "bun"].includes(val)) {
-        log.error(`Invalid package manager: ${val}`);
-        log.error("Valid options: npm, pnpm, yarn, bun");
+        console.error(`${S.error("error")} Invalid package manager: ${val}`);
+        console.error("Valid options: npm, pnpm, yarn, bun");
         process.exit(1);
       }
       pm = val;
@@ -91,23 +76,23 @@ function parseArgs(argv: string[]): CliArgs {
 
 function printHelp(): void {
   console.log(`
-  ${pc.bold("create-pyra")} ${pc.dim(`v${VERSION}`)}
+  ${S.bold("create-pyra")} ${S.dim(`v${VERSION}`)}
 
-  ${pc.cyan("Usage:")}
+  ${S.accent("Usage:")}
     npm create pyra [project-name] [options]
     pnpm create pyra [project-name] [options]
     yarn create pyra [project-name] [options]
     bun create pyra [project-name] [options]
 
-  ${pc.cyan("Options:")}
-    --pm <manager>     Package manager to use (npm, pnpm, yarn, bun)
+  ${S.accent("Options:")}
+    --pm <manager>     Package manager (npm, pnpm, yarn, bun)
     --skip-install     Skip dependency installation
     -h, --help         Show this help message
     -v, --version      Show version
 `);
 }
 
-// PM detection
+// ── PM Detection ─────────────────────────────────────────────────────
 const LOCKFILES: Record<PMName, string> = {
   pnpm: "pnpm-lock.yaml",
   yarn: "yarn.lock",
@@ -130,14 +115,14 @@ function detectFromLockfile(cwd: string): PMName | null {
 }
 
 async function commandExists(cmd: string): Promise<boolean> {
-  return new Promise((resolve) => {
+  return new Promise((res) => {
     const child = spawn(
       process.platform === "win32" ? "where" : "which",
       [cmd],
       { stdio: "ignore", shell: true },
     );
-    child.on("close", (code) => resolve(code === 0));
-    child.on("error", () => resolve(false));
+    child.on("close", (code) => res(code === 0));
+    child.on("error", () => res(false));
   });
 }
 
@@ -156,11 +141,11 @@ async function autoDetectPM(): Promise<PMName> {
 }
 
 function spawnPM(pm: PMName, args: string[], cwd: string): Promise<void> {
-  return new Promise((resolve, reject) => {
+  return new Promise((res, reject) => {
     const child = spawn(pm, args, { cwd, stdio: "inherit", shell: true });
     child.on("close", (code) =>
       code === 0
-        ? resolve()
+        ? res()
         : reject(new Error(`${pm} exited with code ${code}`)),
     );
     child.on("error", (err) =>
@@ -169,25 +154,25 @@ function spawnPM(pm: PMName, args: string[], cwd: string): Promise<void> {
   });
 }
 
-// Validation
-function validateProjectName(name: string): true | string {
+// ── Validation ───────────────────────────────────────────────────────
+function validateProjectName(name: string): string | undefined {
   if (!name || name.trim().length === 0) return "Project name is required";
   if (!/^[a-z0-9-_]+$/i.test(name))
-    return "Project name can only contain letters, numbers, hyphens, and underscores";
+    return "Only letters, numbers, hyphens, and underscores allowed";
   if (name.startsWith(".") || name.startsWith("-") || name.startsWith("_"))
-    return "Project name cannot start with a dot, hyphen, or underscore";
-  if (name.length > 214) return "Project name is too long (max 214 characters)";
-  return true;
+    return "Cannot start with a dot, hyphen, or underscore";
+  if (name.length > 214) return "Too long (max 214 characters)";
+  return undefined;
 }
 
-// Template copying
+// ── Template Copying ─────────────────────────────────────────────────
 function copyTemplate(
   framework: Framework,
   appMode: AppMode,
   language: Language,
   projectDir: string,
   projectName: string,
-): void {
+): string[] {
   const lang = language === "typescript" ? "ts" : "js";
   const suffix = appMode === "spa" && framework !== "vanilla" ? "-spa" : "";
   const templateName = `template-${framework}${suffix}-${lang}`;
@@ -197,7 +182,9 @@ function copyTemplate(
     throw new Error(`Template "${templateName}" not found at ${templateDir}`);
   }
 
-  copyDir(templateDir, projectDir, projectName, "");
+  const files: string[] = [];
+  copyDir(templateDir, projectDir, projectName, "", files);
+  return files;
 }
 
 function copyDir(
@@ -205,6 +192,7 @@ function copyDir(
   destDir: string,
   projectName: string,
   relPath: string,
+  files: string[],
 ): void {
   mkdirSync(destDir, { recursive: true });
 
@@ -215,18 +203,18 @@ function copyDir(
     const rel = relPath ? `${relPath}/${destFile}` : destFile;
 
     if (statSync(srcPath).isDirectory()) {
-      copyDir(srcPath, destPath, projectName, rel);
+      copyDir(srcPath, destPath, projectName, rel, files);
     } else {
       let content = readFileSync(srcPath, "utf-8");
       content = content.replace(/\{\{PROJECT_NAME\}\}/g, projectName);
       content = content.replace(/\{\{PYRA_VERSION\}\}/g, VERSION);
       writeFileSync(destPath, content);
-      log.success(rel);
+      files.push(rel);
     }
   }
 }
 
-// Tailwind generators
+// ── Tailwind Generators ──────────────────────────────────────────────
 function generateTailwindConfig(framework: Framework): string {
   const contentPaths =
     framework === "vanilla"
@@ -390,49 +378,16 @@ function generateTailwindCSS(preset: TailwindPreset): string {
 `;
 }
 
-function addTailwindToPackageJson(
-  projectDir: string,
-  preset: TailwindPreset,
-): void {
-  const pkgPath = join(projectDir, "package.json");
-  const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
-
-  pkg.devDependencies = pkg.devDependencies || {};
-  pkg.devDependencies.tailwindcss = "^3.4.1";
-  pkg.devDependencies.postcss = "^8.4.35";
-  pkg.devDependencies.autoprefixer = "^10.4.17";
-
-  if (preset === "shadcn") {
-    pkg.dependencies = pkg.dependencies || {};
-    pkg.dependencies.clsx = "^2.1.0";
-    pkg.dependencies["tailwind-merge"] = "^2.2.1";
-  }
-
-  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf-8");
-}
-
-function injectCSSImport(entryFilePath: string): void {
-  if (!existsSync(entryFilePath)) return;
-
-  const content = readFileSync(entryFilePath, "utf-8");
-  if (content.includes('"./index.css"') || content.includes("'./index.css'")) {
-    return;
-  }
-
-  writeFileSync(entryFilePath, 'import "./index.css";\n' + content, "utf-8");
-}
-
 function scaffoldTailwind(
   projectDir: string,
   framework: Framework,
   appMode: AppMode,
   lang: Language,
   preset: TailwindPreset,
-): void {
-  if (preset === "none") return;
+): string[] {
+  if (preset === "none") return [];
 
-  console.log();
-  log.info("Setting up Tailwind CSS...");
+  const files: string[] = [];
 
   const tailwindConfig =
     preset === "shadcn"
@@ -440,15 +395,15 @@ function scaffoldTailwind(
       : generateTailwindConfig(framework);
 
   writeFileSync(join(projectDir, "tailwind.config.js"), tailwindConfig);
-  log.success("tailwind.config.js");
+  files.push("tailwind.config.js");
 
   writeFileSync(join(projectDir, "postcss.config.js"), generatePostCSSConfig());
-  log.success("postcss.config.js");
+  files.push("postcss.config.js");
 
   const cssDir = join(projectDir, "src");
   mkdirSync(cssDir, { recursive: true });
   writeFileSync(join(cssDir, "index.css"), generateTailwindCSS(preset));
-  log.success("src/index.css");
+  files.push("src/index.css");
 
   // Inject CSS import into the entry file
   const ts = lang === "typescript";
@@ -463,12 +418,71 @@ function scaffoldTailwind(
     injectCSSImport(join(projectDir, "src", "routes", `layout.${jsxExt}`));
   }
 
-  addTailwindToPackageJson(projectDir, preset);
-  log.success("Updated package.json with Tailwind dependencies");
+  // Update package.json with tailwind deps
+  const pkgPath = join(projectDir, "package.json");
+  const pkgJson = JSON.parse(readFileSync(pkgPath, "utf-8"));
+  pkgJson.devDependencies = pkgJson.devDependencies || {};
+  pkgJson.devDependencies.tailwindcss = "^3.4.1";
+  pkgJson.devDependencies.postcss = "^8.4.35";
+  pkgJson.devDependencies.autoprefixer = "^10.4.17";
+
+  if (preset === "shadcn") {
+    pkgJson.dependencies = pkgJson.dependencies || {};
+    pkgJson.dependencies.clsx = "^2.1.0";
+    pkgJson.dependencies["tailwind-merge"] = "^2.2.1";
+  }
+
+  writeFileSync(pkgPath, JSON.stringify(pkgJson, null, 2) + "\n", "utf-8");
+
+  return files;
 }
 
-// ── Main ─────────────────────────────────────────────────────────────
+function injectCSSImport(entryFilePath: string): void {
+  if (!existsSync(entryFilePath)) return;
 
+  const content = readFileSync(entryFilePath, "utf-8");
+  if (
+    content.includes('"./index.css"') ||
+    content.includes("'./index.css'")
+  ) {
+    return;
+  }
+
+  writeFileSync(entryFilePath, 'import "./index.css";\n' + content, "utf-8");
+}
+
+// ── Display Labels ───────────────────────────────────────────────────
+const FRAMEWORK_LABELS: Record<Framework, string> = {
+  vanilla: "Vanilla",
+  react: "React",
+  preact: "Preact",
+};
+
+const MODE_LABELS: Record<AppMode, string> = {
+  ssr: "SSR",
+  spa: "SPA",
+};
+
+const LANGUAGE_LABELS: Record<Language, string> = {
+  typescript: "TypeScript",
+  javascript: "JavaScript",
+};
+
+const TAILWIND_LABELS: Record<TailwindPreset, string> = {
+  none: "None",
+  basic: "Basic",
+  shadcn: "shadcn",
+};
+
+// ── Cancellation Helper ──────────────────────────────────────────────
+function onCancel(value: unknown): void {
+  if (p.isCancel(value)) {
+    p.cancel("Setup cancelled.");
+    process.exit(0);
+  }
+}
+
+// ── Main Wizard ──────────────────────────────────────────────────────
 async function main(): Promise<void> {
   const {
     projectName: nameArg,
@@ -476,154 +490,249 @@ async function main(): Promise<void> {
     skipInstall,
   } = parseArgs(process.argv);
 
-  // Banner
+  // Intro
   console.log();
-  console.log(`${pc.red(LOGO)}`);
-  console.log("Next-gen full-stack framework.");
-  console.log(
-    `${pc.bold(pc.red("Pyra"))} ${pc.dim(`v${VERSION}`)} ${pc.dim("- create a new project")}`,
+  p.intro(
+    `${S.brandBold("Pyra")} ${S.dim(`v${VERSION}`)} ${S.dim("-")} ${S.dim("create a new project")}`,
   );
-  console.log();
 
-  // 1. Project name
-  const projectName =
-    nameArg ||
-    (await input({
-      message: "Project name:",
-      default: "my-pyra-app",
-      validate: (value) => {
-        const result = validateProjectName(value);
-        return result === true ? true : result;
-      },
-    }));
+  // Detect PM early for default selection
+  const detectedPM = pmOverride || (await autoDetectPM());
+
+  // Dynamic step count: vanilla skips rendering mode
+  let totalSteps = 6;
+  let currentStep = 0;
+
+  const next = (label: string) => stepLabel(++currentStep, totalSteps, label);
+
+  // ── Step 1: Project Name ───────────────────────────────────────────
+  let projectName: string;
+
+  if (nameArg) {
+    const err = validateProjectName(nameArg);
+    if (err) {
+      p.cancel(err);
+      process.exit(1);
+    }
+    projectName = nameArg;
+    p.log.step(
+      `${next("Project name")}  ${S.accent(projectName)} ${S.dim("(from args)")}`,
+    );
+  } else {
+    const name = await p.text({
+      message: next("Project name"),
+      placeholder: "my-pyra-app",
+      defaultValue: "my-pyra-app",
+      validate: (v) => validateProjectName(v),
+    });
+    onCancel(name);
+    projectName = name as string;
+  }
 
   const projectDir = resolve(process.cwd(), projectName);
 
   if (existsSync(projectDir)) {
-    log.error(`Directory "${projectName}" already exists`);
+    p.cancel(`Directory "${projectName}" already exists.`);
     process.exit(1);
   }
 
-  // 2. Framework
-  const framework = await select<Framework>({
-    message: "Select a framework:",
-    choices: [
-      { name: `${pc.yellow("Vanilla")}`, value: "vanilla" as Framework },
-      { name: `${pc.cyan("React")}`, value: "react" as Framework },
-      { name: `${pc.magenta("Preact")}`, value: "preact" as Framework },
-    ],
-  });
-
-  // 3. Rendering mode (React / Preact only)
-  let appMode: AppMode = framework === "vanilla" ? "spa" : "ssr";
-  if (framework === "react" || framework === "preact") {
-    appMode = await select<AppMode>({
-      message: "Rendering mode:",
-      choices: [
-        {
-          name: `${pc.green("SSR")} ${pc.dim("(server-side rendering)")}`,
-          value: "ssr" as AppMode,
-        },
-        {
-          name: `${pc.yellow("SPA")} ${pc.dim("(single-page application)")}`,
-          value: "spa" as AppMode,
-        },
-      ],
-    });
-  }
-
-  // 4. Variant
-  const language = await select<Language>({
-    message: "Select a variant:",
-    choices: [
-      { name: `${pc.blue("TypeScript")}`, value: "typescript" as Language },
-      { name: `${pc.yellow("JavaScript")}`, value: "javascript" as Language },
-    ],
-  });
-
-  // 5. Tailwind
-  const tailwind = await select<TailwindPreset>({
-    message: "Add Tailwind CSS?",
-    choices: [
-      { name: "No", value: "none" as TailwindPreset },
-      { name: "Basic", value: "basic" as TailwindPreset },
+  // ── Step 2: Framework ──────────────────────────────────────────────
+  const framework = (await p.select({
+    message: next("Framework"),
+    options: [
       {
-        name: `shadcn ${pc.dim("(design tokens + dark mode)")}`,
-        value: "shadcn" as TailwindPreset,
+        value: "vanilla" as Framework,
+        label: pc.yellow("Vanilla"),
+        hint: "no UI framework",
+      },
+      {
+        value: "react" as Framework,
+        label: pc.cyan("React"),
+        hint: "recommended",
+      },
+      {
+        value: "preact" as Framework,
+        label: pc.magenta("Preact"),
+        hint: "lightweight alternative",
       },
     ],
-  });
+  })) as Framework;
+  onCancel(framework);
 
-  // 6. Package manager
-  const detectedPM = pmOverride || (await autoDetectPM());
-  const pmChoices: { name: string; value: PMName }[] = [
-    { name: "npm", value: "npm" },
-    { name: "pnpm", value: "pnpm" },
-    { name: "yarn", value: "yarn" },
-    { name: "bun", value: "bun" },
+  // Adjust total steps: vanilla has no rendering mode prompt
+  if (framework === "vanilla") {
+    totalSteps = 5;
+  }
+
+  // ── Step 3: Rendering Mode (React/Preact only) ────────────────────
+  let appMode: AppMode = "spa";
+
+  if (framework !== "vanilla") {
+    appMode = (await p.select({
+      message: next("Rendering mode"),
+      options: [
+        {
+          value: "ssr" as AppMode,
+          label: pc.green("SSR"),
+          hint: "server-side rendering",
+        },
+        {
+          value: "spa" as AppMode,
+          label: pc.yellow("SPA"),
+          hint: "single-page application",
+        },
+      ],
+    })) as AppMode;
+    onCancel(appMode);
+  }
+
+  // ── Step N: Variant ────────────────────────────────────────────────
+  const language = (await p.select({
+    message: next("Variant"),
+    options: [
+      {
+        value: "typescript" as Language,
+        label: pc.blue("TypeScript"),
+        hint: "type-safe",
+      },
+      {
+        value: "javascript" as Language,
+        label: pc.yellow("JavaScript"),
+        hint: "classic",
+      },
+    ],
+  })) as Language;
+  onCancel(language);
+
+  // ── Step N: Tailwind ───────────────────────────────────────────────
+  const tailwind = (await p.select({
+    message: next("Tailwind CSS"),
+    options: [
+      { value: "none" as TailwindPreset, label: "No", hint: "skip" },
+      {
+        value: "basic" as TailwindPreset,
+        label: "Basic",
+        hint: "standard setup",
+      },
+      {
+        value: "shadcn" as TailwindPreset,
+        label: "shadcn",
+        hint: "design tokens + dark mode",
+      },
+    ],
+  })) as TailwindPreset;
+  onCancel(tailwind);
+
+  // ── Step N: Package Manager ────────────────────────────────────────
+  let chosenPM: PMName;
+
+  if (pmOverride) {
+    chosenPM = pmOverride;
+    p.log.step(
+      `${next("Package manager")}  ${S.accent(chosenPM)} ${S.dim("(from --pm)")}`,
+    );
+  } else {
+    chosenPM = (await p.select({
+      message: next("Package manager"),
+      initialValue: detectedPM,
+      options: [
+        { value: "npm" as PMName, label: "npm" },
+        { value: "pnpm" as PMName, label: "pnpm" },
+        { value: "yarn" as PMName, label: "yarn" },
+        { value: "bun" as PMName, label: "bun" },
+      ],
+    })) as PMName;
+    onCancel(chosenPM);
+  }
+
+  // ── Summary ────────────────────────────────────────────────────────
+  const summaryLines = [
+    summaryRow("Project", projectName),
+    summaryRow("Framework", FRAMEWORK_LABELS[framework]),
+    ...(framework !== "vanilla"
+      ? [summaryRow("Mode", MODE_LABELS[appMode])]
+      : []),
+    summaryRow("Variant", LANGUAGE_LABELS[language]),
+    summaryRow("Tailwind", TAILWIND_LABELS[tailwind]),
+    summaryRow("Package Mgr", chosenPM),
   ];
 
-  const chosenPM = pmOverride
-    ? pmOverride
-    : await select<PMName>({
-        message: "Package manager:",
-        choices: pmChoices,
-        default: detectedPM,
-      });
+  p.note(summaryLines.join("\n"), "Summary");
 
-  // 7. Install?
-  const shouldInstall = skipInstall
-    ? false
-    : await confirm({
-        message: `Install dependencies with ${chosenPM}?`,
-        default: true,
-      });
+  // ── Confirm ────────────────────────────────────────────────────────
+  const confirmed = await p.confirm({
+    message: "Create project?",
+  });
+  onCancel(confirmed);
 
-  // ── Scaffold ────────────────────────────────────────────────────────
-  console.log();
-  log.info(`Creating new Pyra project: ${pc.bold(projectName)}`);
-  console.log();
+  if (!confirmed) {
+    p.cancel("Setup cancelled.");
+    process.exit(0);
+  }
+
+  // ── Scaffold ───────────────────────────────────────────────────────
+  const spin = p.spinner();
+  spin.start("Scaffolding project...");
 
   mkdirSync(projectDir, { recursive: true });
-  copyTemplate(framework, appMode, language, projectDir, projectName);
-  scaffoldTailwind(projectDir, framework, appMode, language, tailwind);
 
-  // ── Install ─────────────────────────────────────────────────────────
-  if (shouldInstall) {
-    console.log();
-    log.info(`Installing dependencies with ${pc.bold(chosenPM)}...`);
-    console.log();
+  const templateFiles = copyTemplate(
+    framework,
+    appMode,
+    language,
+    projectDir,
+    projectName,
+  );
+
+  const tailwindFiles = scaffoldTailwind(
+    projectDir,
+    framework,
+    appMode,
+    language,
+    tailwind,
+  );
+
+  const allFiles = [...templateFiles, ...tailwindFiles];
+
+  spin.stop(S.success("Project scaffolded"));
+
+  // ── File Tree ──────────────────────────────────────────────────────
+  p.note(formatFileTree(allFiles), "Project structure");
+
+  // ── Install Dependencies ───────────────────────────────────────────
+  if (!skipInstall) {
+    spin.start(`Installing dependencies with ${S.bold(chosenPM)}...`);
 
     try {
       await spawnPM(chosenPM, ["install"], projectDir);
-      console.log();
-      log.success("Dependencies installed");
+      spin.stop(S.success("Dependencies installed"));
     } catch {
-      log.warn("Failed to install dependencies automatically");
-      log.warn(
-        `Run ${pc.bold(`${chosenPM} install`)} manually in the project directory`,
+      spin.stop(S.warn("Failed to install dependencies"));
+      p.log.warn(
+        `Run ${S.bold(`${chosenPM} install`)} manually in the project directory`,
       );
     }
   }
 
-  // ── Next steps ──────────────────────────────────────────────────────
-  console.log();
-  log.info(pc.bold("Done! Next steps:"));
-  console.log();
-  console.log(`  ${pc.cyan("cd")} ${projectName}`);
-  if (!shouldInstall) {
-    console.log(`  ${pc.cyan(chosenPM)} install`);
-  }
-  console.log(`  ${pc.cyan(`${chosenPM} run`)} dev`);
-  console.log();
+  // ── Outro ──────────────────────────────────────────────────────────
+  const nextSteps = [
+    `cd ${S.accent(projectName)}`,
+    ...(skipInstall ? [`${S.accent(chosenPM)} install`] : []),
+    `${S.accent(`${chosenPM} run`)} dev`,
+  ];
+
+  p.outro(
+    `${S.successBold("Done!")} Next steps:\n\n${nextSteps.map((s) => `  ${s}`).join("\n")}`,
+  );
 }
 
+// ── Entry Point ──────────────────────────────────────────────────────
 main().catch((err) => {
   if (err.name === "ExitPromptError") {
     console.log();
-    log.info("Cancelled");
+    p.cancel("Cancelled.");
     process.exit(0);
   }
-  log.error(err.message || err);
+  p.cancel(err.message || String(err));
   process.exit(1);
 });
