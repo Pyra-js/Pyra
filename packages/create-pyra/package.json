@@ -12,10 +12,14 @@
     "dist",
     "template-react-ts",
     "template-react-js",
+    "template-react-spa-ts",
+    "template-react-spa-js",
     "template-vanilla-ts",
     "template-vanilla-js",
     "template-preact-ts",
-    "template-preact-js"
+    "template-preact-js",
+    "template-preact-spa-ts",
+    "template-preact-spa-js"
   ],
   "scripts": {
     "build": "tsup",

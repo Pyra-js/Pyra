@@ -41,6 +41,7 @@ const VERSION: string = pkg.version;
 // Types
 type PMName = "npm" | "pnpm" | "yarn" | "bun";
 type Framework = "vanilla" | "react" | "preact";
+type AppMode = "ssr" | "spa";
 type Language = "typescript" | "javascript";
 type TailwindPreset = "none" | "basic" | "shadcn";
 
@@ -182,12 +183,14 @@ function validateProjectName(name: string): true | string {
 // Template copying
 function copyTemplate(
   framework: Framework,
+  appMode: AppMode,
   language: Language,
   projectDir: string,
   projectName: string,
 ): void {
   const lang = language === "typescript" ? "ts" : "js";
-  const templateName = `template-${framework}-${lang}`;
+  const suffix = appMode === "spa" && framework !== "vanilla" ? "-spa" : "";
+  const templateName = `template-${framework}${suffix}-${lang}`;
   const templateDir = resolve(__dirname, "..", templateName);
 
   if (!existsSync(templateDir)) {
@@ -422,6 +425,7 @@ function injectCSSImport(entryFilePath: string): void {
 function scaffoldTailwind(
   projectDir: string,
   framework: Framework,
+  appMode: AppMode,
   lang: Language,
   preset: TailwindPreset,
 ): void {
@@ -451,6 +455,9 @@ function scaffoldTailwind(
   if (framework === "vanilla") {
     const ext = ts ? "ts" : "js";
     injectCSSImport(join(projectDir, "src", `index.${ext}`));
+  } else if (appMode === "spa") {
+    const jsxExt = ts ? "tsx" : "jsx";
+    injectCSSImport(join(projectDir, "src", `main.${jsxExt}`));
   } else {
     const jsxExt = ts ? "tsx" : "jsx";
     injectCSSImport(join(projectDir, "src", "routes", `layout.${jsxExt}`));
@@ -507,7 +514,25 @@ async function main(): Promise<void> {
     ],
   });
 
-  // 3. Variant
+  // 3. Rendering mode (React / Preact only)
+  let appMode: AppMode = framework === "vanilla" ? "spa" : "ssr";
+  if (framework === "react" || framework === "preact") {
+    appMode = await select<AppMode>({
+      message: "Rendering mode:",
+      choices: [
+        {
+          name: `${pc.green("SSR")} ${pc.dim("(server-side rendering)")}`,
+          value: "ssr" as AppMode,
+        },
+        {
+          name: `${pc.yellow("SPA")} ${pc.dim("(single-page application)")}`,
+          value: "spa" as AppMode,
+        },
+      ],
+    });
+  }
+
+  // 4. Variant
   const language = await select<Language>({
     message: "Select a variant:",
     choices: [
@@ -516,7 +541,7 @@ async function main(): Promise<void> {
     ],
   });
 
-  // 4. Tailwind
+  // 5. Tailwind
   const tailwind = await select<TailwindPreset>({
     message: "Add Tailwind CSS?",
     choices: [
@@ -529,7 +554,7 @@ async function main(): Promise<void> {
     ],
   });
 
-  // 5. Package manager
+  // 6. Package manager
   const detectedPM = pmOverride || (await autoDetectPM());
   const pmChoices: { name: string; value: PMName }[] = [
     { name: "npm", value: "npm" },
@@ -546,7 +571,7 @@ async function main(): Promise<void> {
         default: detectedPM,
       });
 
-  // 6. Install?
+  // 7. Install?
   const shouldInstall = skipInstall
     ? false
     : await confirm({
@@ -560,8 +585,8 @@ async function main(): Promise<void> {
   console.log();
 
   mkdirSync(projectDir, { recursive: true });
-  copyTemplate(framework, language, projectDir, projectName);
-  scaffoldTailwind(projectDir, framework, language, tailwind);
+  copyTemplate(framework, appMode, language, projectDir, projectName);
+  scaffoldTailwind(projectDir, framework, appMode, language, tailwind);
 
   // ── Install ─────────────────────────────────────────────────────────
   if (shouldInstall) {
