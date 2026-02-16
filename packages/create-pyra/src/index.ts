@@ -703,7 +703,10 @@ function generateTailwindCSS(preset: TailwindPreset): string {
 `;
 }
 
-function addTailwindToPackageJson(projectDir: string, preset: TailwindPreset): void {
+function addTailwindToPackageJson(
+  projectDir: string,
+  preset: TailwindPreset,
+): void {
   const pkgPath = join(projectDir, "package.json");
   const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
 
@@ -745,13 +748,22 @@ function scaffoldVanilla(
 
   mkdirSync(srcDir, { recursive: true });
 
-  writeFileSync(join(projectDir, "package.json"), generateVanillaPackageJson(projectName, ts));
+  writeFileSync(
+    join(projectDir, "package.json"),
+    generateVanillaPackageJson(projectName, ts),
+  );
   log.success("package.json");
 
-  writeFileSync(join(projectDir, "index.html"), generateVanillaIndexHtml(projectName, ts));
+  writeFileSync(
+    join(projectDir, "index.html"),
+    generateVanillaIndexHtml(projectName, ts),
+  );
   log.success("index.html");
 
-  writeFileSync(join(projectDir, `pyra.config.${ext === "ts" ? "ts" : "js"}`), generateVanillaPyraConfig(ts));
+  writeFileSync(
+    join(projectDir, `pyra.config.${ext === "ts" ? "ts" : "js"}`),
+    generateVanillaPyraConfig(ts),
+  );
   log.success(`pyra.config.${ext === "ts" ? "ts" : "js"}`);
 
   if (ts) {
@@ -781,10 +793,16 @@ function scaffoldReact(
   mkdirSync(apiHealthDir, { recursive: true });
   mkdirSync(aboutDir, { recursive: true });
 
-  writeFileSync(join(projectDir, "package.json"), generateReactPackageJson(projectName, ts));
+  writeFileSync(
+    join(projectDir, "package.json"),
+    generateReactPackageJson(projectName, ts),
+  );
   log.success("package.json");
 
-  writeFileSync(join(projectDir, `pyra.config.${ext}`), generateReactPyraConfig(ts));
+  writeFileSync(
+    join(projectDir, `pyra.config.${ext}`),
+    generateReactPyraConfig(ts),
+  );
   log.success(`pyra.config.${ext}`);
 
   if (ts) {
@@ -792,16 +810,25 @@ function scaffoldReact(
     log.success("tsconfig.json");
   }
 
-  writeFileSync(join(routesDir, `layout.${jsxExt}`), generateReactLayout(projectName, ts));
+  writeFileSync(
+    join(routesDir, `layout.${jsxExt}`),
+    generateReactLayout(projectName, ts),
+  );
   log.success(`src/routes/layout.${jsxExt}`);
 
-  writeFileSync(join(routesDir, `page.${jsxExt}`), generateReactHomePage(projectName, ts));
+  writeFileSync(
+    join(routesDir, `page.${jsxExt}`),
+    generateReactHomePage(projectName, ts),
+  );
   log.success(`src/routes/page.${jsxExt}`);
 
   writeFileSync(join(aboutDir, `page.${jsxExt}`), generateReactAboutPage());
   log.success(`src/routes/about/page.${jsxExt}`);
 
-  writeFileSync(join(apiHealthDir, `route.${ext}`), generateReactHealthRoute(ts));
+  writeFileSync(
+    join(apiHealthDir, `route.${ext}`),
+    generateReactHealthRoute(ts),
+  );
   log.success(`src/routes/api/health/route.${ext}`);
 }
 
@@ -849,13 +876,18 @@ function scaffoldTailwind(
 // ── Main ─────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
-  const { projectName: nameArg, pm: pmOverride, skipInstall } = parseArgs(process.argv);
+  const {
+    projectName: nameArg,
+    pm: pmOverride,
+    skipInstall,
+  } = parseArgs(process.argv);
 
   // Banner
   console.log();
   console.log(`${pc.red(LOGO)}`);
+  console.log("Next-gen full-stack framework.");
   console.log(
-    `  ${pc.bold(pc.red("Pyra"))} ${pc.dim(`v${VERSION}`)} ${pc.dim("- create a new project")}`,
+    `${pc.bold(pc.red("Pyra"))} ${pc.dim(`v${VERSION}`)} ${pc.dim("- create a new project")}`,
   );
   console.log();
 
@@ -902,7 +934,10 @@ async function main(): Promise<void> {
     choices: [
       { name: "No", value: "none" as TailwindPreset },
       { name: "Basic", value: "basic" as TailwindPreset },
-      { name: `shadcn ${pc.dim("(design tokens + dark mode)")}`, value: "shadcn" as TailwindPreset },
+      {
+        name: `shadcn ${pc.dim("(design tokens + dark mode)")}`,
+        value: "shadcn" as TailwindPreset,
+      },
     ],
   });
 

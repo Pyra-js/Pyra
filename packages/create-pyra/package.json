@@ -13,7 +13,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "prepublishOnly": "pnpm build"
+    "prepublishOnly": "pnpm build",
+    "testing-wd": "cd ../../ && pnpm run dev:link && cd packages/create-pyra && node dist/index.js"
   },
   "keywords": [
     "pyra",

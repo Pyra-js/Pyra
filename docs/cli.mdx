@@ -66,11 +66,11 @@ pyra dev --config ./config/pyra.config.ts
 
 ## Scaffolding
 
-Pyra offers two ways to create a new project, plus a standalone `create-pyra` package for use with `npm create`.
+Pyra has two ways to start a new project, each designed for a different situation.
 
-### npm create pyra
+### npm create pyra — the official onboarding path
 
-The `create-pyra` package lets you scaffold a project without installing the CLI first. It runs an interactive wizard that walks you through every choice:
+The `create-pyra` package is a lightweight, standalone scaffolder. It doesn't require the Pyra CLI to be installed — npm downloads it on the fly, runs the interactive wizard, and creates a new project directory for you.
 
 ```bash
 npm create pyra@latest
@@ -85,7 +85,7 @@ You can also pass a project name directly:
 npm create pyra@latest my-app
 ```
 
-The wizard prompts for:
+This always creates a **new directory**. It never touches your current directory. The wizard walks you through every choice:
 
 - **Project name** — the directory to create
 - **Framework** — Vanilla or React
@@ -94,48 +94,34 @@ The wizard prompts for:
 - **Package manager** — npm, pnpm, yarn, or bun (auto-detected by default)
 - **Install dependencies** — yes or no
 
-You can skip prompts with flags:
+After scaffolding, it installs dependencies and prints your next steps:
+
+```
+Next steps:
+  cd my-app
+  pnpm dev
+```
+
+You can skip some prompts with flags:
 
 | Option | Description |
 |--------|-------------|
 | `--pm <manager>` | Package manager to use: `npm`, `pnpm`, `yarn`, or `bun` |
 | `--skip-install` | Skip automatic dependency installation |
 
-### pyra create
+This is the recommended starting point for new users. The `create-pyra` package is tiny (~8 KB compressed, ~1.5 MB with dependencies) so it downloads in under a second.
 
-A quick, minimal project setup available from within the CLI. Creates a full-stack React + TypeScript project with file-based routing and sensible defaults — no template or language prompts, just a project name.
+### pyra init — scaffold into the current directory
 
-```bash
-pyra create my-app
-```
-
-If you omit the project name, you'll be prompted for one.
-
-| Option | Description |
-|--------|-------------|
-| `--pm <manager>` | Package manager: `npm`, `pnpm`, `yarn`, or `bun` |
-| `--skip-install` | Skip dependency installation |
-| `--silent` | Suppress output |
-
-The generated project includes:
-
-- `pyra.config.ts` with file-based routing configured
-- `tsconfig.json` for TypeScript
-- `src/routes/layout.tsx` — root layout with nav and footer
-- `src/routes/page.tsx` — home page
-- `src/routes/about/page.tsx` — about page (with static prerendering)
-- `src/routes/api/health/route.ts` — health check API endpoint
-- `.gitignore`
-
-Package manager detection works automatically — Pyra checks lockfiles in the current directory, the `npm_config_user_agent` environment variable, then falls back to what's available on your PATH.
-
-### pyra init
-
-Interactive scaffolding with more choices. Prompts for template, language, Tailwind setup, and package manager.
+The `init` command is for developers who already have the Pyra CLI installed. It scaffolds a project into the **current working directory** rather than creating a new one. The directory name is used as the project name.
 
 ```bash
-pyra init my-app
+mkdir my-app
+cd my-app
+pyra init
 ```
+
+If the directory is not empty, the command fails with an error. Use `--force` to scaffold anyway. Directories containing only a `.git` folder (e.g. after `git init`) are treated as empty.
 
 | Option | Description |
 |--------|-------------|
@@ -146,7 +132,8 @@ pyra init my-app
 | `--no-tailwind` | Skip Tailwind CSS |
 | `--ui <preset>` | Tailwind preset: `basic` or `shadcn` |
 | `--skip-install` | Skip dependency installation |
-| `--silent` | Suppress output |
+| `--force` | Scaffold even if the directory is not empty |
+| `--silent` | Suppress banner and timing output |
 
 **Templates:**
 
@@ -157,21 +144,28 @@ If you don't pass flags, the CLI prompts you interactively for each choice.
 
 ```bash
 # fully non-interactive: React + TypeScript + Tailwind with shadcn preset
-pyra init my-app --template react --language typescript --tailwind --ui shadcn
+pyra init --template react --language typescript --tailwind --ui shadcn
 
 # vanilla JavaScript, no Tailwind
-pyra init my-app --template vanilla --language javascript --no-tailwind
+pyra init --template vanilla --language javascript --no-tailwind
+
+# scaffold into a directory that already has files
+pyra init --force --template react --language typescript --no-tailwind
 ```
 
-### create vs init
+### npm create pyra vs pyra init
 
-| | `pyra create` | `pyra init` |
+| | `npm create pyra` | `pyra init` |
 |---|---|---|
-| Speed | Fast, minimal prompts | Interactive, more choices |
-| Template | Always React full-stack | Vanilla or React |
-| Language | Always TypeScript | TypeScript or JavaScript |
-| Tailwind | Not included | Optional (basic or shadcn) |
-| Best for | Getting started quickly | Customizing your setup |
+| Creates a new directory | Yes | No (uses current directory) |
+| Requires Pyra installed | No | Yes |
+| Project name | Prompted or passed as argument | Inferred from directory name |
+| Framework choice | Vanilla or React | Vanilla or React |
+| Language choice | TypeScript or JavaScript | TypeScript or JavaScript |
+| Tailwind | Optional (none/basic/shadcn) | Optional (basic/shadcn) |
+| PM selection | Interactive prompt | Auto-detected (or `--pm` flag) |
+| Dependency install | Prompted (yes/no) | Automatic (or `--skip-install`) |
+| Best for | New users, starting fresh | Existing workflows, git-first setups |
 
 ## pyra dev
 

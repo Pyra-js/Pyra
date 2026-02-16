@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
       <footer style={{ padding: '1rem', borderTop: '1px solid #eee', textAlign: 'center', color: '#999' }}>
-        something &mdash; built with Pyra.js
+        {{PROJECT_NAME}} &mdash; built with Pyra.js
       </footer>
     </div>
   );
