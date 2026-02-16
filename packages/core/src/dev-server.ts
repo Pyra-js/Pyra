@@ -6,7 +6,8 @@ import { pathToFileURL } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import chokidar, { type FSWatcher } from "chokidar";
 import { log } from "pyrajs-shared";
-import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResult, RouteMatch, Middleware, RouteNode, ErrorPageProps } from "pyrajs-shared";
+import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResult, RouteMatch, Middleware, RouteNode, ErrorPageProps, RenderMode } from "pyrajs-shared";
+import { resolveRouteRenderMode } from "./render-mode.js";
 import { HTTP_METHODS } from "pyrajs-shared";
 import { runMiddleware } from "./middleware.js";
 import { bundleFile, invalidateDependentCache } from "./bundler.js";
@@ -385,6 +386,16 @@ export class DevServer {
     const component = mod.default;
     tracer.end();
 
+    // Resolve render mode for this route
+    const globalMode: RenderMode = this.config?.renderMode ?? "ssr";
+    const mode = resolveRouteRenderMode(mod, globalMode);
+
+    // SPA route: serve HTML shell with client module only, no SSR
+    if (mode === "spa") {
+      return this.serveSpaShell(req, route, tracer);
+    }
+
+    // SSR + SSG (SSG treated as SSR in dev for fast feedback)
     if (!component) {
       return new Response(
         `Route "${route.id}" (${route.filePath}) does not export a default component.`,
@@ -497,6 +508,46 @@ export class DevServer {
       headers: {
         "Content-Type": "text/html",
         "Cache-Control": "no-cache",
+      },
+    });
+  }
+
+  // ── SPA Shell ────────────────────────────────────────────────────────────────
+
+  /**
+   * Serve an HTML shell for SPA routes.
+   * No server rendering — the client module handles everything.
+   */
+  private serveSpaShell(
+    req: http.IncomingMessage,
+    route: RouteNode,
+    tracer: RequestTracer,
+  ): Response {
+    tracer.start("inject-assets", "SPA shell");
+    const adapter = this.adapter!;
+    const shell = adapter.getDocumentShell?.() || DEFAULT_SHELL;
+
+    // Build client module URL for the route
+    const clientModulePath = path.relative(this.root, route.filePath);
+    const clientModuleUrl =
+      "/__pyra/modules/" + clientModulePath.split(path.sep).join("/");
+
+    let html = shell;
+    html = html.replace("__CONTAINER_ID__", this.containerId);
+    html = html.replace("<!--pyra-outlet-->", "");
+    html = html.replace("<!--pyra-head-->", "");
+
+    const script = `<script type="module" src="${clientModuleUrl}"></script>`;
+    html = this.injectHMRClient(html);
+    html = html.replace("</body>", `  ${script}\n</body>`);
+    tracer.end();
+
+    return new Response(html, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html",
+        "Cache-Control": "no-cache",
+        "X-Pyra-Render-Mode": "spa",
       },
     });
   }
