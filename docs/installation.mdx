@@ -1,0 +1,85 @@
+# Installation
+
+Get up and running with Pyra in under a minute.
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/en) version 18.0.0 or higher (LTS recommended)
+- [npm](https://www.npmjs.com/), [pnpm](https://pnpm.io/installation), [yarn](https://classic.yarnpkg.com/lang/en/docs/install/), or [bun](https://bun.sh/) as your package manager
+
+## Creating a New Project
+
+The fastest way to start is with `create-pyra`, which scaffolds a full project and walks you through setup:
+
+```bash
+npm create pyra my-app
+```
+
+You'll be prompted to choose:
+
+- **Framework** — React (full-stack SSR with file-based routing) or Vanilla (lightweight JS/TS)
+- **Language** — TypeScript or JavaScript
+- **Tailwind CSS** — optional, with preset choices
+
+Once scaffolding is complete:
+
+```bash
+cd my-app
+npm install
+npm run dev
+```
+
+Your app will be running at `http://localhost:3000` with hot module replacement.
+
+## Initializing in an Existing Directory
+
+If you already have a directory and want to set up Pyra inside it, use `pyra init`:
+
+```bash
+mkdir my-app && cd my-app
+npx pyrajs-cli init
+```
+
+This initializes the project in the current directory using the same template prompts.
+
+## Installing the CLI Globally
+
+If you work with Pyra across multiple projects, you can install the CLI globally:
+
+```bash
+npm install -g pyrajs-cli
+```
+
+This gives you access to the `pyra` command anywhere:
+
+```bash
+pyra init
+pyra dev
+pyra build
+pyra start
+```
+
+## Local Installation
+
+For team projects, install Pyra as a local dev dependency so everyone uses the same version:
+
+```bash
+npm install -D pyrajs-cli pyrajs-core pyrajs-adapter-react pyrajs-shared
+```
+
+Then add scripts to your `package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "pyra dev",
+    "build": "pyra build",
+    "start": "pyra start"
+  }
+}
+```
+
+## What's Next
+
+- [File-Based Routing](/docs/file-based-routing) — how pages, layouts, and API routes are organized
+- [CLI Reference](/docs/cli) — all available commands and options

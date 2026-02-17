@@ -1,0 +1,85 @@
+# Environment Variables
+
+Manage environment-specific configuration in Pyra.
+
+## Using .env Files
+
+Create a `.env` file in your project root:
+
+```bash
+PYRA_API_URL=https://api.example.com
+PYRA_API_KEY=your-key-here
+DATABASE_URL=postgres://localhost/mydb
+```
+
+## Accessing Variables
+
+Environment variables prefixed with `PYRA_` are available on the `RequestContext` object inside `load()` functions and middleware. The prefix is stripped from the key names:
+
+```typescript
+// src/routes/page.tsx
+import type { RequestContext } from "pyrajs-shared";
+
+export async function load(ctx: RequestContext) {
+  // PYRA_API_URL becomes ctx.env.API_URL
+  const apiUrl = ctx.env.API_URL;
+  const apiKey = ctx.env.API_KEY;
+
+  const res = await fetch(apiUrl, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+
+  return { data: await res.json() };
+}
+```
+
+## Important Notes
+
+- Only variables prefixed with `PYRA_` are exposed to your route code by default
+- The prefix is **stripped** from the key — `PYRA_API_URL` becomes `ctx.env.API_URL`
+- Environment variables are only available **server-side** (in `load()` and middleware), never sent to the browser
+- Never commit `.env` files with sensitive data — add `.env` to your `.gitignore`
+
+## Configuring the Prefix
+
+You can customize the prefix (or use multiple prefixes) in `pyra.config.ts`:
+
+```typescript
+import { defineConfig } from "pyrajs-shared";
+
+export default defineConfig({
+  env: {
+    // Change the default prefix
+    prefix: "MY_APP_",
+
+    // Or use multiple prefixes
+    prefix: ["PYRA_", "PUBLIC_"],
+
+    // Custom directory for .env files (default: project root)
+    dir: "./config",
+  },
+});
+```
+
+## Environment Modes
+
+Pyra runs in two modes — `development` and `production`. The current mode is available on the request context:
+
+```typescript
+export async function load(ctx: RequestContext) {
+  console.log(ctx.mode); // 'development' or 'production'
+
+  return {
+    debug: ctx.mode === "development",
+  };
+}
+```
+
+```bash
+# Development
+pyra dev
+
+# Production build + start
+pyra build
+pyra start
+```

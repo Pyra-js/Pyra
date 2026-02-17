@@ -1,4 +1,5 @@
 import type http from "node:http";
+import { Readable } from "node:stream";
 import type {
   PyraMode,
   RequestContext,
@@ -147,9 +148,13 @@ export function createRequestContext(
   }
 
   // Build Web standard Request
+  // For methods that can carry a body, pipe the Node readable stream
+  const method = req.method || "GET";
+  const hasBody = method !== "GET" && method !== "HEAD";
   const request = new Request(url.href, {
-    method: req.method || "GET",
+    method,
     headers,
+    ...(hasBody ? { body: Readable.toWeb(req) as ReadableStream, duplex: "half" } : {}),
   });
 
   // Build CookieJar from Cookie header

@@ -1,0 +1,55 @@
+# Introduction to Pyra
+
+## A full-stack web framework that stays out of your way.
+
+**Pyra** is built for people who want clarity over magic, speed without ceremony, and control without complexity. It provides file-based routing, server-side rendering, and a production build pipeline — all with a transparent architecture you can actually follow.
+
+Think of Pyra as a **full-stack foundation**: fast to start, predictable to extend, and honest about how it works.
+
+---
+
+## What is Pyra?
+
+Pyra is a **full-stack TypeScript web framework** with file-based routing, server-side rendering, and a built-in production pipeline powered by esbuild.
+
+Drop a `page.tsx` in `src/routes/` and you have a route. Export a `load()` function and you have server-side data loading. Add a `route.ts` and you have an API endpoint. Pyra handles the wiring — routing, SSR, hydration, middleware, builds — so you can focus on what you're actually building.
+
+At its core, Pyra is guided by three principles:
+
+* **Simplicity by default.** You shouldn't need to understand the framework to start using it. File-based routing and sensible defaults get you running immediately. Configuration is only introduced when you actually need it.
+
+* **Performance as a baseline.** Fast dev server startup, instant HMR, and optimized production builds with code splitting and content hashing are not optional add-ons — they're the default behavior.
+
+* **Transparency over magic.** Built-in request tracing shows you exactly where time is spent in every request. The route scanner, trie-based router, and SSR pipeline are all designed to be predictable and debuggable.
+
+---
+
+## Why Pyra Exists
+
+Modern frameworks often force you to choose between too minimal and too heavy.
+
+Some tools give you a fast dev server but leave routing, SSR, and production builds as exercises for the reader. Others handle everything but bury the details behind layers of abstraction that break down the moment you need to debug or customize.
+
+Pyra sits deliberately between those extremes.
+
+You might reach for Pyra if you've ever said:
+
+> "I want SSR and file-based routing without a hundred implicit conventions."
+> "I want to understand the full request lifecycle, not just the parts the framework exposes."
+> "I want a production-ready setup that doesn't require a week of configuration."
+
+Pyra is built for developers who want a framework that scales with ambition, not complexity. Start with a single page, grow into layouts and middleware, add API routes and prerendering — without needing to rewrite anything along the way.
+
+---
+
+## Key Features
+
+- **File-based routing** — Pages, API routes, layouts, middleware, and error boundaries, all driven by your filesystem structure
+- **Server-side rendering** — React SSR with hydration out of the box, with an adapter interface for other frameworks
+- **Data loading** — `load()` functions run server-side with full `RequestContext` (headers, cookies, environment variables, response helpers)
+- **API routes** — Export HTTP method handlers from `route.ts` files for a clean backend API alongside your pages
+- **Middleware** — Stackable middleware with short-circuit support, applied to both pages and API routes
+- **Static generation** — Prerender pages at build time with `export const prerender = true` or dynamic path generation
+- **Production builds** — esbuild-powered builds with code splitting, content hashing, and a manifest-driven production server
+- **Request tracing** — Built-in per-request timing that outputs Server-Timing headers and terminal diagnostics
+- **CLI tooling** — `pyra dev`, `pyra build`, `pyra start`, `pyra create`, project scaffolding, dependency graphs, and diagnostics
