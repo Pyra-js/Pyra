@@ -1,0 +1,442 @@
+# Build a Full-Stack Todo App
+
+A step-by-step guide to building a CRUD todo application with Pyra, React, and TypeScript. You'll create API routes, server-side data loading, and an interactive client — all with file-based routing.
+
+## What You'll Build
+
+A todo app with:
+
+- A server-side API (`GET`, `POST`, `PUT`, `DELETE`)
+- A page that loads todos on the server and renders them with React
+- Client-side interactivity for creating, toggling, and deleting todos
+- A root layout with navigation
+
+The final file structure:
+
+```
+my-todo-app/
+  pyra.config.ts
+  tsconfig.json
+  package.json
+  src/routes/
+    layout.tsx
+    page.tsx
+    api/todos/
+      route.ts
+      [id]/route.ts
+```
+
+---
+
+## 1. Create the Project
+
+Scaffold a new Pyra project using `create-pyra`:
+
+```bash
+npm create pyra my-todo-app
+```
+
+Select **React**, **TypeScript**, and skip Tailwind (we'll use inline styles to keep things simple). Then install dependencies and start the dev server:
+
+```bash
+cd my-todo-app
+npm install
+npm run dev
+```
+
+You should see the Pyra welcome page at `http://localhost:3000`. Leave the dev server running — it will hot-reload as you edit files.
+
+---
+
+## 2. Define the Todo Type
+
+Create a shared type file that both your API routes and pages can import.
+
+```typescript
+// src/types.ts
+export interface Todo {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+```
+
+---
+
+## 3. Create the Data Store
+
+For this tutorial, we'll use an in-memory array. In a real app you'd use a database.
+
+```typescript
+// src/data/todos.ts
+import type { Todo } from "../types.js";
+
+let nextId = 4;
+
+const todos: Todo[] = [
+  { id: "1", title: "Learn Pyra file-based routing", completed: true },
+  { id: "2", title: "Build a todo API", completed: false },
+  { id: "3", title: "Add client interactivity", completed: false },
+];
+
+export function getAllTodos(): Todo[] {
+  return todos;
+}
+
+export function getTodoById(id: string): Todo | undefined {
+  return todos.find((t) => t.id === id);
+}
+
+export function createTodo(title: string): Todo {
+  const todo: Todo = { id: String(nextId++), title, completed: false };
+  todos.push(todo);
+  return todo;
+}
+
+export function updateTodo(
+  id: string,
+  updates: Partial<Pick<Todo, "title" | "completed">>,
+): Todo | undefined {
+  const todo = todos.find((t) => t.id === id);
+  if (!todo) return undefined;
+  if (updates.title !== undefined) todo.title = updates.title;
+  if (updates.completed !== undefined) todo.completed = updates.completed;
+  return todo;
+}
+
+export function deleteTodo(id: string): boolean {
+  const index = todos.findIndex((t) => t.id === id);
+  if (index === -1) return false;
+  todos.splice(index, 1);
+  return true;
+}
+```
+
+---
+
+## 4. Build the API Routes
+
+Pyra turns `route.ts` files into API endpoints. Export named functions matching HTTP methods — `GET`, `POST`, `PUT`, `DELETE` — and Pyra handles routing and method validation automatically.
+
+### List and Create: `api/todos/route.ts`
+
+```typescript
+// src/routes/api/todos/route.ts
+import type { RequestContext } from "pyrajs-shared";
+import { getAllTodos, createTodo } from "../../../data/todos.js";
+
+export function GET(ctx: RequestContext) {
+  return ctx.json(getAllTodos());
+}
+
+export async function POST(ctx: RequestContext) {
+  const body = await ctx.request.json();
+
+  if (!body.title || typeof body.title !== "string") {
+    return ctx.json({ error: "title is required" }, { status: 400 });
+  }
+
+  const todo = createTodo(body.title.trim());
+  return ctx.json(todo, { status: 201 });
+}
+```
+
+**How it works:**
+
+- `GET /api/todos` returns all todos as JSON
+- `POST /api/todos` reads the request body with `ctx.request.json()`, validates it, and creates a new todo
+- `ctx.json()` creates a `Response` with `Content-Type: application/json`. The optional second argument is a `ResponseInit` object (e.g. `{ status: 201 }`)
+- If someone sends a `DELETE` to this endpoint, Pyra automatically returns `405 Method Not Allowed` with an `Allow` header — you don't need to handle that yourself
+
+### Read, Update, and Delete: `api/todos/[id]/route.ts`
+
+The `[id]` folder name creates a dynamic route segment. The value is available as `ctx.params.id`.
+
+```typescript
+// src/routes/api/todos/[id]/route.ts
+import type { RequestContext } from "pyrajs-shared";
+import { getTodoById, updateTodo, deleteTodo } from "../../../../data/todos.js";
+
+export function GET(ctx: RequestContext) {
+  const todo = getTodoById(ctx.params.id);
+  if (!todo) {
+    return ctx.json({ error: "Todo not found" }, { status: 404 });
+  }
+  return ctx.json(todo);
+}
+
+export async function PUT(ctx: RequestContext) {
+  const body = await ctx.request.json();
+  const todo = updateTodo(ctx.params.id, body);
+  if (!todo) {
+    return ctx.json({ error: "Todo not found" }, { status: 404 });
+  }
+  return ctx.json(todo);
+}
+
+export function DELETE(ctx: RequestContext) {
+  const deleted = deleteTodo(ctx.params.id);
+  if (!deleted) {
+    return ctx.json({ error: "Todo not found" }, { status: 404 });
+  }
+  return ctx.json({ deleted: true });
+}
+```
+
+At this point you can test your API:
+
+```bash
+# List todos
+curl http://localhost:3000/api/todos
+
+# Create a todo
+curl -X POST http://localhost:3000/api/todos \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Write documentation"}'
+
+# Toggle completion
+curl -X PUT http://localhost:3000/api/todos/1 \
+  -H "Content-Type: application/json" \
+  -d '{"completed": false}'
+
+# Delete a todo
+curl -X DELETE http://localhost:3000/api/todos/2
+```
+
+---
+
+## 5. Create the Layout
+
+Replace the scaffolded layout with a minimal one for the todo app.
+
+```tsx
+// src/routes/layout.tsx
+import React from "react";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ fontFamily: "system-ui, sans-serif", maxWidth: "600px", margin: "0 auto", padding: "2rem" }}>
+      <header style={{ marginBottom: "2rem", borderBottom: "2px solid #e5e7eb", paddingBottom: "1rem" }}>
+        <h1 style={{ margin: 0, fontSize: "1.5rem" }}>
+          <a href="/" style={{ textDecoration: "none", color: "#111" }}>Pyra Todos</a>
+        </h1>
+      </header>
+      <main>{children}</main>
+    </div>
+  );
+}
+```
+
+Layouts in Pyra wrap every page in their directory and below. A `layout.tsx` at the routes root wraps the entire app.
+
+---
+
+## 6. Build the Todo Page
+
+This is where file-based routing and server-side data loading come together.
+
+### The `load()` Function
+
+Export a `load()` function from your page file to fetch data on the server before rendering. It receives a `RequestContext` and returns an object — the properties become your component's props.
+
+### The Page Component
+
+Export a `default` component that receives the data returned by `load()`.
+
+```tsx
+// src/routes/page.tsx
+import React, { useState } from "react";
+import type { RequestContext } from "pyrajs-shared";
+import type { Todo } from "../types.js";
+
+// --- Server: runs on every request before rendering ---
+export async function load(ctx: RequestContext) {
+  const { getAllTodos } = await import("../data/todos.js");
+  return { todos: getAllTodos() };
+}
+
+// --- Client + Server: the React component ---
+export default function TodosPage({ todos: initialTodos }: { todos: Todo[] }) {
+  const [todos, setTodos] = useState(initialTodos);
+  const [newTitle, setNewTitle] = useState("");
+
+  async function addTodo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newTitle.trim()) return;
+
+    const res = await fetch("/api/todos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: newTitle.trim() }),
+    });
+    const todo: Todo = await res.json();
+    setTodos([...todos, todo]);
+    setNewTitle("");
+  }
+
+  async function toggleTodo(id: string, completed: boolean) {
+    const res = await fetch(`/api/todos/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: !completed }),
+    });
+    const updated: Todo = await res.json();
+    setTodos(todos.map((t) => (t.id === updated.id ? updated : t)));
+  }
+
+  async function removeTodo(id: string) {
+    await fetch(`/api/todos/${id}`, { method: "DELETE" });
+    setTodos(todos.filter((t) => t.id !== id));
+  }
+
+  const remaining = todos.filter((t) => !t.completed).length;
+
+  return (
+    <div>
+      <form onSubmit={addTodo} style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+        <input
+          type="text"
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          placeholder="What needs to be done?"
+          style={{
+            flex: 1,
+            padding: "0.5rem 0.75rem",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            fontSize: "1rem",
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            padding: "0.5rem 1rem",
+            background: "#111",
+            color: "#fff",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "1rem",
+          }}
+        >
+          Add
+        </button>
+      </form>
+
+      {todos.length === 0 ? (
+        <p style={{ color: "#9ca3af", textAlign: "center", padding: "2rem 0" }}>
+          No todos yet. Add one above.
+        </p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          {todos.map((todo) => (
+            <li
+              key={todo.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                padding: "0.75rem 0",
+                borderBottom: "1px solid #f3f4f6",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={todo.completed}
+                onChange={() => toggleTodo(todo.id, todo.completed)}
+                style={{ width: "18px", height: "18px", cursor: "pointer" }}
+              />
+              <span
+                style={{
+                  flex: 1,
+                  textDecoration: todo.completed ? "line-through" : "none",
+                  color: todo.completed ? "#9ca3af" : "#111",
+                }}
+              >
+                {todo.title}
+              </span>
+              <button
+                onClick={() => removeTodo(todo.id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#ef4444",
+                  cursor: "pointer",
+                  fontSize: "0.875rem",
+                }}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p style={{ marginTop: "1rem", fontSize: "0.875rem", color: "#6b7280" }}>
+        {remaining} {remaining === 1 ? "item" : "items"} remaining
+      </p>
+    </div>
+  );
+}
+```
+
+---
+
+## 7. How It All Fits Together
+
+Here's the request lifecycle when someone visits `http://localhost:3000`:
+
+1. Pyra's router matches `/` to `src/routes/page.tsx`
+2. The `load()` function runs **on the server** — it calls `getAllTodos()` and returns `{ todos: [...] }`
+3. The React adapter renders `TodosPage` with those props, wrapped in `RootLayout`
+4. The full HTML is sent to the browser (server-side rendered)
+5. React hydrates on the client — the page becomes interactive
+6. When the user adds, toggles, or deletes a todo, the client calls `fetch()` against the API routes, which hit the same in-memory store
+
+---
+
+## 8. Run It
+
+If your dev server is still running, the page should have already updated. Otherwise:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:3000`. You should see the three seed todos, an input to add new ones, checkboxes to toggle completion, and delete buttons.
+
+---
+
+## 9. Build for Production
+
+When you're ready to deploy:
+
+```bash
+npm run build
+npm run start
+```
+
+`pyra build` creates an optimized production bundle in `dist/` with code splitting and content-hashed assets. `pyra start` serves it with the production server.
+
+---
+
+## Recap
+
+| Concept | File | What it does |
+|---|---|---|
+| API route (collection) | `src/routes/api/todos/route.ts` | `GET` lists todos, `POST` creates one |
+| API route (single item) | `src/routes/api/todos/[id]/route.ts` | `GET` reads, `PUT` updates, `DELETE` removes |
+| Data loading | `export async function load(ctx)` in `page.tsx` | Runs server-side, return value becomes props |
+| Page component | `export default function` in `page.tsx` | React component, SSR'd then hydrated |
+| Layout | `src/routes/layout.tsx` | Wraps all pages via `children` prop |
+| Dynamic segments | `[id]` folder name | Value available as `ctx.params.id` |
+| Response helpers | `ctx.json()`, `ctx.redirect()` | Create typed HTTP responses |
+| Request body | `ctx.request.json()` | Parse JSON from the incoming request |
+
+## Next Steps
+
+- Add a `/todos/[id]` page with its own `load()` for a detail view
+- Add middleware (`src/routes/middleware.ts`) to log requests or check authentication
+- Add an `error.tsx` boundary to handle errors gracefully
+- Use `export const prerender = true` on static pages for SSG
+- Connect a real database instead of the in-memory store

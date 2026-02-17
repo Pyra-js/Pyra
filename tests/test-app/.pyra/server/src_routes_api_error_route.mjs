@@ -1,8 +1,0 @@
-// src/routes/api/error/route.ts
-function GET(ctx) {
-  throw new Error("Intentional API error");
-}
-export {
-  GET
-};
-//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiLi4vLi4vc3JjL3JvdXRlcy9hcGkvZXJyb3Ivcm91dGUudHMiXSwKICAic291cmNlc0NvbnRlbnQiOiBbImltcG9ydCB0eXBlIHsgUmVxdWVzdENvbnRleHQgfSBmcm9tICdweXJhanMtc2hhcmVkJztcclxuXHJcbmV4cG9ydCBmdW5jdGlvbiBHRVQoY3R4OiBSZXF1ZXN0Q29udGV4dCkge1xyXG4gIHRocm93IG5ldyBFcnJvcignSW50ZW50aW9uYWwgQVBJIGVycm9yJyk7XHJcbn1cclxuIl0sCiAgIm1hcHBpbmdzIjogIjtBQUVPLFNBQVMsSUFBSSxLQUFxQjtBQUN2QyxRQUFNLElBQUksTUFBTSx1QkFBdUI7QUFDekM7IiwKICAibmFtZXMiOiBbXQp9Cg==

@@ -1,0 +1,22 @@
+{
+  "name": "routing-showcase",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Demonstrates all Pyra routing patterns: static, dynamic, catch-all, and route groups",
+  "scripts": {
+    "dev": "pyra dev",
+    "build": "pyra build",
+    "start": "pyra start"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "pyrajs-cli": "workspace:*",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
