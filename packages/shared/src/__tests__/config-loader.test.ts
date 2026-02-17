@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   resolveConfig,
   getPort,
@@ -7,6 +7,17 @@ import {
   validateConfig,
   DEFAULT_CONFIG,
 } from '../config-loader.js';
+
+// Mock node:fs so we can control existsSync for validateConfig tests.
+// In ESM, module exports are non-configurable so vi.spyOn doesn't work.
+// vi.hoisted ensures the variable exists before the hoisted vi.mock runs.
+const { mockExistsSync } = vi.hoisted(() => ({
+  mockExistsSync: vi.fn(() => true),
+}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return { ...actual, existsSync: mockExistsSync };
+});
 
 // ─── DEFAULT_CONFIG ──────────────────────────────────────────────────────────
 
@@ -124,18 +135,8 @@ describe('getEntry', () => {
 // ─── validateConfig ──────────────────────────────────────────────────────────
 
 describe('validateConfig', () => {
-  let existsSyncSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(async () => {
-    const fs = await import('node:fs');
-    existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it('does not throw for a valid config', () => {
+    mockExistsSync.mockReturnValue(true);
     expect(() => validateConfig({ entry: 'src/index.ts', root: '/some/dir' })).not.toThrow();
   });
 
@@ -156,11 +157,12 @@ describe('validateConfig', () => {
   });
 
   it('throws when root directory does not exist', () => {
-    existsSyncSpy.mockReturnValue(false);
+    mockExistsSync.mockReturnValue(false);
     expect(() => validateConfig({ entry: 'x', root: '/nonexistent' })).toThrow('root directory does not exist');
   });
 
   it('accepts boundary port values 1 and 65535', () => {
+    mockExistsSync.mockReturnValue(true);
     expect(() => validateConfig({ entry: 'x', port: 1 })).not.toThrow();
     expect(() => validateConfig({ entry: 'x', port: 65535 })).not.toThrow();
   });

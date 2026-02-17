@@ -168,8 +168,8 @@ export function validateConfig(config: PyraConfig): void {
   }
 
   // Port validation
-  const port = config.port || config.server?.port;
-  if (port && (port < 1 || port > 65535)) {
+  const port = config.port ?? config.server?.port;
+  if (port != null && (port < 1 || port > 65535)) {
     throw new Error(`Config validation error: port must be between 1 and 65535 (got ${port})`);
   }
 
