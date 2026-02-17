@@ -12,7 +12,7 @@ Thanks for your interest in contributing to Pyra.js! This guide covers everythin
 
 ```bash
 # Clone the repository
-git clone https://github.com/Simpleboi/Pyra.git
+git clone https://github.com/Natejsx/Pyra.git
 cd Pyra
 
 # Install dependencies
@@ -123,7 +123,7 @@ pnpm clean
 
 - Use double quotes for strings in source files.
 - Use 2-space indentation.
-- Use `picocolors` (imported as `pc`) for terminal coloring — not chalk or other alternatives.
+- Use `picocolors` (imported as `pc`) for terminal coloring, not chalk or other alternatives.
 - Use `log` from `pyrajs-shared` for user-facing console output:
   ```typescript
   import { log } from 'pyrajs-shared';
@@ -137,13 +137,13 @@ We follow Conventional Commits for clear git history:
 
 Types
 
-* feat: - New feature
-* fix: - Bug fix
-* docs: - Documentation changes
-* style: - Code style changes (formatting, no logic change)
-* refactor: - Code refactoring
-* test: - Adding or updating tests
-* chore: - Maintenance tasks, dependency updates
+* **feat:** - New feature
+* **fix:** - Bug fix
+* **docs:** - Documentation changes
+* **style:** - Code style changes (formatting, no logic change)
+* **refactor:** - Code refactoring
+* **test:** - Adding or updating tests
+* **chore:** - Maintenance tasks, dependency updates
 Examples
 
 ### File Conventions
@@ -182,7 +182,7 @@ Examples
 
 1. Create a directory under `packages/cli/templates/` (e.g., `svelte-ts/`).
 2. Include at minimum: `package.json`, `pyra.config.ts`, `index.html`, and a `src/` directory.
-3. Use `{{PROJECT_NAME}}` as a placeholder in `package.json` — scaffolding replaces it.
+3. Use `{{PROJECT_NAME}}` as a placeholder in `package.json`, scaffolding replaces it.
 4. Templates are copied to `dist/templates/` during the CLI build via `scripts/copy-templates.mjs`.
 
 ## Project Conventions
@@ -213,9 +213,9 @@ src/routes/
 ### Router Priority
 
 The trie-based router matches URLs with this priority:
-1. **Static segments** — exact match (e.g., `/blog/featured`)
-2. **Dynamic segments** — parameterized (e.g., `/blog/:slug`)
-3. **Catch-all segments** — rest params (e.g., `/docs/*path`)
+1. **Static segments** - exact match (e.g., `/blog/featured`)
+2. **Dynamic segments** - parameterized (e.g., `/blog/:slug`)
+3. **Catch-all segments** - rest params (e.g., `/docs/*path`)
 
 ### Request Pipeline (Dev Server)
 
@@ -227,10 +227,10 @@ Each stage is instrumented by the `RequestTracer` for performance visibility.
 
 ## Documentation
 
-- `docs/ARCHITECTURE.md` — Full platform architecture and milestone roadmap
-- `docs/CONFIG_SYSTEM.md` — Configuration system details
-- `docs/SSR.md` — SSR implementation details
-- `CLAUDE.md` — AI assistant context for the codebase
+- `docs/ARCHITECTURE.md` - Full platform architecture and milestone roadmap
+- `docs/CONFIG_SYSTEM.md` - Configuration system details
+- `docs/SSR.md` - SSR implementation details
+- `CLAUDE.md` - AI assistant context for the codebase
 
 ## Submitting Changes
 
@@ -243,7 +243,7 @@ Each stage is instrumented by the `RequestTracer` for performance visibility.
 
 ## Reporting Issues
 
-File issues at [github.com/Simpleboi/Pyra/issues](https://github.com/Simpleboi/Pyra/issues). Include:
+File issues at [github.com/Natejsx/Pyra/issues](https://github.com/Natejsx/Pyra/issues). Include:
 
 - Steps to reproduce
 - Expected vs actual behavior
