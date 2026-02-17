@@ -10,6 +10,7 @@ import { join, resolve, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { ReadStream } from "node:tty";
 import * as prompt from "@clack/prompts";
 import pc from "picocolors";
 import { S, stepLabel, summaryRow } from "./theme.js";
@@ -508,6 +509,33 @@ async function main(): Promise<void> {
     skipInstall,
   } = parseArgs(process.argv);
 
+  // Check for a functional TTY, npm create on Windows/Git Bash spawns
+  // through cmd.exe, which can break the TTY file descriptor even though
+  // process.stdin.isTTY still reports true. Probe by actually constructing
+  let ttyOk = false;
+  try {
+    if (process.stdin.isTTY) {
+      const test = new ReadStream(0);
+      test.destroy();
+      ttyOk = true;
+    }
+  } catch {
+    // TTY fd is broken, fall through to the error message
+  }
+
+  if (!ttyOk) {
+    console.log(LOGO);
+    console.error(
+      `\n  Interactive mode requires a TTY terminal.\n\n` +
+      `  This can happen when running via "npm create" on Windows.\n` +
+      `  Try one of these instead:\n\n` +
+      `    npx create-pyra\n` +
+      `    pnpm create pyra\n` +
+      `    bunx create-pyra\n`,
+    );
+    process.exit(1);
+  }
+
   // Intro
   console.log();
   console.log(`${S.brandBold(LOGO)}`)
@@ -769,6 +797,12 @@ main().catch((err) => {
     prompt.cancel("Cancelled.");
     process.exit(0);
   }
-  prompt.cancel(err.message || String(err));
+
+  // Avoid calling prompt.cancel when TTY is unavailable — it would also crash
+  if (process.stdin.isTTY) {
+    prompt.cancel(err.message || String(err));
+  } else {
+    console.error(err.message || String(err));
+  }
   process.exit(1);
 });

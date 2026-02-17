@@ -1,0 +1,22 @@
+{
+  "name": "something",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A full-stack app built with Pyra",
+  "scripts": {
+    "dev": "pyra dev",
+    "build": "pyra build",
+    "start": "pyra start"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "pyrajs-cli": "^0.12.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

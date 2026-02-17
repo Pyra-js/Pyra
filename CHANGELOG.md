@@ -5,6 +5,16 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.1] - 2025-02-16
+
+### Added
+- Install dependencies prompt in `create-pyra` wizard, users are now asked whether to install instead of auto-installing
+- TTY detection in `create-pyra` - shows a clear error with alternative commands when stdin is not a TTY (fixes crash on Windows when running via `npm create`)
+
+### Fixed
+- `create-pyra` no longer crashes with `EBADF` when launched through `npm create` on Windows/Git Bash
+
+
 ## [0.9.5] - 2025-02-16
 
 ### Changed
