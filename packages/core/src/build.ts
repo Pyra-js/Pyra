@@ -69,6 +69,11 @@ export async function build(options: BuildOrchestratorOptions): Promise<BuildRes
   const adapter = options.adapter;
   const silent = options.silent ?? false;
 
+  // Entry-based SPA: no file-based routing — produce a static dist/ like Vite
+  if (options.config.entry) {
+    return buildSPA(options);
+  }
+
   const clientOutDir = path.join(outDir, 'client', 'assets');
   const serverOutDir = path.join(outDir, 'server');
 
