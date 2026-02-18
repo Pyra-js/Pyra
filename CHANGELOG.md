@@ -5,6 +5,30 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.4] - 2026-02-18
+
+### Added
+- SPA production build pipeline - `pyra build` now produces static output for entry-based projects
+  - Detected when `config.entry` is a string (e.g. `entry: 'src/main.tsx'`) with no file-based routing
+  - `index.html` transformed at build time: dev-time `<script type="module" src="...">` tags removed, hashed script and CSS injected
+  - `public/` directory copied to `dist/` if present
+  - Build report shows per-file sizes with gzip estimate - same style as SSR report
+  - SSR/SSG build path is completely unchanged - SPA detection is an early return before any route scanning
+
+### Changed
+- `spawnPM()` in `create-pyra` now uses `cmd.exe /c <pm> install` on Windows instead of `shell: true` with `.cmd` extension - fixes dependency installation failing silently after the DEP0190 fix in 0.13.0
+
+### Fixed
+- Node.js DEP0190 deprecation warning (`Passing args to a child process with shell option true`) no longer appears when running `create-pyra`
+  - `commandExists()` changed to `shell: false` - `where.exe` / `which` are real executables
+  - `spawnPM()` changed to `shell: false` with `cmd.exe /c` on Windows, plain spawn on Unix
+
+### Refactored
+- `packages/core/src/build.ts` split into focused modules
+  - `build.ts` - SSR/SSG orchestrator only
+  - `buildSPA.ts` - SPA static build (self-contained with its own helpers)
+  - `types.ts` - `BuildOrchestratorOptions` and `BuildResult` interfaces (re-exported from `index.ts`)
+
 ## [0.13.0] - 2026-02-18
 
 ### Added
