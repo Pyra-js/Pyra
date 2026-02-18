@@ -16,23 +16,9 @@ For guides, API reference, and examples visit the docs site:
 
 ---
 
-## Contributing
-
-Contributions are welcome! Since Pyra is pre-v1.0, there are plenty of areas to help with.
-
-```bash
-git clone https://github.com/Natejsx/Pyra.git
-cd Pyra
-pnpm install
-pnpm build
-pnpm dev:link    # Link CLI globally for testing
-```
+## Reporting Issues
 
 Please [open an issue](https://github.com/Natejsx/Pyra/issues) before submitting large PRs so we can discuss the approach.
-
----
-
-## Reporting Issues
 
 - **Bugs:** [GitHub Issues](https://github.com/Natejsx/Pyra/issues)
 - **Security vulnerabilities:** [GitHub Security Advisories](https://github.com/Natejsx/Pyra/security)
