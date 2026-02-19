@@ -585,6 +585,56 @@ export interface RouteMetadata {
   [key: string]: unknown;
 }
 
+// ─── Image Optimization Types (v1.1) ─────────────────────────────────────────
+
+/** Supported output formats for image optimization. */
+export type ImageFormat = "webp" | "avif" | "jpeg" | "png";
+
+/** Configuration for the pyraImages() plugin. */
+export type ImageConfig = {
+  /** Output formats to generate (default: ['webp']). */
+  formats?: ImageFormat[];
+  /** Responsive widths in pixels (default: [640, 1280, 1920]). Never upscales. */
+  sizes?: number[];
+  /** Compression quality 1–100 (default: 80). */
+  quality?: number;
+  /** On-disk cache directory for dev-mode optimization (default: '.pyra/image-cache'). */
+  cacheDir?: string;
+  /** Allowed external hostnames for future remote image proxy support. */
+  domains?: string[];
+};
+
+/** A single optimized variant of a source image. */
+export type ImageVariant = {
+  /** Relative path inside dist/client/ (e.g. '_images/hero-abc123-640w.webp'). */
+  path: string;
+  /** Width of this variant in pixels. */
+  width: number;
+  /** Output format. */
+  format: ImageFormat;
+  /** File size in bytes. */
+  size: number;
+};
+
+/** Manifest entry for a single source image and all its generated variants. */
+export type ImageManifestEntry = {
+  /** Original URL path relative to project root (e.g. '/images/hero.jpg'). */
+  src: string;
+  /** Original image width in pixels. */
+  originalWidth: number;
+  /** Original image height in pixels. */
+  originalHeight: number;
+  /** Original file format (e.g. 'jpeg'). */
+  originalFormat: string;
+  /**
+   * Variant map keyed by `"${width}:${format}"` (e.g. `"640:webp"`).
+   * The /_pyra/image endpoint uses this map to locate pre-built files in prod.
+   */
+  variants: Record<string, ImageVariant>;
+};
+
+// ─── End Image Optimization Types ────────────────────────────────────────────
+
 // ─── End Request Context Types ───────────────────────────────────────────────
 
 // Route Manifest Types (v0.4) 
