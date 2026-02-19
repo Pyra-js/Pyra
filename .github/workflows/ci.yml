@@ -7,8 +7,14 @@ on:
     branches: [master]
 
 jobs:
-  build:
+  ci:
+    name: CI (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20, 22]
 
     steps:
       - uses: actions/checkout@v4
@@ -17,13 +23,17 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
 
-      - run: pnpm install
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck
         run: pnpm typecheck
 
       - name: Build
         run: pnpm build
+
+      - name: Test
+        run: pnpm test
