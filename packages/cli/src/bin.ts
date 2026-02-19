@@ -359,6 +359,7 @@ program
   .command("init")
   .description("Initialize a new Pyra.js project in the current directory")
   .option("-t, --template <name>", "Project template (vanilla, react)")
+  .option("-m, --mode <mode>", "App mode (spa, ssr) — only applies to React")
   .option("-l, --language <lang>", "Language (typescript, javascript)")
   .option("--pm <manager>", "Package manager to use (npm, pnpm, yarn, bun)")
   .option("--tailwind", "Add Tailwind CSS")
@@ -395,7 +396,7 @@ program
       const template: Template =
         options.template ||
         (await select({
-          message: "Select a template:",
+          message: "Select a framework:",
           choices: [
             {
               name: "Vanilla",
@@ -405,10 +406,32 @@ program
             {
               name: "React",
               value: "react",
-              description: "Full-stack React with file-based routing and SSR",
+              description: "React with file-based routing",
             },
           ],
         }));
+
+      // Prompt for app mode if React and not provided via --mode
+      let appMode: AppMode = "ssr";
+      if (template === "react") {
+        appMode =
+          (options.mode as AppMode | undefined) ||
+          (await select({
+            message: "Select a rendering mode:",
+            choices: [
+              {
+                name: "Full-stack",
+                value: "ssr",
+                description: "Server-side rendering with file-based routing — requires a server",
+              },
+              {
+                name: "Frontend (SPA)",
+                value: "spa",
+                description: "Client-side only — deploy anywhere (CDN, GitHub Pages, etc.)",
+              },
+            ],
+          }));
+      }
 
       // Prompt for language if not provided
       const language: Language =
@@ -481,6 +504,7 @@ program
         projectName,
         template,
         language,
+        appMode,
         targetDir: cwd,
         tailwind: addTailwind,
         tailwindPreset,
