@@ -49,6 +49,14 @@
     "esbuild": "^0.25.0",
     "ws": "^8.18.0"
   },
+  "peerDependencies": {
+    "sharp": ">=0.33.0"
+  },
+  "peerDependenciesMeta": {
+    "sharp": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/ws": "^8.5.13",
     "@types/node": "^22.10.5"

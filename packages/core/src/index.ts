@@ -16,3 +16,6 @@ export type { ProdServerOptions } from './prod-server.js';
 export { runMiddleware } from './middleware.js';
 export { RequestTracer, shouldTrace, resetTraceIdCounter } from './tracer.js';
 export { resolveRouteRenderMode } from './render-mode.js';
+export { pyraImages } from './plugins/image-plugin.js';
+export { isSharpAvailable, getImageMetadata, optimizeImage } from './image-optimizer.js';
+export type { OptimizeOptions, OptimizeResult, ImageMetadata } from './image-optimizer.js';
