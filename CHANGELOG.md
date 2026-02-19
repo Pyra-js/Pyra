@@ -5,6 +5,40 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.2] - 2026-02-19
+
+### Added
+- Image optimization plugin (`pyraImages()`) - framework-agnostic, lives entirely in `packages/core`
+  - Activate via `plugins: [pyraImages()]` in `pyra.config.ts`
+  - `sharp` is an optional peer dependency - if not installed, a warning is printed and the endpoint returns 501 with install instructions
+  - Dev server: on-demand `/_pyra/image?src=&w=&format=&q=` endpoint with 60-second in-memory cache
+  - Production build: variants pre-generated at build time into `dist/client/_images/` with content-hashed filenames
+  - Manifest: `images` key maps source paths to `ImageManifestEntry` with all variant metadata
+  - Prod server: `/_pyra/image` reads manifest and serves pre-built files with `immutable` cache headers
+  - Config options: `formats` (default `['webp']`), `sizes` (default `[640, 1280, 1920]`), `quality` (default `80`), `cacheDir`
+  - Plugin hooks `buildStart` and `buildEnd` are now wired in `build.ts` (previously defined but never called)
+- React `<Image>` component (`packages/adapter-react`) — pure URL builder, no processing logic
+  - Renders `<picture>` with `<source>` per format (avif first for best compression, then webp) and `<img>` as fallback
+  - Supports `widths`, `formats`, `quality`, `sizes`, `loading`, `className`, `style` props
+- `public/` directory handling — static assets now served transparently at the root URL (like Vite)
+  - Dev server: `resolvePublicFilePath()` checks `public/` before route matching; files served with `Cache-Control: public, max-age=3600`
+  - File reads use `Buffer` (binary-safe) — fixes potential corruption of images and fonts in SPA static fallback
+  - Production build: `public/` contents copied to `dist/client/` at the end of the build
+- SPA rendering mode option in `pyra init` wizard — after selecting React, users are now asked whether the project is Full-stack (SSR) or Frontend (SPA)
+  - Full-stack → `react-ts-fullstack` / `react-js-fullstack` template (file-based routing, server required)
+  - SPA → `react-ts-spa` / `react-js-spa` template (`entry:` config, no server required)
+- New CLI templates: `react-ts-spa` and `react-js-spa`
+  - `pyra.config` with `entry:` pointing to `src/main.tsx` / `src/main.jsx`
+  - `src/App.tsx` / `src/App.jsx` with minimal starter component
+  - `public/favicon.svg` included
+- `public/favicon.svg` added to all CLI templates (`vanilla-ts`, `vanilla-js`, `react-ts-fullstack`, `react-js-fullstack`, `react-ts-spa`, `react-js-spa`)
+- `public/favicon.svg` added to all `create-pyra` templates (`vanilla-ts`, `vanilla-js`, `react-ts`, `react-js`, `react-spa-ts`, `react-spa-js`, `preact-ts`, `preact-js`, `preact-spa-ts`, `preact-spa-js`)
+- Favicon `<link>` tag added to `index.html` in all SPA/vanilla templates (both `packages/cli` and `packages/create-pyra`)
+- Favicon `<link>` tag added to `DEFAULT_SHELL` in `packages/adapter-react` — full-stack (SSR) projects now include the favicon in the generated HTML shell
+
+### Changed
+- `PyraPlugin.buildEnd` signature updated: now receives `{ manifest, outDir, root }` context object instead of no arguments
+
 ## [0.13.4] - 2026-02-18
 
 ### Added
