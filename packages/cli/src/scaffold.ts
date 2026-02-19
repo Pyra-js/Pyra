@@ -11,11 +11,13 @@ const __dirname = path.dirname(__filename);
 
 export type Template = 'vanilla' | 'react';
 export type Language = 'typescript' | 'javascript';
+export type AppMode = 'spa' | 'ssr';
 
 export interface ScaffoldOptions {
   projectName: string;
   template: Template;
   language: Language;
+  appMode?: AppMode;
   targetDir: string;
   tailwind?: boolean;
   tailwindPreset?: TailwindPreset;
