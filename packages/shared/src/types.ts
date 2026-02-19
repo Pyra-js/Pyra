@@ -112,8 +112,8 @@ export type PyraPlugin = {
   serverStart?: (server: any) => void | Promise<void>;
   /** Called before build starts */
   buildStart?: () => void | Promise<void>;
-  /** Called after build completes */
-  buildEnd?: () => void | Promise<void>;
+  /** Called after build completes. Receives the assembled manifest (mutable) before it is written to disk. */
+  buildEnd?: (ctx: { manifest: RouteManifest; outDir: string; root: string }) => void | Promise<void>;
 };
 
 /**
