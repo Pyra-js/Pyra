@@ -326,6 +326,12 @@ export class ProdServer {
     const tracer = tracing ? new RequestTracer(method, cleanUrl) : null;
 
     try {
+      // 0. Image optimization endpoint (when pyraImages plugin was used at build time)
+      if (cleanUrl === "/_pyra/image" && this.manifest.images) {
+        this.handleImageRequest(req, res, url);
+        return;
+      }
+
       // 1. Try serving static assets from dist/client/
       tracer?.start("static-check");
       const staticPath = path.join(this.clientDir, cleanUrl);
@@ -449,6 +455,55 @@ export class ProdServer {
       res.writeHead(500, { "Content-Type": "text/plain" });
       res.end("Internal Server Error");
     }
+  }
+
+  // ── Image optimization endpoint ──────────────────────────────────────────
+
+  private handleImageRequest(
+    _req: http.IncomingMessage,
+    res: http.ServerResponse,
+    rawUrl: string,
+  ): void {
+    const params = new URLSearchParams(rawUrl.split("?")[1] ?? "");
+    const src = params.get("src") ?? "";
+    const w = params.get("w") ?? "";
+    const format = params.get("format") ?? "webp";
+
+    if (!src || !w || !format) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Missing required params: src, w, format" }));
+      return;
+    }
+
+    const entry = this.manifest.images?.[src];
+    if (!entry) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Image not in manifest" }));
+      return;
+    }
+
+    const variantKey = `${w}:${format}`;
+    const variant = entry.variants[variantKey];
+    if (!variant) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: `Variant ${variantKey} not found` }));
+      return;
+    }
+
+    const filePath = path.join(this.clientDir, variant.path);
+    if (!fs.existsSync(filePath)) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Variant file missing from dist" }));
+      return;
+    }
+
+    const content = fs.readFileSync(filePath);
+    res.writeHead(200, {
+      "Content-Type": `image/${format}`,
+      "Content-Length": content.length,
+      "Cache-Control": "public, max-age=31536000, immutable",
+    });
+    res.end(content);
   }
 
   // ── Static file serving ──────────────────────────────────────────────────
