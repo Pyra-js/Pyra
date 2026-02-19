@@ -1,6 +1,8 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import type { ImageFormat } from "pyrajs-shared";
+import { isSharpAvailable, optimizeImage } from "./image-optimizer.js";
 import { performance } from "node:perf_hooks";
 import { pathToFileURL } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
