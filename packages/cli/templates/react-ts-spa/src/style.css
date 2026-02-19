@@ -21,11 +21,20 @@ body {
   border-radius: 1rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   text-align: center;
-  max-width: 500px;
+  max-width: 700px;
 }
 
 h1 {
-  font-size: 2.5rem;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #e63946 0%, #f4845f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+h2 {
+  font-size: 2rem;
   margin-bottom: 1rem;
   background: linear-gradient(135deg, #e63946 0%, #f4845f 100%);
   -webkit-background-clip: text;
