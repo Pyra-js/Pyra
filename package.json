@@ -1,6 +1,6 @@
 {
   "name": "pyrajs",
-  "version": "0.15.2",
+  "version": "0.16.1",
   "private": true,
   "type": "module",
   "description": "Pyra.js is a framework designed for building modern full-stack web applications with pluggable UI adapters, unified routing, and a shared runtime.",

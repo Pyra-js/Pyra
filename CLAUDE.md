@@ -81,12 +81,12 @@ Key config fields: `root`, `entry`, `routesDir` (default `src/routes`), `server`
 
 ### Servers
 
-- **DevServer** (`core/src/dev-server.ts`): HTTP server with WebSocket HMR. Serves static files, injects HMR client at `/__pyra_hmr_client`, dashboard UI at `/_pyra`. Pipeline: route match → compile → load → render → inject assets. Prints route table at startup. Trace API endpoints at `/_pyra/api/traces`, `/_pyra/api/traces/stats`, `/_pyra/api/traces/:id`.
+- **DevServer** (`core/src/dev-server.ts`): HTTP server with WebSocket HMR. Serves static files, injects HMR client at `/__pyra_hmr_client`, dashboard UI at `/_pyra`. Pipeline: route match → compile → load → render → inject assets. Prints route table at startup. Trace API endpoints at `/_pyra/api/traces`, `/_pyra/api/traces/stats`, `/_pyra/api/traces/:id`. CSS endpoint at `/__pyra/styles/*` — serves CSS extracted from bundled client modules as proper `text/css` (avoids FOUC). During SSR assembly, `handlePageRouteInner` eagerly calls `bundleFile()` for each layout + page to populate `cssOutputCache`, then injects `<link rel="stylesheet" href="/__pyra/styles/...">` tags into `<!--pyra-head-->`.
 - **ProdServer** (`core/src/prod-server.ts`): Serves prebuilt assets from `dist/`. Conditional request tracing via `shouldTrace()` (controlled by `trace.production` config). Server-Timing headers on traced responses.
 
 ### Build System
 
-- **Bundler** (`core/src/bundler.ts`): Wraps esbuild with an in-memory cache (5-second TTL). `invalidateDependentCache()` handles cache busting on file changes.
+- **Bundler** (`core/src/bundler.ts`): Wraps esbuild with an in-memory cache (5-second TTL). Maintains a separate `cssOutputCache` — CSS extracted from browser-platform builds is stored here (keyed by file path) and exposed via `getCSSOutput(filePath)` rather than injected into JS (which caused FOUC). `clearBundleCache()` and `invalidateDependentCache()` clear both caches on file changes.
 - **Build Orchestrator** (`core/src/build.ts`): Production build producing `dist/client/` + `dist/server/` + `dist/manifest.json`. Enhanced build report with middleware/layout columns, shared chunks section, gzip size estimation, and size warnings.
 
 ### Transparency Layer (v0.9)
@@ -102,7 +102,7 @@ Key config fields: `root`, `entry`, `routesDir` (default `src/routes`), `server`
 
 - **Package Manager Detection** (`cli/src/pm.ts`): Detects npm/pnpm/yarn/bun via lockfile presence → `npm_config_user_agent` → PATH availability → user prompt.
 - **Graph System** (`cli/src/graph/`): `buildGraph.ts` analyzes package.json files and lockfiles. Serializers in `graph/serialize/` output dot, html, json, and mermaid formats. Supports workspace detection, cycle detection, and filtering.
-- **Templates** (`cli/templates/`): vanilla-ts, vanilla-js, react-ts, react-js. Scaffolding replaces `{{PROJECT_NAME}}` placeholders.
+- **Templates** (`cli/templates/`): vanilla-ts, vanilla-js, react-ts-fullstack, react-js-fullstack. Scaffolding replaces `{{PROJECT_NAME}}` placeholders. Full-stack templates have `style.css` co-located in `src/routes/` and imported via `import './style.css'` in `layout.tsx` — the CSS pipeline serves it via `/__pyra/styles/*`.
 - **Reporter** (`cli/src/utils/reporter.ts`): `withBanner()` wraps command execution with timing and banner display. Respects `--silent` flag and `PYRA_SILENT` env var.
 - **Keyboard Shortcuts** (`cli/src/utils/keyboard.ts`): TTY keyboard shortcuts for dev/prod servers (restart, quit, open browser, clear).
 - **Dev Banner** (`cli/src/utils/dev-banner.ts`): Styled startup banners for dev and production servers with capability detection (Unicode, color, CI).
@@ -127,6 +127,8 @@ Core types are in `packages/shared/src/types.ts`. Key types:
 - `docs/ARCHITECTURE.md` — Full platform design and milestone roadmap (v0.1 through v1.0)
 - `docs/CONFIG_SYSTEM.md` — Configuration system documentation
 - `docs/SSR.md` — SSR implementation details
+- `docs/image-optimization.mdx` — Image optimization plugin guide (`pyraImages()`, `<Image>` component)
+- `docs/tutorial-todo-app.md` — Beginner-friendly full-stack todo app tutorial
 
 ## Tech Stack
 
