@@ -1,9 +1,9 @@
 import { ComponentChildren } from 'preact';
-import './style.css';
 
 export default function RootLayout({ children }: { children: ComponentChildren }) {
   return (
     <div className="layout">
+      <link rel="stylesheet" href="/style.css" />
       <nav className="nav">
         <a href="/" className="nav-brand">{'{{PROJECT_NAME}}'}</a>
         <div className="nav-links">

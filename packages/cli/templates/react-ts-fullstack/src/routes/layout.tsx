@@ -1,9 +1,9 @@
 import React from 'react';
-import './style.css';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="layout">
+      <link rel="stylesheet" href="/style.css" />
       <nav className="nav">
         <a href="/" className="nav-brand">{'{{PROJECT_NAME}}'}</a>
         <div className="nav-links">

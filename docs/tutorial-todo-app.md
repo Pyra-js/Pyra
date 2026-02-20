@@ -9,7 +9,7 @@ By the end of this tutorial you'll have a working app where you can add, check o
 ## What you'll learn
 
 - What a full-stack app actually is (server + browser, working together)
-- How file-based routing works — your folder structure becomes your URLs
+- How file-based routing works - your folder structure becomes your URLs
 - How to build a JSON API (the "backend")
 - How to load data on the server before a page renders
 - How the server and browser hand off to each other (SSR + hydration)
