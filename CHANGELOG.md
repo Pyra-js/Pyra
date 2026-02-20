@@ -5,6 +5,27 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.1] - 2026-02-20
+
+### Added
+- CSS pipeline fix in dev server - `import './style.css'` in layout/page files now works without Flash of Unstyled Content
+  - `bundler.ts`: new `cssOutputCache` stores CSS extracted by esbuild separately from the JS bundle; removed the old `document.createElement('style')` injection that caused FOUC
+  - New `getCSSOutput(filePath)` export returns cached CSS for a given entry file
+  - `dev-server.ts`: new `/__pyra/styles/*` endpoint serves extracted CSS as proper `text/css` responses
+  - `handlePageRouteInner` eagerly calls `bundleFile()` for each layout + page before assembly, then injects `<link rel="stylesheet" href="/__pyra/styles/...">` tags into `<head>` via `<!--pyra-head-->`
+  - `style.css` moved back to `src/routes/` (co-located with the layout) in all full-stack templates; `import './style.css'` restored as a standard ES module import
+
+- Package READMEs: `packages/adapter-react/README.md`, `packages/core/README.md`, `packages/shared/README.md` - each tailored to its audience (end-user, internal/contributor, type reference)
+- `.vscode/settings.json` - excludes `packages/cli/templates/**` from Tailwind CSS extension scanning, preventing false "unable to load config" errors caused by the extension attempting CommonJS `require()` on ESM-only template config files
+
+### Changed
+- `create-pyra` rendering mode prompt labels updated from "SSR / SPA" to "Full-stack / Frontend (SPA)" - `value` fields (`"ssr"` / `"spa"`) are unchanged so template selection is unaffected
+- `packages/cli` `dev:link` script changed from `pnpm link -g` to `npm link` - now consistent with `create-pyra`'s `dev:link`, making `npm link pyrajs-cli` work correctly in generated test projects
+- Full-stack template CSS redesigned across all six templates (`create-pyra` React/Preact TS/JS and `pyrajs-cli` React TS/JS fullstack) to match the Pyra visual identity
+
+### Fixed
+- `vitest.workspace.ts`: removed `defineWorkspace` import that broke TypeScript in Vitest 4 (the export was removed in Vitest 4; workspace files now export the array directly)
+
 ## [0.15.2] - 2026-02-19
 
 ### Added
