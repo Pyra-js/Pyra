@@ -10,6 +10,14 @@ import { createPostCSSPlugin } from './css-plugin.js';
 const bundleCache = new Map<string, { code: string; timestamp: number }>();
 
 /**
+ * Separate cache for CSS extracted from bundled modules.
+ * Keyed by the same file path as bundleCache.
+ * Allows the dev server to serve CSS as <link> tags instead of injecting
+ * it into JS (which causes Flash of Unstyled Content).
+ */
+const cssOutputCache = new Map<string, { css: string; timestamp: number }>();
+
+/**
  * One PostCSS plugin instance per project root (created lazily on first use).
  */
 const postcssPluginCache = new Map<string, esbuild.Plugin>();
