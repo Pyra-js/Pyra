@@ -1,0 +1,305 @@
+# Image Optimization
+
+Automatically resize and convert images to modern formats — with zero config in development.
+
+---
+
+## What is Image Optimization?
+
+Serving unoptimized images is one of the most common ways to slow down a web app. A 4 MB PNG hero image, a JPEG that's twice as wide as any screen that will ever display it, or a format the browser could render faster with WebP or AVIF — all of these hurt load times and user experience.
+
+Pyra's image optimization plugin handles this automatically:
+
+- **Format conversion** — converts images to WebP and AVIF, which are significantly smaller than JPEG and PNG at equivalent quality
+- **Responsive resizing** — generates multiple sizes so the browser downloads only what it needs for the current viewport
+- **Lazy loading** — defers off-screen images by default so they don't block the initial render
+- **Zero-config dev server** — images are optimized on-demand during development; no build step required
+- **Pre-built variants in production** — at build time, every image variant is generated and written to `dist/`, then served with immutable cache headers
+
+Image optimization is opt-in. It requires [sharp](https://sharp.pixelplumbing.com/) and is enabled by adding the `pyraImages()` plugin to your config.
+
+---
+
+## Installation
+
+Install sharp as a dependency in your project:
+
+```bash
+npm install sharp
+# or
+pnpm add sharp
+# or
+yarn add sharp
+```
+
+sharp is a native module — it ships prebuilt binaries for common platforms (macOS, Linux, Windows). If you're deploying to a platform with a non-standard architecture, see the [sharp installation docs](https://sharp.pixelplumbing.com/install).
+
+---
+
+## Enabling the Plugin
+
+Add `pyraImages()` to the `plugins` array in your `pyra.config.ts`:
+
+```ts
+// pyra.config.ts
+import { defineConfig } from 'pyrajs-core';
+import { pyraImages } from 'pyrajs-core';
+
+export default defineConfig({
+  plugins: [
+    pyraImages({
+      formats: ['webp', 'avif'],
+      sizes: [640, 1280, 1920],
+      quality: 80,
+    }),
+  ],
+});
+```
+
+With no arguments, `pyraImages()` uses sensible defaults:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `formats` | `['webp']` | Output formats to generate |
+| `sizes` | `[640, 1280, 1920]` | Widths (in pixels) to generate variants for |
+| `quality` | `80` | Compression quality, 1–100 |
+
+---
+
+## The `<Image>` Component
+
+The React adapter exports an `<Image>` component that builds the right HTML for responsive images. Import it from `pyrajs-adapter-react`:
+
+```tsx
+import { Image } from 'pyrajs-adapter-react';
+
+export default function HeroSection() {
+  return (
+    <section>
+      <Image
+        src="/images/hero.jpg"
+        alt="A mountain landscape at sunset"
+        width={1280}
+        height={720}
+      />
+    </section>
+  );
+}
+```
+
+This renders a `<picture>` element with a `<source>` tag for each format you configured, plus an `<img>` fallback pointing to the original file. The browser picks the first format it supports and the closest width to what it needs.
+
+### Component Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `src` | `string` | required | URL path to the source image (must live in `public/`) |
+| `alt` | `string` | required | Alt text for accessibility |
+| `width` | `number` | — | Intrinsic display width in pixels |
+| `height` | `number` | — | Intrinsic display height in pixels |
+| `sizes` | `string` | `'100vw'` | CSS `sizes` attribute describing layout width at each breakpoint |
+| `formats` | `ImageFormat[]` | `['avif', 'webp']` | Formats to request, ordered best-first |
+| `widths` | `number[]` | `[640, 1280, 1920]` | Responsive width breakpoints |
+| `quality` | `number` | `80` | Compression quality 1–100 |
+| `loading` | `'lazy' \| 'eager'` | `'lazy'` | Browser loading behavior |
+| `className` | `string` | — | CSS class applied to the `<img>` element |
+| `style` | `CSSProperties` | — | Inline styles applied to the `<img>` element |
+
+### Using the `sizes` Prop
+
+The `sizes` prop tells the browser how wide the image will be rendered at different viewport widths. This is how the browser decides which variant to download — it compares the rendered width against the available variants and picks the closest match.
+
+```tsx
+{/* Full-width hero */}
+<Image
+  src="/images/hero.jpg"
+  alt="Hero"
+  sizes="100vw"
+/>
+
+{/* Half-width on large screens, full-width on mobile */}
+<Image
+  src="/images/feature.jpg"
+  alt="Feature"
+  sizes="(min-width: 1024px) 50vw, 100vw"
+/>
+
+{/* Fixed-width thumbnail */}
+<Image
+  src="/images/avatar.jpg"
+  alt="User avatar"
+  width={96}
+  height={96}
+  sizes="96px"
+/>
+```
+
+Getting `sizes` right matters. If you tell the browser the image is always `100vw` but it's actually rendered at `50vw` on desktop, the browser will download twice as much data as it needs.
+
+---
+
+## How It Works
+
+### In Development
+
+The dev server handles image optimization on-demand. When the `<Image>` component builds a URL like `/_pyra/image?src=/images/hero.jpg&w=1280&format=webp&q=80`, a request hits that endpoint and Pyra:
+
+1. Validates that the `src` is a real file in `public/`
+2. Resizes and converts the image using sharp
+3. Caches the result in memory for 60 seconds
+4. Returns the optimized image with the correct `Content-Type`
+
+There's no build step — you see the optimized image immediately in the browser, and subsequent requests for the same variant are served from cache.
+
+### In Production
+
+When you run `pyra build`, the image plugin runs during `buildStart`. It:
+
+1. Scans your `public/` directory for image files (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.avif`)
+2. For each image, generates every combination of configured `sizes` and `formats`
+3. Writes the optimized variants to `dist/client/_images/` with content-hashed filenames
+4. Adds an `images` entry to `dist/manifest.json`
+
+At runtime, the production server reads the manifest. When `/_pyra/image` is requested, it looks up the pre-built variant and serves it directly with `Cache-Control: public, max-age=31536000, immutable`. No reprocessing happens at runtime.
+
+### Never Upscales
+
+Pyra will never generate a variant wider than the original image. If your source image is 800px wide and you configured `sizes: [640, 1280, 1920]`, you'll only get a 640px variant. The `<img>` fallback covers the rest.
+
+---
+
+## Supported Formats
+
+| Format | Notes |
+|--------|-------|
+| `webp` | Widely supported, good compression. Recommended baseline. |
+| `avif` | Best compression, smaller than WebP, but slower to encode. Supported in all modern browsers. |
+| `jpeg` | Lossy, universal support. Useful if you need a guaranteed JPEG output. |
+| `png` | Lossless. Use only when transparency is required and WebP/AVIF aren't sufficient. |
+
+For most apps, `['webp', 'avif']` is the right choice. The `<Image>` component puts `avif` first in its `<source>` tags — browsers that support it will use it, and those that don't will fall back to WebP, then to the original.
+
+---
+
+## Plugin Configuration
+
+### Configuring Formats and Sizes
+
+Configure the plugin to match your design's breakpoints:
+
+```ts
+// pyra.config.ts
+import { pyraImages } from 'pyrajs-core';
+
+export default {
+  plugins: [
+    pyraImages({
+      formats: ['webp', 'avif'],   // Generate both formats
+      sizes: [480, 768, 1024, 1440], // Match your CSS breakpoints
+      quality: 85,
+    }),
+  ],
+};
+```
+
+### Per-Image Overrides
+
+The plugin config sets defaults for the build. The `<Image>` component accepts `formats`, `widths`, and `quality` props that override those defaults for a single image:
+
+```tsx
+{/* High-quality product photo — override defaults */}
+<Image
+  src="/images/product.jpg"
+  alt="Product detail"
+  formats={['avif', 'webp']}
+  widths={[400, 800, 1200]}
+  quality={90}
+/>
+
+{/* Avatar thumbnail — only needs one size */}
+<Image
+  src="/images/avatar.jpg"
+  alt="Profile"
+  widths={[96]}
+  sizes="96px"
+  loading="eager"
+/>
+```
+
+---
+
+## Eager Loading
+
+By default, images use `loading="lazy"`, which defers loading until the image is close to the viewport. This is the right default for most images.
+
+For images that are visible immediately on page load — hero images, above-the-fold content — use `loading="eager"` so the browser prioritizes them:
+
+```tsx
+<Image
+  src="/images/hero.jpg"
+  alt="Hero"
+  loading="eager"
+  sizes="100vw"
+/>
+```
+
+Only use `eager` for the first image or two visible on page load. Marking everything as eager defeats the purpose.
+
+---
+
+## The `/_pyra/image` Endpoint
+
+The `<Image>` component generates URLs in this format:
+
+```
+/_pyra/image?src=/images/hero.jpg&w=1280&format=webp&q=80
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `src` | Path to the source image relative to `public/` |
+| `w` | Target width in pixels |
+| `format` | Output format: `webp`, `avif`, `jpeg`, or `png` |
+| `q` | Quality 1–100 |
+
+You can construct these URLs manually if you need image optimization outside the `<Image>` component — for example, in a CSS background or an OG image tag. In production, the server will look up the pre-built variant from the manifest. In development, it will optimize on demand.
+
+---
+
+## Where to Put Images
+
+Place images in your project's `public/` directory. Anything in `public/` is served at the root URL path:
+
+```
+public/
+├── images/
+│   ├── hero.jpg         → /images/hero.jpg
+│   ├── avatar.png       → /images/avatar.png
+│   └── logo.svg         → /logo.svg (SVGs are not optimized)
+└── favicon.ico
+```
+
+The plugin only processes raster formats: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, and `.avif`. SVGs and other file types are passed through unchanged.
+
+---
+
+## Without Sharp
+
+If sharp isn't installed, the plugin logs a warning and disables itself gracefully:
+
+```
+[pyra:images] sharp not installed — image optimization disabled. Run: npm install sharp
+```
+
+Your app still works — images are served as-is from `public/` — but no resizing or format conversion happens. The `/_pyra/image` endpoint returns a 501 in development and the `<Image>` component falls back to the original `src` in the `<img>` tag.
+
+---
+
+## Tips
+
+- **Always specify `width` and `height`.** Providing dimensions prevents layout shift (CLS) — the browser reserves space for the image before it loads, so the page doesn't jump around.
+- **Use `loading="eager"` for above-the-fold images only.** The first hero image or banner should be eager. Everything else should be lazy.
+- **Match `sizes` to your CSS.** If your image is displayed at `max-width: 800px` inside a centered container, set `sizes="(min-width: 800px) 800px, 100vw"` so the browser downloads the right variant.
+- **Fewer formats is usually fine.** `['webp']` alone covers 97%+ of modern browsers. Add `avif` only if you need the extra compression savings.
+- **Don't generate sizes you don't need.** If your largest image display is 1200px wide, there's no point generating a 1920px variant. Keep `sizes` tight to your actual layout.
+- **Check the build output.** After `pyra build`, look at `dist/client/_images/` to see what was generated. If there are more variants than you expected, narrow down `sizes` or `formats` in the plugin config.
