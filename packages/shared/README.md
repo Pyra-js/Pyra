@@ -1,6 +1,6 @@
 # pyrajs-shared
 
-Shared types, configuration loader, logger, and network utilities for the Pyra.js framework. This package is an internal dependency — it is consumed by `pyrajs-core`, `pyrajs-adapter-react`, and `pyrajs-cli`. You do not need to install it directly in an application.
+Shared types, configuration loader, logger, and network utilities for the Pyra.js framework. This package is an internal dependency, it is consumed by `pyrajs-core`, `pyrajs-adapter-react`, and `pyrajs-cli`. You do not need to install it directly in an application.
 
 ## What's in here
 
@@ -10,6 +10,7 @@ The canonical type definitions for the entire framework. Every other package imp
 
 | Type | Description |
 |------|-------------|
+
 | `PyraConfig` | Full user-facing config object |
 | `PyraAdapter` | Interface that framework adapters (React, Svelte, Vue) must implement |
 | `PyraPlugin` | Interface for Pyra plugins |
@@ -42,6 +43,7 @@ Exported helpers:
 
 | Export | Description |
 |--------|-------------|
+
 | `loadConfig(options)` | Main entry point — finds, loads, and resolves config |
 | `findConfigFile(root)` | Returns the first config file found, or `null` |
 | `loadConfigFile(path, mode)` | Loads a specific file and evaluates it |
@@ -56,7 +58,7 @@ Exported helpers:
 
 Config files are resolved in this order:
 
-```
+```bash
 pyra.config.ts → pyra.config.js → pyra.config.mjs → pyra.config.cjs → .pyrarc.ts → .pyrarc.js → .pyrarc.mjs
 ```
 
@@ -81,7 +83,7 @@ Helpers for network-related tasks used by the dev and production servers.
 
 ## For contributors
 
-This package is the **first** in the build order — everything else depends on it. If you change a type here, rebuild this package before rebuilding `core`, `adapter-react`, or `cli`:
+This package is the **first** in the build order, everything else depends on it. If you change a type here, rebuild this package before rebuilding `core`, `adapter-react`, or `cli`:
 
 ```bash
 cd packages/shared
