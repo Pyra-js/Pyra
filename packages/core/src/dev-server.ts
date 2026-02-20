@@ -12,7 +12,7 @@ import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResul
 import { resolveRouteRenderMode } from "./render-mode.js";
 import { HTTP_METHODS } from "pyrajs-shared";
 import { runMiddleware } from "./middleware.js";
-import { bundleFile, invalidateDependentCache } from "./bundler.js";
+import { bundleFile, invalidateDependentCache, getCSSOutput } from "./bundler.js";
 import { runPostCSS } from "./css-plugin.js";
 import { metricsStore } from "./metrics.js";
 import { scanRoutes } from "./scanner.js";
@@ -182,6 +182,41 @@ export class DevServer {
           await this.handleImageRequest(req, res, url);
           return;
         }
+      }
+
+      // Serve CSS extracted from a bundled client module.
+      // The dev server injects <link> tags pointing here during SSR page assembly
+      // so that stylesheets load as real <link> elements (no FOUC).
+      if (cleanUrl.startsWith("/__pyra/styles/")) {
+        const modulePath = cleanUrl.slice("/__pyra/styles/".length);
+        const absolutePath = path.resolve(this.root, modulePath);
+
+        if (!fs.existsSync(absolutePath)) {
+          res.writeHead(404, { "Content-Type": "text/plain" });
+          res.end("Module not found");
+          return;
+        }
+
+        // bundleFile populates cssOutputCache as a side-effect; call it if
+        // the CSS isn't cached yet (e.g. a direct browser refresh).
+        let css = getCSSOutput(absolutePath);
+        if (css === null) {
+          await bundleFile(absolutePath, this.root);
+          css = getCSSOutput(absolutePath);
+        }
+
+        if (css !== null) {
+          res.writeHead(200, {
+            "Content-Type": "text/css",
+            "Cache-Control": "no-cache",
+          });
+          res.end(css);
+        } else {
+          // The module exists but produced no CSS output
+          res.writeHead(204, {});
+          res.end();
+        }
+        return;
       }
 
       // Serve client-side module for hydration
@@ -484,8 +519,29 @@ export class DevServer {
       }
     }
 
-    // Build RenderContext
-    const headTags: string[] = [];
+    // Eagerly compile client modules (layouts first, then the page) to extract
+    // any CSS they import. bundleFile stores the CSS in cssOutputCache as a
+    // side-effect; we then build <link> tags so browsers get real stylesheets
+    // instead of JS-injected <style> elements (which cause FOUC).
+    const cssLinkTags: string[] = [];
+    const clientFilesForCSS = [
+      ...(match.layouts ?? []).map((l) => l.filePath),
+      route.filePath,
+    ];
+    for (const clientFile of clientFilesForCSS) {
+      await bundleFile(clientFile, this.root);
+      const css = getCSSOutput(clientFile);
+      if (css) {
+        const clientRelPath = path.relative(this.root, clientFile);
+        const stylesUrl =
+          "/__pyra/styles/" + clientRelPath.split(path.sep).join("/");
+        cssLinkTags.push(`<link rel="stylesheet" href="${stylesUrl}">`);
+      }
+    }
+
+    // Build RenderContext — CSS link tags are prepended so they load before
+    // any head tags the adapter pushes (e.g. meta, title).
+    const headTags: string[] = [...cssLinkTags];
     const renderContext: RenderContext = {
       url: new URL(pathname, `http://${req.headers.host || "localhost"}`),
       params,
