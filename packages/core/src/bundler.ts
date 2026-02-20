@@ -100,19 +100,14 @@ export async function bundleFile(
         jsCode = result.outputFiles[0].text;
       }
 
-      // If we have CSS, inject it into the JS by prepending CSS injection code
-      let code = jsCode;
+      // Store CSS in a separate cache so the dev server can serve it as a
+      // <link> stylesheet (avoids Flash of Unstyled Content from JS injection).
       if (cssCode) {
-        const cssInjection = `
-// Inject CSS
-(function() {
-  const style = document.createElement('style');
-  style.textContent = ${JSON.stringify(cssCode)};
-  document.head.appendChild(style);
-})();
-`;
-        code = cssInjection + '\n' + jsCode;
+        cssOutputCache.set(filePath, { css: cssCode, timestamp: Date.now() });
+      } else {
+        cssOutputCache.delete(filePath);
       }
+      const code = jsCode;
 
       const compileTime = Date.now() - startTime;
       const size = Buffer.byteLength(code, 'utf-8');
@@ -145,14 +140,24 @@ export async function bundleFile(
 }
 
 /**
+ * Return the CSS output for a previously bundled file, or null if the file
+ * produced no CSS (or has not been bundled yet).
+ */
+export function getCSSOutput(filePath: string): string | null {
+  return cssOutputCache.get(filePath)?.css ?? null;
+}
+
+/**
  * Clear the bundle cache (useful for HMR)
  */
 export function clearBundleCache(filePath?: string): void {
   if (filePath) {
     bundleCache.delete(filePath);
+    cssOutputCache.delete(filePath);
     log.info(`Cleared cache for ${filePath}`);
   } else {
     bundleCache.clear();
+    cssOutputCache.clear();
     log.info('Cleared all bundle cache');
   }
 }
@@ -165,5 +170,6 @@ export function invalidateDependentCache(changedFile: string): void {
   // Simple strategy: clear all cache on any change
   // TODO: Build a dependency graph for more granular invalidation
   bundleCache.clear();
+  cssOutputCache.clear();
   log.info(`Cache invalidated due to change in ${changedFile}`);
 }
