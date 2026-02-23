@@ -80,7 +80,8 @@ const CACHE_DURATION = 5000;
  */
 export async function bundleFile(
   filePath: string,
-  root: string = process.cwd()
+  root: string = process.cwd(),
+  resolveConfig?: ResolveConfig,
 ): Promise<string> {
   const ext = path.extname(filePath);
 
