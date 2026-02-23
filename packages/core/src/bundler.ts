@@ -1,8 +1,48 @@
 import * as esbuild from 'esbuild';
-import { log } from 'pyrajs-shared';
+import { log, type ResolveConfig } from 'pyrajs-shared';
 import path from 'node:path';
 import { metricsStore } from './metrics.js';
 import { createPostCSSPlugin } from './css-plugin.js';
+
+/**
+ * Translate Pyra's ResolveConfig into the subset of esbuild BuildOptions that
+ * control module resolution: alias, resolveExtensions, and mainFields.
+ *
+ * Called by both bundleFile() (dev) and the build orchestrator (prod) so the
+ * behaviour is identical in both environments.
+ */
+export function buildEsbuildResolveOptions(
+  resolveConfig: ResolveConfig | undefined,
+  root: string,
+): Pick<esbuild.BuildOptions, 'alias' | 'resolveExtensions' | 'mainFields'> {
+  if (!resolveConfig) return {};
+
+  const opts: Pick<esbuild.BuildOptions, 'alias' | 'resolveExtensions' | 'mainFields'> = {};
+
+  // alias: { "@": "./src" } → esbuild needs absolute paths for replacement values.
+  // path.resolve(root, value) handles relative paths; path.isAbsolute guards
+  // against double-resolving when the user already wrote an absolute path.
+  if (resolveConfig.alias) {
+    opts.alias = {};
+    for (const [key, value] of Object.entries(resolveConfig.alias)) {
+      opts.alias[key] = path.isAbsolute(value) ? value : path.resolve(root, value);
+    }
+  }
+
+  // extensions → resolveExtensions (esbuild's name for the same concept).
+  // When esbuild sees `import './Button'` with no extension it tries each in order.
+  if (resolveConfig.extensions) {
+    opts.resolveExtensions = resolveConfig.extensions;
+  }
+
+  // mainFields controls which package.json field esbuild prefers when resolving
+  // a node_modules package (e.g. ["module", "main"] prefers ESM over CJS).
+  if (resolveConfig.mainFields) {
+    opts.mainFields = resolveConfig.mainFields;
+  }
+
+  return opts;
+}
 
 /**
  * In-memory cache for bundled modules
