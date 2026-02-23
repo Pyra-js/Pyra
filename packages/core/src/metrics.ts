@@ -89,6 +89,15 @@ class MetricsStore {
   }
 
   /**
+   * Returns true if startBuild() has been called without a matching finishBuild().
+   * Used by the request handler to know whether to close out a build after serving
+   * the first request that follows an HMR file-change event.
+   */
+  isActiveBuild(): boolean {
+    return !!this.currentBuild.timestamp;
+  }
+
+  /**
    * Finish current build and calculate total metrics
    */
   finishBuild(): BuildMetrics | null {
