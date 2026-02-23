@@ -1,6 +1,6 @@
 {
   "name": "pyrajs-cli",
-  "version": "0.16.1",
+  "version": "0.18.4",
   "description": "🔥 @Pyra/cli - A cli tool for using core cli commands",
   "type": "module",
   "main": "./dist/index.js",
