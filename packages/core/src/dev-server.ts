@@ -1187,6 +1187,14 @@ export class DevServer {
       const relativePath = path.relative(this.root, filePath);
       log.info(`File changed: ${relativePath}`);
 
+      // If a previous HMR event started a build that no request ever closed
+      // (e.g. two rapid saves), finalize it now before starting a new one.
+      if (metricsStore.isActiveBuild()) metricsStore.finishBuild();
+
+      // Start the build clock. It stays open until the first request that
+      // follows this change finishes compiling and calls finishBuild().
+      metricsStore.startBuild();
+
       const startTime = Date.now();
 
       // Invalidate caches
