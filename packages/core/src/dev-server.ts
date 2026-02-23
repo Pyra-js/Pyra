@@ -230,7 +230,7 @@ export class DevServer {
           return;
         }
 
-        const compiled = await bundleFile(absolutePath, this.root);
+        const compiled = await bundleFile(absolutePath, this.root, this.config?.resolve);
         res.writeHead(200, {
           "Content-Type": "application/javascript",
           "Cache-Control": "no-cache",
@@ -383,7 +383,7 @@ export class DevServer {
 
       // Bundle and transform TypeScript/JSX files with module resolution
       if (/\.(tsx?|jsx?|mjs)$/.test(ext)) {
-        content = await bundleFile(filePath, this.root);
+        content = await bundleFile(filePath, this.root, this.config?.resolve);
         res.writeHead(200, {
           "Content-Type": "application/javascript",
           "Cache-Control": "no-cache",
@@ -529,7 +529,7 @@ export class DevServer {
       route.filePath,
     ];
     for (const clientFile of clientFilesForCSS) {
-      await bundleFile(clientFile, this.root);
+      await bundleFile(clientFile, this.root, this.config?.resolve);
       const css = getCSSOutput(clientFile);
       if (css) {
         const clientRelPath = path.relative(this.root, clientFile);
