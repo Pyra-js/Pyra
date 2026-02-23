@@ -8,11 +8,26 @@ import { pathToFileURL } from "node:url";
 import { WebSocketServer, WebSocket } from "ws";
 import chokidar, { type FSWatcher } from "chokidar";
 import { log } from "pyrajs-shared";
-import type { PyraConfig, PyraAdapter, RouteGraph, RenderContext, DevServerResult, RouteMatch, Middleware, RouteNode, ErrorPageProps, RenderMode } from "pyrajs-shared";
+import type {
+  PyraConfig,
+  PyraAdapter,
+  RouteGraph,
+  RenderContext,
+  DevServerResult,
+  RouteMatch,
+  Middleware,
+  RouteNode,
+  ErrorPageProps,
+  RenderMode,
+} from "pyrajs-shared";
 import { resolveRouteRenderMode } from "./render-mode.js";
 import { HTTP_METHODS } from "pyrajs-shared";
 import { runMiddleware } from "./middleware.js";
-import { bundleFile, invalidateDependentCache, getCSSOutput } from "./bundler.js";
+import {
+  bundleFile,
+  invalidateDependentCache,
+  getCSSOutput,
+} from "./bundler.js";
 import { runPostCSS } from "./css-plugin.js";
 import { metricsStore } from "./metrics.js";
 import { scanRoutes } from "./scanner.js";
@@ -63,8 +78,10 @@ export class DevServer {
   private router: RouteGraph | null = null;
   private containerId: string;
   private config: PyraConfig | undefined;
-  private serverCompileCache: Map<string, { outPath: string; timestamp: number }> =
-    new Map();
+  private serverCompileCache: Map<
+    string,
+    { outPath: string; timestamp: number }
+  > = new Map();
   private pyraTmpDir: string;
   // : verbose flag for static asset trace logging
   private verbose: boolean;
@@ -72,7 +89,10 @@ export class DevServer {
   private errorFiles: Map<string, string> = new Map();
   private notFoundPage: string | undefined;
   // v1.1: Image optimization cache (key: `path|width|format|quality`)
-  private imageCache: Map<string, { buffer: Buffer; format: ImageFormat; expiresAt: number }> = new Map();
+  private imageCache: Map<
+    string,
+    { buffer: Buffer; format: ImageFormat; expiresAt: number }
+  > = new Map();
 
   constructor(options: DevServerOptions = {}) {
     this.port = options.port || options.config?.port || 3000;
@@ -99,7 +119,7 @@ export class DevServer {
     });
     this.setupWebSocket();
   }
- 
+
   // Handle incoming HTTP requests
   private async handleRequest(
     req: http.IncomingMessage,
@@ -158,7 +178,10 @@ export class DevServer {
         res.end(JSON.stringify(obj));
         return;
       }
-      if (cleanUrl.startsWith("/_pyra/api/traces/") && cleanUrl !== "/_pyra/api/traces/stats") {
+      if (
+        cleanUrl.startsWith("/_pyra/api/traces/") &&
+        cleanUrl !== "/_pyra/api/traces/stats"
+      ) {
         const traceId = cleanUrl.slice("/_pyra/api/traces/".length);
         const trace = metricsStore.getTrace(traceId);
         if (trace) {
@@ -177,7 +200,9 @@ export class DevServer {
 
       // Image optimization endpoint — only active when pyraImages plugin is configured
       if (cleanUrl === "/_pyra/image") {
-        const hasImagePlugin = this.config?.plugins?.some((p) => p.name === "pyra:images");
+        const hasImagePlugin = this.config?.plugins?.some(
+          (p) => p.name === "pyra:images",
+        );
         if (hasImagePlugin) {
           await this.handleImageRequest(req, res, url);
           return;
@@ -230,7 +255,11 @@ export class DevServer {
           return;
         }
 
-        const compiled = await bundleFile(absolutePath, this.root, this.config?.resolve);
+        const compiled = await bundleFile(
+          absolutePath,
+          this.root,
+          this.config?.resolve,
+        );
         res.writeHead(200, {
           "Content-Type": "application/javascript",
           "Cache-Control": "no-cache",
@@ -267,7 +296,9 @@ export class DevServer {
           });
 
           // Load middleware chain
-          const chain = await this.loadMiddlewareChain(match.route.middlewarePaths);
+          const chain = await this.loadMiddlewareChain(
+            match.route.middlewarePaths,
+          );
 
           let response: Response;
           try {
@@ -276,11 +307,24 @@ export class DevServer {
               if (match.route.type === "api") {
                 return this.handleApiRouteInner(req, ctx, match, tracer);
               }
-              return this.handlePageRouteInner(req, ctx, cleanUrl, match, tracer);
+              return this.handlePageRouteInner(
+                req,
+                ctx,
+                cleanUrl,
+                match,
+                tracer,
+              );
             });
           } catch (pipelineError) {
             // v1.0: Catch errors from middleware/load/render and render error boundary
-            response = await this.renderErrorPage(req, cleanUrl, pipelineError, match.route, match, tracer);
+            response = await this.renderErrorPage(
+              req,
+              cleanUrl,
+              pipelineError,
+              match.route,
+              match,
+              tracer,
+            );
           }
 
           // Finalize trace and set Server-Timing header
@@ -312,7 +356,11 @@ export class DevServer {
         }
 
         // No route matched — render custom 404 page or default
-        const notFoundResponse = await this.renderNotFoundPage(req, cleanUrl, tracer);
+        const notFoundResponse = await this.renderNotFoundPage(
+          req,
+          cleanUrl,
+          tracer,
+        );
         const trace = tracer.finalize(404);
         metricsStore.recordTrace(trace);
         console.log(tracer.toDetailedLog(404));
@@ -328,7 +376,7 @@ export class DevServer {
         return;
       }
 
-      // Static file serving 
+      // Static file serving
       tracer.start("static");
       let filePath = path.join(
         this.root,
@@ -380,7 +428,10 @@ export class DevServer {
       // Process CSS files through PostCSS (e.g. Tailwind directives).
       if (ext === ".css") {
         content = await this.processCSS(filePath, content);
-        res.writeHead(200, { "Content-Type": "text/css", "Cache-Control": "no-cache" });
+        res.writeHead(200, {
+          "Content-Type": "text/css",
+          "Cache-Control": "no-cache",
+        });
         res.end(content);
         if (this.verbose) console.log(tracer.toDetailedLog(200));
         return;
@@ -439,7 +490,7 @@ export class DevServer {
     }
   }
 
-  // SSR Pipeline 
+  // SSR Pipeline
   /**
    * Inner page route handler that returns a Response.
    * Called from within the middleware chain.
@@ -459,8 +510,7 @@ export class DevServer {
     const serverModule = await this.compileForServer(route.filePath);
 
     // Import the compiled module
-    const moduleUrl =
-      pathToFileURL(serverModule).href + `?t=${Date.now()}`;
+    const moduleUrl = pathToFileURL(serverModule).href + `?t=${Date.now()}`;
     const mod = await import(moduleUrl);
     const component = mod.default;
     tracer.end();
@@ -510,8 +560,7 @@ export class DevServer {
     if (match.layouts && match.layouts.length > 0) {
       for (const layoutNode of match.layouts) {
         const layoutModule = await this.compileForServer(layoutNode.filePath);
-        const layoutUrl =
-          pathToFileURL(layoutModule).href + `?t=${Date.now()}`;
+        const layoutUrl = pathToFileURL(layoutModule).href + `?t=${Date.now()}`;
         const layoutMod = await import(layoutUrl);
         if (layoutMod.default) {
           layoutComponents.push(layoutMod.default);
@@ -671,8 +720,7 @@ export class DevServer {
     const serverModule = await this.compileForServer(route.filePath);
 
     // 2. Import the compiled module (cache-bust for re-import after recompile)
-    const moduleUrl =
-      pathToFileURL(serverModule).href + `?t=${Date.now()}`;
+    const moduleUrl = pathToFileURL(serverModule).href + `?t=${Date.now()}`;
     const mod = await import(moduleUrl);
     tracer.end();
 
@@ -705,17 +753,18 @@ export class DevServer {
       tracer.end();
       return response;
     } catch (handlerError) {
-      const msg = handlerError instanceof Error ? handlerError.message : String(handlerError);
-      const stack = handlerError instanceof Error ? handlerError.stack : undefined;
+      const msg =
+        handlerError instanceof Error
+          ? handlerError.message
+          : String(handlerError);
+      const stack =
+        handlerError instanceof Error ? handlerError.stack : undefined;
       tracer.endWithError(msg);
       // Dev mode: return full error details in JSON
-      return new Response(
-        JSON.stringify({ error: msg, stack }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return new Response(JSON.stringify({ error: msg, stack }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
     }
   }
 
@@ -724,13 +773,20 @@ export class DevServer {
   /**
    * Compile and import middleware files, returning an array of Middleware functions.
    */
-  private async loadMiddlewareChain(middlewarePaths: string[]): Promise<Middleware[]> {
+  private async loadMiddlewareChain(
+    middlewarePaths: string[],
+  ): Promise<Middleware[]> {
     const chain: Middleware[] = [];
     for (const filePath of middlewarePaths) {
       const compiled = await this.compileForServer(filePath);
       const moduleUrl = pathToFileURL(compiled).href + `?t=${Date.now()}`;
       const mod = await import(moduleUrl);
-      const fn = typeof mod.default === "function" ? mod.default : typeof mod.middleware === "function" ? mod.middleware : null;
+      const fn =
+        typeof mod.default === "function"
+          ? mod.default
+          : typeof mod.middleware === "function"
+            ? mod.middleware
+            : null;
       if (fn) {
         chain.push(fn);
       }
@@ -779,7 +835,10 @@ export class DevServer {
     // Determine output path: .pyra/server/<relative-path>.mjs
     const relativePath = path.relative(this.root, filePath);
     const outFileName =
-      relativePath.split(path.sep).join("_").replace(/\.[^.]+$/, "") + ".mjs";
+      relativePath
+        .split(path.sep)
+        .join("_")
+        .replace(/\.[^.]+$/, "") + ".mjs";
     const outPath = path.join(this.pyraTmpDir, outFileName);
 
     // Check cache: skip recompile if output is newer than source
@@ -809,7 +868,12 @@ export class DevServer {
       jsx: "automatic",
       jsxImportSource: "react",
       // React stays external — resolved from node_modules when we import()
-      external: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
+      external: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+      ],
       sourcemap: "inline",
       logLevel: "silent",
       absWorkingDir: this.root,
@@ -833,10 +897,9 @@ export class DevServer {
   private async buildRouteGraph(): Promise<void> {
     if (!this.adapter || !this.routesDir) return;
 
-    const scanResult = await scanRoutes(
-      this.routesDir,
-      [...this.adapter.fileExtensions],
-    );
+    const scanResult = await scanRoutes(this.routesDir, [
+      ...this.adapter.fileExtensions,
+    ]);
     this.router = createRouter(scanResult);
 
     // v1.0: Store error boundary files and 404 page reference
@@ -860,14 +923,16 @@ export class DevServer {
     const apis = this.router.apiRoutes();
     const totalRoutes = pages.length + apis.length;
 
-    console.log('');
-    console.log(`  ${pc.bold('Routes')} ${pc.dim(`(${totalRoutes} routes, ${pages.length} pages, ${apis.length} APIs)`)}`);
-    console.log('');
+    console.log("");
+    console.log(
+      `  ${pc.bold("Routes")} ${pc.dim(`(${totalRoutes} routes, ${pages.length} pages, ${apis.length} APIs)`)}`,
+    );
+    console.log("");
 
     // Page Routes
     if (pages.length > 0) {
-      console.log(`  ${pc.bold('Page Routes')}`);
-      console.log(`  ${pc.dim('\u2500'.repeat(64))}`);
+      console.log(`  ${pc.bold("Page Routes")}`);
+      console.log(`  ${pc.dim("\u2500".repeat(64))}`);
 
       for (const route of pages) {
         const pattern = route.pattern.padEnd(24);
@@ -878,29 +943,31 @@ export class DevServer {
 
         // Layout info
         if (route.layoutId) {
-          const layoutName = route.layoutId === '/' ? 'root' : route.layoutId.slice(1);
-          annotations.push(`${pc.dim('layout:')} ${pc.cyan(layoutName)}`);
+          const layoutName =
+            route.layoutId === "/" ? "root" : route.layoutId.slice(1);
+          annotations.push(`${pc.dim("layout:")} ${pc.cyan(layoutName)}`);
         }
 
         // Middleware info
         if (route.middlewarePaths.length > 0) {
-          const mwNames = route.middlewarePaths.map(p => {
+          const mwNames = route.middlewarePaths.map((p) => {
             const dir = path.dirname(path.relative(this.routesDir!, p));
-            return dir === '.' ? 'root' : dir;
+            return dir === "." ? "root" : dir;
           });
-          annotations.push(`${pc.dim('mw:')} ${pc.yellow(mwNames.join(', '))}`);
+          annotations.push(`${pc.dim("mw:")} ${pc.yellow(mwNames.join(", "))}`);
         }
 
-        const annotStr = annotations.length > 0 ? `  ${annotations.join('  ')}` : '';
+        const annotStr =
+          annotations.length > 0 ? `  ${annotations.join("  ")}` : "";
         console.log(`  ${pc.green(pattern)}  ${file}${annotStr}`);
       }
-      console.log('');
+      console.log("");
     }
 
     // API Routes
     if (apis.length > 0) {
-      console.log(`  ${pc.bold('API Routes')}`);
-      console.log(`  ${pc.dim('\u2500'.repeat(64))}`);
+      console.log(`  ${pc.bold("API Routes")}`);
+      console.log(`  ${pc.dim("\u2500".repeat(64))}`);
 
       for (const route of apis) {
         const pattern = route.pattern.padEnd(24);
@@ -908,54 +975,67 @@ export class DevServer {
 
         // Detect exported HTTP methods via regex scan
         const methods = this.detectApiMethods(route);
-        const methodStr = methods.length > 0 ? `  ${pc.cyan(methods.join(' '))}` : '';
+        const methodStr =
+          methods.length > 0 ? `  ${pc.cyan(methods.join(" "))}` : "";
 
         console.log(`  ${pc.green(pattern)}  ${file}${methodStr}`);
       }
-      console.log('');
+      console.log("");
     }
 
     // Middleware summary
     if (scanResult.middlewares.length > 0) {
-      console.log(`  ${pc.bold('Middleware')}`);
-      console.log(`  ${pc.dim('\u2500'.repeat(64))}`);
+      console.log(`  ${pc.bold("Middleware")}`);
+      console.log(`  ${pc.dim("\u2500".repeat(64))}`);
       for (const mw of scanResult.middlewares) {
         const relPath = path.relative(this.routesDir!, mw.filePath);
-        const scope = mw.dirId === '/' ? 'all routes (root)' : `${mw.dirId}/**`;
-        console.log(`  ${pc.dim(relPath.split(path.sep).join('/'))}  ${pc.dim('\u2192')} ${scope}`);
+        const scope = mw.dirId === "/" ? "all routes (root)" : `${mw.dirId}/**`;
+        console.log(
+          `  ${pc.dim(relPath.split(path.sep).join("/"))}  ${pc.dim("\u2192")} ${scope}`,
+        );
       }
-      console.log('');
+      console.log("");
     }
 
     // Layout summary
     if (scanResult.layouts.length > 0) {
-      console.log(`  ${pc.bold('Layouts')}`);
-      console.log(`  ${pc.dim('\u2500'.repeat(64))}`);
+      console.log(`  ${pc.bold("Layouts")}`);
+      console.log(`  ${pc.dim("\u2500".repeat(64))}`);
       for (const layout of scanResult.layouts) {
         const relPath = path.relative(this.routesDir!, layout.filePath);
-        const scope = layout.id === '/' ? 'all pages (root)' : this.getLayoutScope(layout.id, pages);
-        console.log(`  ${pc.dim(relPath.split(path.sep).join('/'))}  ${pc.dim('\u2192')} ${scope}`);
+        const scope =
+          layout.id === "/"
+            ? "all pages (root)"
+            : this.getLayoutScope(layout.id, pages);
+        console.log(
+          `  ${pc.dim(relPath.split(path.sep).join("/"))}  ${pc.dim("\u2192")} ${scope}`,
+        );
       }
-      console.log('');
+      console.log("");
     }
 
     // Error boundary summary
     if (scanResult.errors.length > 0) {
-      console.log(`  ${pc.bold('Error Boundaries')}`);
-      console.log(`  ${pc.dim('\u2500'.repeat(64))}`);
+      console.log(`  ${pc.bold("Error Boundaries")}`);
+      console.log(`  ${pc.dim("\u2500".repeat(64))}`);
       for (const err of scanResult.errors) {
         const relPath = path.relative(this.routesDir!, err.filePath);
-        const scope = err.dirId === '/' ? 'all routes (root)' : `${err.dirId}/**`;
-        console.log(`  ${pc.dim(relPath.split(path.sep).join('/'))}  ${pc.dim('\u2192')} ${scope}`);
+        const scope =
+          err.dirId === "/" ? "all routes (root)" : `${err.dirId}/**`;
+        console.log(
+          `  ${pc.dim(relPath.split(path.sep).join("/"))}  ${pc.dim("\u2192")} ${scope}`,
+        );
       }
-      console.log('');
+      console.log("");
     }
 
     // 404 page
     if (scanResult.notFoundPage) {
       const relPath = path.relative(this.routesDir!, scanResult.notFoundPage);
-      console.log(`  ${pc.bold('404 Page')}  ${pc.dim(relPath.split(path.sep).join('/'))}`);
-      console.log('');
+      console.log(
+        `  ${pc.bold("404 Page")}  ${pc.dim(relPath.split(path.sep).join("/"))}`,
+      );
+      console.log("");
     }
   }
 
@@ -965,11 +1045,19 @@ export class DevServer {
    */
   private detectApiMethods(route: RouteNode): string[] {
     try {
-      const source = fs.readFileSync(route.filePath, 'utf-8');
-      const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
+      const source = fs.readFileSync(route.filePath, "utf-8");
+      const methods = [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH",
+        "HEAD",
+        "OPTIONS",
+      ];
       return methods.filter((method) => {
         const pattern = new RegExp(
-          `export\\s+(async\\s+)?function\\s+${method}\\b|export\\s+(const|let)\\s+${method}\\b`
+          `export\\s+(async\\s+)?function\\s+${method}\\b|export\\s+(const|let)\\s+${method}\\b`,
         );
         return pattern.test(source);
       });
@@ -983,10 +1071,15 @@ export class DevServer {
    */
   private getLayoutScope(layoutId: string, pages: RouteNode[]): string {
     const matching = pages
-      .filter(p => p.layoutId === layoutId || p.id.startsWith(layoutId + '/') || p.id === layoutId)
-      .map(p => p.pattern);
-    if (matching.length <= 3) return matching.join(', ');
-    return `${matching.slice(0, 2).join(', ')}, +${matching.length - 2} more`;
+      .filter(
+        (p) =>
+          p.layoutId === layoutId ||
+          p.id.startsWith(layoutId + "/") ||
+          p.id === layoutId,
+      )
+      .map((p) => p.pattern);
+    if (matching.length <= 3) return matching.join(", ");
+    return `${matching.slice(0, 2).join(", ")}, +${matching.length - 2} more`;
   }
 
   // ── Error Boundaries (v1.0) ────────────────────────────────────────────────
@@ -1030,13 +1123,20 @@ export class DevServer {
 
             const headTags: string[] = [];
             const renderContext: RenderContext = {
-              url: new URL(pathname, `http://${req.headers.host || "localhost"}`),
+              url: new URL(
+                pathname,
+                `http://${req.headers.host || "localhost"}`,
+              ),
               params: match?.params || {},
               pushHead: (tag) => headTags.push(tag),
               error: errorProps,
             };
 
-            const bodyHtml = await this.adapter.renderToHTML(mod.default, errorProps, renderContext);
+            const bodyHtml = await this.adapter.renderToHTML(
+              mod.default,
+              errorProps,
+              renderContext,
+            );
             tracer.end();
 
             const shell = this.adapter.getDocumentShell?.() || DEFAULT_SHELL;
@@ -1053,7 +1153,10 @@ export class DevServer {
           tracer.end();
         } catch (renderError) {
           // Error boundary itself failed — fall through to default
-          const errMsg = renderError instanceof Error ? renderError.message : String(renderError);
+          const errMsg =
+            renderError instanceof Error
+              ? renderError.message
+              : String(renderError);
           tracer.endWithError(errMsg);
           log.error(`Error boundary failed: ${errMsg}`);
         }
@@ -1110,7 +1213,10 @@ export class DevServer {
         }
         tracer.end();
       } catch (renderError) {
-        const errMsg = renderError instanceof Error ? renderError.message : String(renderError);
+        const errMsg =
+          renderError instanceof Error
+            ? renderError.message
+            : String(renderError);
         tracer.endWithError(errMsg);
         log.error(`Failed to render custom 404 page: ${errMsg}`);
       }
@@ -1148,10 +1254,8 @@ export class DevServer {
   // ── Error page ──────────────────────────────────────────────────────────────
 
   private getErrorHTML(pathname: string, error: unknown): string {
-    const message =
-      error instanceof Error ? error.message : String(error);
-    const stack =
-      error instanceof Error ? error.stack || "" : "";
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack || "" : "";
 
     return `<!DOCTYPE html>
 <html><head><title>Pyra Error</title>
@@ -1244,10 +1348,7 @@ export class DevServer {
       // If a new route file was added, rebuild the route graph
       if (this.routesDir && filePath.startsWith(this.routesDir)) {
         const basename = path.basename(filePath);
-        if (
-          basename.startsWith("page.") ||
-          basename.startsWith("route.")
-        ) {
+        if (basename.startsWith("page.") || basename.startsWith("route.")) {
           await this.buildRouteGraph();
         }
       }
@@ -1345,7 +1446,11 @@ export class DevServer {
     }
 
     // Security: reject path traversal or absolute paths
-    if (!src.startsWith("/") || src.includes("..") || path.isAbsolute(src.slice(1))) {
+    if (
+      !src.startsWith("/") ||
+      src.includes("..") ||
+      path.isAbsolute(src.slice(1))
+    ) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Invalid src" }));
       return;
@@ -1356,8 +1461,9 @@ export class DevServer {
       res.writeHead(501, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({
-          error: "Image optimization unavailable: sharp is not installed. Run: npm install sharp",
-        })
+          error:
+            "Image optimization unavailable: sharp is not installed. Run: npm install sharp",
+        }),
       );
       return;
     }
@@ -1386,7 +1492,11 @@ export class DevServer {
       outFormat = cached.format;
     } else {
       try {
-        const result = await optimizeImage(resolvedPath, { width: w, format, quality: q });
+        const result = await optimizeImage(resolvedPath, {
+          width: w,
+          format,
+          quality: q,
+        });
         buffer = result.buffer;
         outFormat = result.format;
         this.imageCache.set(cacheKey, {
@@ -1459,15 +1569,14 @@ export class DevServer {
     return types[ext] || "text/plain";
   }
 
-  // ── Dashboard HTML (unchanged) ──────────────────────────────────────────────
-
+  // Dashboard HTML
   private getDashboardHTML(): string {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pyra.js Build Dashboard</title>
+  <title>Pyra.js Dev Dashboard</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; line-height: 1.6; }
@@ -1483,39 +1592,180 @@ export class DevServer {
     .section { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 25px; margin-bottom: 25px; }
     .section-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 20px; color: #ff6b35; }
     .empty-state { text-align: center; padding: 60px 20px; color: #666; }
+    /* Traces table */
+    .traces-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .traces-table th { text-align: left; padding: 10px 14px; color: #888; font-weight: 500; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 1px solid #2a2a2a; }
+    .traces-table td { padding: 10px 14px; border-bottom: 1px solid #1f1f1f; vertical-align: top; }
+    .traces-table tr:last-child td { border-bottom: none; }
+    .traces-table tr:hover td { background: #1f1f1f; }
+    /* Method badges */
+    .method { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; }
+    .method-GET    { background: #1a3a2a; color: #4ade80; }
+    .method-POST   { background: #1a2a3a; color: #60a5fa; }
+    .method-PUT    { background: #2a2a1a; color: #facc15; }
+    .method-PATCH  { background: #2a1f1a; color: #fb923c; }
+    .method-DELETE { background: #3a1a1a; color: #f87171; }
+    /* Status badges */
+    .status { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
+    .status-2 { background: #1a3a2a; color: #4ade80; }
+    .status-3 { background: #1a2a3a; color: #60a5fa; }
+    .status-4 { background: #2a2a1a; color: #facc15; }
+    .status-5 { background: #3a1a1a; color: #f87171; }
+    /* Pipeline stages */
+    .stages { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .stage { font-size: 0.7rem; color: #666; }
+    .stage-name { color: #888; }
+    .stage-dur { color: #aaa; }
+    .stage-slow { color: #facc15; }
+    .stage-very-slow { color: #f87171; }
+    .path-cell { font-family: monospace; color: #e0e0e0; }
+    .route-id { font-size: 0.75rem; color: #666; margin-top: 2px; font-family: monospace; }
+    .dur-cell { font-family: monospace; color: #aaa; white-space: nowrap; }
+    .time-cell { color: #555; font-size: 0.8rem; white-space: nowrap; }
+    /* Build history rows */
+    .build-row { display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid #1f1f1f; font-size: 0.875rem; }
+    .build-row:last-child { border-bottom: none; }
+    .build-time { color: #555; font-size: 0.8rem; width: 70px; flex-shrink: 0; }
+    .build-dur { font-family: monospace; color: #ff6b35; width: 70px; flex-shrink: 0; }
+    .build-size { font-family: monospace; color: #aaa; width: 80px; flex-shrink: 0; }
+    .build-files { color: #666; font-size: 0.8rem; }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>Pyra.js Build Dashboard</h1>
-      <div class="subtitle">Real-time build metrics and performance analytics</div>
+      <h1>Pyra.js Dev Dashboard</h1>
+      <div class="subtitle">Build metrics and request traces — updates every 2s</div>
     </header>
+
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Latest Build</div><div class="stat-value" id="latestBuildTime">--<span class="stat-unit">ms</span></div></div>
-      <div class="stat-card"><div class="stat-label">Average Build Time</div><div class="stat-value" id="avgBuildTime">--<span class="stat-unit">ms</span></div></div>
-      <div class="stat-card"><div class="stat-label">Total Builds</div><div class="stat-value" id="totalBuilds">--</div></div>
-      <div class="stat-card"><div class="stat-label">Bundle Size</div><div class="stat-value" id="bundleSize">--<span class="stat-unit">KB</span></div></div>
+      <div class="stat-card">
+        <div class="stat-label">Latest Build</div>
+        <div class="stat-value" id="latestBuildTime">--<span class="stat-unit">ms</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Build Time</div>
+        <div class="stat-value" id="avgBuildTime">--<span class="stat-unit">ms</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Builds</div>
+        <div class="stat-value" id="totalBuilds">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Bundle Size</div>
+        <div class="stat-value" id="bundleSize">--<span class="stat-unit">KB</span></div>
+      </div>
     </div>
+
+    <div class="section">
+      <div class="section-title">Recent Requests</div>
+      <div id="tracesContainer"><div class="empty-state">No requests yet, make a request to your app to see traces here</div></div>
+    </div>
+
     <div class="section">
       <div class="section-title">Build History</div>
-      <div id="buildHistoryChart" class="empty-state">No build history yet</div>
+      <div id="buildHistory"><div class="empty-state">No builds yet, save a source file to trigger an HMR rebuild</div></div>
     </div>
   </div>
+
   <script>
-    async function fetchMetrics() {
+    function timeAgo(ts) {
+      const s = Math.floor((Date.now() - ts) / 1000);
+      if (s < 5) return 'just now';
+      if (s < 60) return s + 's ago';
+      return Math.floor(s / 60) + 'm ago';
+    }
+
+    function methodBadge(m) {
+      return '<span class="method method-' + m + '">' + m + '</span>';
+    }
+
+    function statusBadge(code) {
+      const cls = 'status-' + Math.floor(code / 100);
+      return '<span class="status ' + cls + '">' + code + '</span>';
+    }
+
+    function stagesHtml(stages, totalMs) {
+      if (!stages || stages.length === 0) return '';
+      return '<div class="stages">' + stages.map(function(s) {
+        const ratio = totalMs > 0 ? s.durationMs / totalMs : 0;
+        const durClass = ratio > 0.8 ? 'stage-very-slow' : ratio > 0.5 ? 'stage-slow' : 'stage-dur';
+        const detail = s.detail ? ' ' + s.detail : '';
+        return '<span class="stage"><span class="stage-name">' + s.name + '</span> <span class="' + durClass + '">' + s.durationMs + 'ms</span><span style="color:#555">' + detail + '</span></span>';
+      }).join('<span style="color:#333"> · </span>') + '</div>';
+    }
+
+    async function fetchTraces() {
       try {
-        const response = await fetch('/_pyra/api/metrics');
-        const data = await response.json();
-        const s = data.summary;
-        document.getElementById('latestBuildTime').innerHTML = s.latestBuild ? Math.round(s.latestBuild.totalDuration) + '<span class="stat-unit">ms</span>' : '--<span class="stat-unit">ms</span>';
-        document.getElementById('avgBuildTime').innerHTML = Math.round(s.averageBuildTime) + '<span class="stat-unit">ms</span>';
-        document.getElementById('totalBuilds').textContent = s.totalBuilds;
-        document.getElementById('bundleSize').innerHTML = s.latestBuild ? (s.latestBuild.bundleSize / 1024).toFixed(1) + '<span class="stat-unit">KB</span>' : '--<span class="stat-unit">KB</span>';
+        const res = await fetch('/_pyra/api/traces');
+        const traces = await res.json();
+        const container = document.getElementById('tracesContainer');
+        if (!traces || traces.length === 0) {
+          container.innerHTML = '<div class="empty-state">No requests yet — make a request to your app to see traces here</div>';
+          return;
+        }
+        // Newest first, cap at 50
+        const rows = traces.slice().reverse().slice(0, 50).map(function(t) {
+          const routeLabel = t.routeId && t.routeId !== t.pathname
+            ? '<div class="route-id">' + t.routeId + '</div>' : '';
+          return '<tr>' +
+            '<td class="time-cell">' + timeAgo(t.timestamp) + '</td>' +
+            '<td>' + methodBadge(t.method) + '</td>' +
+            '<td class="path-cell">' + t.pathname + routeLabel + '</td>' +
+            '<td>' + statusBadge(t.status) + '</td>' +
+            '<td class="dur-cell">' + t.totalMs + 'ms</td>' +
+            '<td>' + stagesHtml(t.stages, t.totalMs) + '</td>' +
+            '</tr>';
+        }).join('');
+        container.innerHTML = '<table class="traces-table">' +
+          '<thead><tr><th>When</th><th>Method</th><th>Path</th><th>Status</th><th>Duration</th><th>Pipeline</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table>';
       } catch(e) {}
     }
-    fetchMetrics();
-    setInterval(fetchMetrics, 2000);
+
+    async function fetchMetrics() {
+      try {
+        const res = await fetch('/_pyra/api/metrics');
+        const data = await res.json();
+        const s = data.summary;
+
+        document.getElementById('latestBuildTime').innerHTML = s.latestBuild
+          ? Math.round(s.latestBuild.totalDuration) + '<span class="stat-unit">ms</span>'
+          : '--<span class="stat-unit">ms</span>';
+        document.getElementById('avgBuildTime').innerHTML = s.totalBuilds > 0
+          ? Math.round(s.averageBuildTime) + '<span class="stat-unit">ms</span>'
+          : '--<span class="stat-unit">ms</span>';
+        document.getElementById('totalBuilds').textContent = s.totalBuilds || '--';
+        document.getElementById('bundleSize').innerHTML = s.latestBuild && s.latestBuild.bundleSize > 0
+          ? (s.latestBuild.bundleSize / 1024).toFixed(1) + '<span class="stat-unit">KB</span>'
+          : '--<span class="stat-unit">KB</span>';
+
+        const history = data.buildHistory || [];
+        const buildEl = document.getElementById('buildHistory');
+        if (history.length === 0) {
+          buildEl.innerHTML = '<div class="empty-state">No builds yet — save a source file to trigger an HMR rebuild</div>';
+        } else {
+          buildEl.innerHTML = history.slice().reverse().map(function(b) {
+            const size = b.bundleSize > 0 ? (b.bundleSize / 1024).toFixed(1) + ' KB' : '--';
+            const fileCount = b.files && b.files.length > 0 ? b.files.length + ' file' + (b.files.length === 1 ? '' : 's') : '';
+            return '<div class="build-row">' +
+              '<span class="build-time">' + timeAgo(b.timestamp) + '</span>' +
+              '<span class="build-dur">' + Math.round(b.totalDuration) + 'ms</span>' +
+              '<span class="build-size">' + size + '</span>' +
+              '<span class="build-files">' + fileCount + '</span>' +
+            '</div>';
+          }).join('');
+        }
+      } catch(e) {}
+    }
+
+    function refresh() {
+      fetchTraces();
+      fetchMetrics();
+    }
+
+    refresh();
+    setInterval(refresh, 2000);
   </script>
 </body>
 </html>`;
@@ -1532,7 +1782,9 @@ export class DevServer {
     if (this.adapter && this.routesDir) {
       if (!fs.existsSync(this.routesDir)) {
         warnings.push(`Routes directory not found: ${this.routesDir}`);
-        warnings.push("Route-aware SSR is disabled. Create src/routes/ to enable it.");
+        warnings.push(
+          "Route-aware SSR is disabled. Create src/routes/ to enable it.",
+        );
       } else {
         await this.buildRouteGraph();
         ssrEnabled = true;
