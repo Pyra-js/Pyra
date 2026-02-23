@@ -36,6 +36,7 @@ import {
 } from "./request-context.js";
 import { type BuildOrchestratorOptions, type BuildResult } from "./types.js";
 import { buildSPA } from "./buildSPA.js";
+import { buildEsbuildResolveOptions } from "./bundler.js";
 
 /**
  * Build for production.
@@ -212,6 +213,7 @@ export async function build(
       ".jsx": "jsx",
       ".js": "js",
     },
+    ...buildEsbuildResolveOptions(options.config.resolve, root),
   });
 
   // Server build
@@ -296,6 +298,7 @@ export async function build(
       ".jsx": "jsx",
       ".js": "js",
     },
+    ...buildEsbuildResolveOptions(options.config.resolve, root),
   });
 
   // Detect exports (hasLoad, prerender, cache, render mode, API methods)
