@@ -201,7 +201,7 @@ export class DevServer {
         // the CSS isn't cached yet (e.g. a direct browser refresh).
         let css = getCSSOutput(absolutePath);
         if (css === null) {
-          await bundleFile(absolutePath, this.root);
+          await bundleFile(absolutePath, this.root, this.config?.resolve);
           css = getCSSOutput(absolutePath);
         }
 
