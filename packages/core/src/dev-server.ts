@@ -1635,7 +1635,7 @@ export class DevServer {
   <div class="container">
     <header>
       <h1>Pyra.js Dev Dashboard</h1>
-      <div class="subtitle">Build metrics and request traces — updates every 2s</div>
+      <div class="subtitle">Build metrics and request traces, updates every 2s</div>
     </header>
 
     <div class="stats-grid">
@@ -1701,7 +1701,7 @@ export class DevServer {
         const traces = await res.json();
         const container = document.getElementById('tracesContainer');
         if (!traces || traces.length === 0) {
-          container.innerHTML = '<div class="empty-state">No requests yet — make a request to your app to see traces here</div>';
+          container.innerHTML = '<div class="empty-state">No requests yet, make a request to your app to see traces here</div>';
           return;
         }
         // Newest first, cap at 50
@@ -1743,7 +1743,7 @@ export class DevServer {
         const history = data.buildHistory || [];
         const buildEl = document.getElementById('buildHistory');
         if (history.length === 0) {
-          buildEl.innerHTML = '<div class="empty-state">No builds yet — save a source file to trigger an HMR rebuild</div>';
+          buildEl.innerHTML = '<div class="empty-state">No builds yet, save a source file to trigger an HMR rebuild</div>';
         } else {
           buildEl.innerHTML = history.slice().reverse().map(function(b) {
             const size = b.bundleSize > 0 ? (b.bundleSize / 1024).toFixed(1) + ' KB' : '--';
