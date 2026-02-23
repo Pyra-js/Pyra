@@ -24,20 +24,35 @@ Four cards at the top of the page update automatically every two seconds:
 
 | Card | What it measures |
 |------|-----------------|
-| **Latest Build** | How long the most recent HMR rebuild took, in milliseconds — measured from the moment you saved a file to the moment the first following request finished compiling |
+| **Latest Build** | How long the most recent HMR rebuild took, in milliseconds, measured from the moment you saved a file to the moment the first following request finished compiling |
 | **Average Build Time** | Average of the above across all builds since the server started |
 | **Total Builds** | How many file-change events have been detected since the server started |
 | **Bundle Size** | Total compiled output size (in KB) from the most recent build |
 
+All four cards show `--` until the first HMR rebuild completes. Save any source file and make a request to your app to populate them.
+
+### Recent Requests
+
+A live table of the most recent requests to your app, newest first, capped at 50. Each row shows:
+
+- **When** the request arrived, as a relative timestamp (e.g. "3s ago")
+- **Method** badge, color-coded by verb (GET, POST, PUT, DELETE, PATCH)
+- **Path**, with the matched route ID shown below it when the pattern differs from the URL
+- **Status** badge, color-coded by class (2xx green, 3xx blue, 4xx yellow, 5xx red)
+- **Duration** in milliseconds
+- **Pipeline** breakdown showing each stage (route-match, compile, load, render, handler) with per-stage timing; slow stages are highlighted yellow when they exceed 50% of total time, and red when they exceed 80%
+
+Only requests to actual app routes appear here. Internal dashboard requests to `/_pyra` and its sub-paths are not traced.
+
 ### Build History
 
-A log of every HMR rebuild since the server started, up to the last 50. Each entry shows when the build happened, how long it took, and the total output size.
+A log of every HMR rebuild since the server started, up to the last 50. Each entry shows when the build happened, how long it took, the total output size, and how many files were compiled.
 
 ---
 
 ## How Build Timing Works
 
-Build time is not just how long it takes to invalidate the cache — that would be nearly zero and not useful. It's the full round-trip:
+Build time is not just how long it takes to invalidate the cache; that would be nearly zero and not useful. It is the full round-trip:
 
 ```
 File saved
@@ -50,13 +65,15 @@ File saved
 
 This is the real number a developer cares about: how long from hitting save to seeing the result in the browser.
 
+Build entries only appear after you make a request to your app following a file save. The timer starts on file change and stops when the first routed request completes. Requests to `/_pyra` itself do not count.
+
 ---
 
 ## Data Persistence
 
 All dashboard data lives in memory in the dev server process. Nothing is written to disk. Restarting the server clears everything.
 
-The store uses fixed-size ring buffers — once a buffer fills, the oldest entries are dropped:
+The store uses fixed-size ring buffers; once a buffer fills, the oldest entries are dropped:
 
 | Data | Buffer size |
 |------|-------------|
@@ -127,7 +144,7 @@ Returns the most recent 50 request traces.
 
 ### `GET /_pyra/api/traces/stats`
 
-Returns aggregate response time statistics per route — useful for spotting slow routes.
+Returns aggregate response time statistics per route, useful for spotting slow routes.
 
 ```json
 {
@@ -151,7 +168,7 @@ Returns a single trace by its ID (e.g. `req-14`). Returns 404 if the trace is no
 
 ## Server-Timing Headers
 
-Every response from the dev server includes a `Server-Timing` header in the [W3C format](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server-Timing). Chrome DevTools renders this natively in the Network tab under the Timing section — no dashboard needed to see per-request pipeline breakdowns.
+Every response from the dev server includes a `Server-Timing` header in the [W3C format](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server-Timing). Chrome DevTools renders this natively in the Network tab under the Timing section, so you can see per-request pipeline breakdowns without the dashboard.
 
 ```
 Server-Timing: route-match;dur=0.1;desc="/api/todos", compile;dur=1.6, handler;dur=0.6;desc="GET"
@@ -162,7 +179,8 @@ Server-Timing: route-match;dur=0.1;desc="/api/todos", compile;dur=1.6, handler;d
 ## Tips
 
 - **The dashboard polls every 2 seconds.** Leave it open in a background tab while you develop and it stays current without any manual refresh.
-- **Build time only appears after your first file change.** The stat cards show `--` on initial load because no HMR rebuild has happened yet. Make any edit to a source file to trigger the first build entry.
+- **Build time only appears after your first file change.** The stat cards show `--` on initial load because no HMR rebuild has happened yet. Save a source file, then make a request to your app to trigger the first build entry.
+- **Requests to `/_pyra` are not traced.** Only requests to your actual app routes appear in Recent Requests and count toward build timing. Dashboard polling does not affect the metrics.
 - **Use the JSON API for custom tooling.** If you want to pipe build data into a CI script, log aggregator, or custom reporter, `/_pyra/api/metrics` and `/_pyra/api/traces/stats` give you everything as plain JSON.
 - **Traces are capped by the buffer.** On a busy dev server with frequent requests, old traces fall off. Increase `trace.bufferSize` in your config if you need a longer history window.
 - **The dashboard is dev-only.** Navigating to `/_pyra` in a `pyra start` production server returns a 404. Request traces in production are controlled separately via `trace.production` in your config.
