@@ -5,6 +5,36 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.4] - 2026-02-22
+
+### Added
+- Module resolution and path alias support via `ResolveConfig` is now wired to esbuild in both dev and production builds
+  - `bundler.ts`: new `buildEsbuildResolveOptions()` helper translates `ResolveConfig` to esbuild `alias`, `resolveExtensions`, and `mainFields` options; alias values are resolved to absolute paths automatically
+  - `dev-server.ts`: all four `bundleFile()` call sites now pass `config.resolve`
+  - `build.ts`: `buildEsbuildResolveOptions()` spread into both client and server `esbuild.build()` calls
+- `RequestTracer.setDetail(detail)` method - annotates the most recently closed stage with a detail string without opening a new span; used to attach the matched route ID to the `route-match` stage after the router returns
+- `MetricsStore.isActiveBuild()` method - returns true when `startBuild()` has been called without a matching `finishBuild()`; used to coordinate build lifecycle across the file watcher and request handler
+- Build metrics now fully wired in dev server
+  - `startBuild()` called in the `change` and `add` watcher handlers when a source file is saved
+  - Orphaned builds (two rapid saves with no intervening request) are closed before the next `startBuild()` via `isActiveBuild()`
+  - `finishBuild()` called after the response is sent for the first routed request following a file change; `totalDuration` spans the full file-save-to-response cycle
+- Dashboard "Recent Requests" section - live table polling `/_pyra/api/traces` every 2 seconds
+  - Color-coded method badges (GET, POST, PUT, PATCH, DELETE)
+  - Color-coded status badges by class (2xx, 3xx, 4xx, 5xx)
+  - Per-request pipeline stage breakdown with slow-stage highlighting (yellow above 50% of total, red above 80%)
+  - Relative timestamps ("3s ago", "1m ago")
+  - Matched route ID shown below the URL when the pattern differs from the path
+- Docs: `docs/dashboard.md`, `docs/request-context.md`, `docs/cookies.md`, `docs/plugins.mdx`
+
+### Fixed
+- Double `route-match` entry in request traces - the dev server was opening two separate spans for route matching; the second (zero-duration) span is now replaced with `tracer.setDetail()`, attaching the route ID to the first span and keeping `extractRouteId()` correct
+- Dashboard empty state messages used em dashes; replaced with commas for consistency
+
+### Changed
+- Dashboard stat cards show `--` instead of `0` when no build data exists yet, avoiding misleading zeros on initial load
+- Build history rows now include a file count column
+- Dashboard "Recent Requests" and "Build History" empty states distinguish between the two conditions with separate messages
+
 ## [0.16.1] - 2026-02-20
 
 ### Added
