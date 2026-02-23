@@ -302,6 +302,12 @@ export class DevServer {
           for (const cookie of setCookies) {
             res.appendHeader("Set-Cookie", cookie);
           }
+
+          // Close out the HMR build if one is active. totalDuration runs from
+          // the file-change event to right now — the real perceived rebuild
+          // latency. bundleSize is the sum of all files compiled in this request.
+          if (metricsStore.isActiveBuild()) metricsStore.finishBuild();
+
           return;
         }
 
@@ -1227,6 +1233,9 @@ export class DevServer {
     this.watcher.on("add", async (filePath: string) => {
       const relativePath = path.relative(this.root, filePath);
       log.info(`File added: ${relativePath}`);
+
+      if (metricsStore.isActiveBuild()) metricsStore.finishBuild();
+      metricsStore.startBuild();
 
       const startTime = Date.now();
 
