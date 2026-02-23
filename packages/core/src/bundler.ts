@@ -120,6 +120,10 @@ export async function bundleFile(
       absWorkingDir: root,
       // Need outdir even with write:false so esbuild knows how to structure CSS output
       outdir: 'dist',
+      // Spread alias / resolveExtensions / mainFields from pyra.config resolve field.
+      // buildEsbuildResolveOptions returns {} when resolveConfig is undefined so
+      // this is always safe to spread.
+      ...buildEsbuildResolveOptions(resolveConfig, root),
     });
 
     if (result.outputFiles && result.outputFiles.length > 0) {
