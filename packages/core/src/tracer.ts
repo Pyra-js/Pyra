@@ -43,6 +43,16 @@ export class RequestTracer {
     this.activeStage = { name, start: performance.now(), detail };
   }
 
+  /**
+   * Annotate the most recently closed stage with a detail string.
+   * Call this after end() to attach data that wasn't available at start() time.
+   */
+  setDetail(detail: string): void {
+    if (this.stages.length > 0) {
+      this.stages[this.stages.length - 1].detail = detail;
+    }
+  }
+
   /** Mark the end of the most recently started stage. */
   end(): void {
     if (!this.activeStage) return;

@@ -256,8 +256,7 @@ export class DevServer {
         tracer.end();
 
         if (match) {
-          tracer.start("route-match", match.route.id);
-          tracer.end();
+          tracer.setDetail(match.route.id);
 
           // Build RequestContext for middleware + handlers
           const ctx = createRequestContext({
