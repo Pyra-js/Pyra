@@ -61,7 +61,7 @@ describe('runMiddleware', () => {
   });
 
   it('propagates context mutations to subsequent middleware', async () => {
-    const ctx = makeContext() as Record<string, unknown>;
+    const ctx = makeContext() as unknown as Record<string, unknown>;
 
     const mutate: Middleware = async (_ctx, next) => {
       (ctx as any).injected = 'value';
@@ -72,7 +72,7 @@ describe('runMiddleware', () => {
       return next();
     };
 
-    await runMiddleware([mutate, read], ctx as RequestContext, okResponse);
+    await runMiddleware([mutate, read], ctx as unknown as RequestContext, okResponse);
   });
 
   it('normalizes synchronous middleware returns to promises', async () => {
