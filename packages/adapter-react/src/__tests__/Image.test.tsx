@@ -312,7 +312,7 @@ describe('createReactAdapter — renderToHTML with layouts', () => {
 describe('createReactAdapter — getDocumentShell()', () => {
   it('returns a valid HTML document string', async () => {
     const { createReactAdapter } = await import('../adapter.js');
-    const shell = createReactAdapter().getDocumentShell();
+    const shell = createReactAdapter().getDocumentShell!();
     expect(shell).toContain('<!DOCTYPE html>');
     expect(shell).toContain('<html');
     expect(shell).toContain('</html>');
@@ -320,31 +320,31 @@ describe('createReactAdapter — getDocumentShell()', () => {
 
   it('includes <!--pyra-head--> marker', async () => {
     const { createReactAdapter } = await import('../adapter.js');
-    const shell = createReactAdapter().getDocumentShell();
+    const shell = createReactAdapter().getDocumentShell!();
     expect(shell).toContain('<!--pyra-head-->');
   });
 
   it('includes <!--pyra-outlet--> marker', async () => {
     const { createReactAdapter } = await import('../adapter.js');
-    const shell = createReactAdapter().getDocumentShell();
+    const shell = createReactAdapter().getDocumentShell!();
     expect(shell).toContain('<!--pyra-outlet-->');
   });
 
   it('includes a favicon link tag', async () => {
     const { createReactAdapter } = await import('../adapter.js');
-    const shell = createReactAdapter().getDocumentShell();
+    const shell = createReactAdapter().getDocumentShell!();
     expect(shell).toContain('favicon.svg');
   });
 
   it('includes charset meta tag', async () => {
     const { createReactAdapter } = await import('../adapter.js');
-    const shell = createReactAdapter().getDocumentShell();
+    const shell = createReactAdapter().getDocumentShell!();
     expect(shell).toContain('charset="UTF-8"');
   });
 
   it('includes viewport meta tag', async () => {
     const { createReactAdapter } = await import('../adapter.js');
-    const shell = createReactAdapter().getDocumentShell();
+    const shell = createReactAdapter().getDocumentShell!();
     expect(shell).toContain('viewport');
   });
 });
