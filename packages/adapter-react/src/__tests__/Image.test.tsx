@@ -267,7 +267,7 @@ describe('createReactAdapter — renderToHTML with layouts', () => {
       return createElement('span', null, params.slug);
     }
 
-    const html = adapter.renderToHTML(Page, {}, { params: { slug: 'hello-world' } });
+    const html = await adapter.renderToHTML(Page, {}, mockContext({ params: { slug: 'hello-world' } }));
     expect(html).toContain('hello-world');
   });
 
