@@ -16,7 +16,7 @@ function mockContext(overrides: Partial<RenderContext> = {}): RenderContext {
   return {
     url: new URL('http://localhost/'),
     params: {},
-    pushHead: () => {},
+    pushHead: () => { },
     ...overrides,
   };
 }

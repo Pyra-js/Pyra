@@ -4,6 +4,19 @@ import os from 'node:os';
 import path from 'node:path';
 import type { RouteManifest } from 'pyrajs-shared';
 
+/** Build a minimal valid RouteManifest for use in plugin tests. */
+function mockManifest(): RouteManifest {
+  return {
+    version: 1,
+    adapter: 'react',
+    base: '/',
+    builtAt: new Date().toISOString(),
+    renderMode: 'ssr',
+    routes: {},
+    assets: {},
+  };
+}
+
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 // vi.mock() is hoisted above all imports by vitest, so image-plugin.ts gets the
 // mocked optimizer when it is statically imported below. This removes the need
@@ -102,7 +115,7 @@ describe('pyraImages() — buildEnd()', () => {
     });
     await plugin.buildStart?.();
 
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir, root: tmpDir });
 
     expect(manifest.images).toBeDefined();
@@ -124,7 +137,7 @@ describe('pyraImages() — buildEnd()', () => {
     });
     await plugin.buildStart?.();
 
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
 
     expect(manifest.images).toBeUndefined();
@@ -132,7 +145,7 @@ describe('pyraImages() — buildEnd()', () => {
 
   it('buildEnd does not throw when called before buildStart', () => {
     const plugin = pyraImages();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     expect(() =>
       plugin.buildEnd?.({ manifest, outDir: tmpDir, root: tmpDir })
     ).not.toThrow();
@@ -168,7 +181,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
   it('skips when public dir has no images', async () => {
     const plugin = await setupPlugin();
     await expect(plugin.buildStart?.()).resolves.not.toThrow();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     expect(manifest.images).toBeUndefined();
   });
@@ -187,7 +200,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     writeFakeImage('public/hero.jpg');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     expect(manifest.images?.['/hero.jpg']).toBeDefined();
   });
@@ -196,7 +209,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     writeFakeImage('public/photo.jpg');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     const entry = manifest.images?.['/photo.jpg'];
     expect(entry?.originalWidth).toBe(1000);
@@ -208,7 +221,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     writeFakeImage('public/banner.jpg');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     expect(Object.keys(manifest.images ?? {})[0]).toMatch(/^\/banner\.jpg$/);
   });
@@ -217,7 +230,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     writeFakeImage('public/images/nested/photo.jpg');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     const key = Object.keys(manifest.images ?? {}).find(k => k.includes('nested'));
     expect(key).toBe('/images/nested/photo.jpg');
@@ -227,7 +240,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     writeFakeImage('public/img.jpg');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     const entry = manifest.images?.['/img.jpg'];
     expect(Object.keys(entry?.variants ?? {})).toEqual(
@@ -239,7 +252,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     writeFakeImage('public/img.jpg');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     const entry = manifest.images?.['/img.jpg'];
     for (const variant of Object.values(entry?.variants ?? {})) {
@@ -251,7 +264,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     writeFakeImage('public/hero.jpg');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     const entry = manifest.images?.['/hero.jpg'];
     const variant = entry?.variants['640:webp'];
@@ -268,7 +281,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
       getMode: vi.fn().mockReturnValue('production'),
     });
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     const entry = manifest.images?.['/small.jpg'];
     expect(entry?.variants['640:webp']).toBeDefined();
@@ -290,7 +303,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     writeFakeImage('public/b.png');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     expect(Object.keys(manifest.images ?? {})).toHaveLength(2);
   });
@@ -301,7 +314,7 @@ describe('pyraImages() — buildStart() with sharp available', () => {
     fs.writeFileSync(path.join(tmpDir, 'public', 'robots.txt'), 'User-agent: *');
     const plugin = await setupPlugin();
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     expect(Object.keys(manifest.images ?? {})).toHaveLength(1);
     expect(manifest.images?.['/img.jpg']).toBeDefined();
@@ -335,7 +348,7 @@ describe('pyraImages() — buildStart() with sharp unavailable', () => {
       getMode: vi.fn().mockReturnValue('production'),
     });
     await plugin.buildStart?.();
-    const manifest: RouteManifest = { routes: {} };
+    const manifest: RouteManifest = mockManifest();
     plugin.buildEnd?.({ manifest, outDir: path.join(tmpDir, 'dist'), root: tmpDir });
     expect(manifest.images).toBeUndefined();
   });
