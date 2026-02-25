@@ -1,5 +1,5 @@
-export { DevServer } from './dev-server.js';
-export type { DevServerOptions } from './dev-server.js';
+export { DevServer } from './dev/dev-server.js';
+export type { DevServerOptions } from './dev/dev-server.js';
 export { transformFile } from './transform.js';
 export { build } from './build.js';
 export type { BuildOrchestratorOptions, BuildResult } from './types.js';

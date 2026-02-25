@@ -29,15 +29,15 @@ import {
   loadMiddlewareChain as _loadMiddlewareChain,
   sendWebResponse,
   type CompilerHost,
-} from "./compiler.js";
+} from "./dev-compiler.js";
 import {
   setupWebSocket,
   setupFileWatcher,
   injectHMRClient,
   getHMRClientScript,
   type HMRHost,
-} from "./hmr.js";
-import { getDashboardHTML } from "./dashboard.js";
+} from "./dev-hmr.js";
+import { getDashboardHTML } from "./dev-dashboard.js";
 import {
   handleImageRequest as _handleImageRequest,
   resolvePublicFilePath as _resolvePublicFilePath,
@@ -46,25 +46,25 @@ import {
   injectEntryCSSLinks as _injectEntryCSSLinks,
   getContentType,
   type StaticHost,
-} from "./static.js";
+} from "./dev-static.js";
 import {
   handleApiRouteInner as _handleApiRouteInner,
   type ApiHost,
-} from "./api.js";
+} from "./dev-api.js";
 import {
   buildRouteGraph as _buildRouteGraph,
   type RoutesHost,
-} from "./routes.js";
+} from "./dev-routes.js";
 import {
   renderErrorPage as _renderErrorPage,
   renderNotFoundPage as _renderNotFoundPage,
   getErrorHTML,
   type ErrorsHost,
-} from "./errors.js";
+} from "./dev-errors.js";
 import {
   handlePageRouteInner as _handlePageRouteInner,
   type SSRHost,
-} from "./ssr.js";
+} from "./dev-ssr.js";
 
 export interface DevServerOptions {
   port?: number;

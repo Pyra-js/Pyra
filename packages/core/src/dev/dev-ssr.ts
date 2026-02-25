@@ -13,7 +13,7 @@ import { resolveRouteRenderMode } from "../render-mode.js";
 import { bundleFile, getCSSOutput } from "../bundler.js";
 import { escapeJsonForScript } from "../request-context.js";
 import type { RequestTracer } from "../tracer.js";
-import { injectHMRClient } from "./hmr.js";
+import { injectHMRClient } from "./dev-hmr.js";
 
 // ── DEFAULT_SHELL ─────────────────────────────────────────────────────────────
 
