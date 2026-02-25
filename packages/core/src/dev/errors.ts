@@ -8,9 +8,9 @@ import type {
   ErrorPageProps,
 } from "pyrajs-shared";
 import { log } from "pyrajs-shared";
-import type { RequestTracer } from "./tracer.js";
-import { injectHMRClient } from "./dev-hmr.js";
-import { DEFAULT_SHELL } from "./dev-ssr.js";
+import type { RequestTracer } from "../tracer.js";
+import { injectHMRClient } from "./hmr.js";
+import { DEFAULT_SHELL } from "./ssr.js";
 
 // ── ErrorsHost ────────────────────────────────────────────────────────────────
 

@@ -2,7 +2,7 @@ import http from "node:http";
 import { pathToFileURL } from "node:url";
 import type { RequestContext, RouteMatch } from "pyrajs-shared";
 import { HTTP_METHODS } from "pyrajs-shared";
-import type { RequestTracer } from "./tracer.js";
+import type { RequestTracer } from "../tracer.js";
 
 // ── ApiHost ───────────────────────────────────────────────────────────────────
 

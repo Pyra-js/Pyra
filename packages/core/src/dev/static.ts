@@ -2,9 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import http from "node:http";
 import type { PyraConfig, ImageFormat } from "pyrajs-shared";
-import { isSharpAvailable, optimizeImage } from "./image-optimizer.js";
-import { bundleFile, getCSSOutput } from "./bundler.js";
-import { runPostCSS } from "./css-plugin.js";
+import { isSharpAvailable, optimizeImage } from "../image-optimizer.js";
+import { bundleFile, getCSSOutput } from "../bundler.js";
+import { runPostCSS } from "../css-plugin.js";
 
 // ── StaticHost ────────────────────────────────────────────────────────────────
 

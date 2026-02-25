@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { PyraAdapter, RouteGraph, RouteNode } from "pyrajs-shared";
-import { scanRoutes, type ScanResult } from "./scanner.js";
-import { createRouter } from "./router.js";
+import { scanRoutes, type ScanResult } from "../scanner.js";
+import { createRouter } from "../router.js";
 import pc from "picocolors";
 
 // ── RoutesHost ────────────────────────────────────────────────────────────────

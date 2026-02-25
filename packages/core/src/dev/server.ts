@@ -13,15 +13,15 @@ import type {
   DevServerResult,
   RouteMatch,
 } from "pyrajs-shared";
-import { runMiddleware } from "./middleware.js";
+import { runMiddleware } from "../middleware.js";
 import {
   bundleFile,
   getCSSOutput,
-} from "./bundler.js";
-import { applyCORS } from "./cors.js";
-import { metricsStore } from "./metrics.js";
-import { createRequestContext, getSetCookieHeaders } from "./request-context.js";
-import { RequestTracer } from "./tracer.js";
+} from "../bundler.js";
+import { applyCORS } from "../cors.js";
+import { metricsStore } from "../metrics.js";
+import { createRequestContext, getSetCookieHeaders } from "../request-context.js";
+import { RequestTracer } from "../tracer.js";
 
 // ── Extracted modules ─────────────────────────────────────────────────────────
 import {
@@ -29,15 +29,15 @@ import {
   loadMiddlewareChain as _loadMiddlewareChain,
   sendWebResponse,
   type CompilerHost,
-} from "./dev-compiler.js";
+} from "./compiler.js";
 import {
   setupWebSocket,
   setupFileWatcher,
   injectHMRClient,
   getHMRClientScript,
   type HMRHost,
-} from "./dev-hmr.js";
-import { getDashboardHTML } from "./dev-dashboard.js";
+} from "./hmr.js";
+import { getDashboardHTML } from "./dashboard.js";
 import {
   handleImageRequest as _handleImageRequest,
   resolvePublicFilePath as _resolvePublicFilePath,
@@ -46,25 +46,25 @@ import {
   injectEntryCSSLinks as _injectEntryCSSLinks,
   getContentType,
   type StaticHost,
-} from "./dev-static.js";
+} from "./static.js";
 import {
   handleApiRouteInner as _handleApiRouteInner,
   type ApiHost,
-} from "./dev-api.js";
+} from "./api.js";
 import {
   buildRouteGraph as _buildRouteGraph,
   type RoutesHost,
-} from "./dev-routes.js";
+} from "./routes.js";
 import {
   renderErrorPage as _renderErrorPage,
   renderNotFoundPage as _renderNotFoundPage,
   getErrorHTML,
   type ErrorsHost,
-} from "./dev-errors.js";
+} from "./errors.js";
 import {
   handlePageRouteInner as _handlePageRouteInner,
   type SSRHost,
-} from "./dev-ssr.js";
+} from "./ssr.js";
 
 export interface DevServerOptions {
   port?: number;
