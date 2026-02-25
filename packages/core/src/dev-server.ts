@@ -455,6 +455,11 @@ export class DevServer {
       // Inject HMR client into HTML files
       if (ext === ".html") {
         content = this.injectHMRClient(content);
+        // Eagerly bundle any <script type="module"> TS/JSX entry points so
+        // their CSS ends up in cssOutputCache, then inject <link> tags so the
+        // browser receives real stylesheets instead of nothing (fixes FOUC /
+        // missing styles in SPA mode where index.html is served statically).
+        content = await this.injectEntryCSSLinks(filePath, content);
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(content);
         if (this.verbose) {
