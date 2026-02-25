@@ -666,6 +666,61 @@ export class DevServer {
     });
   }
 
+  // ── Static HTML CSS injection ─────────────────────────────────────────────────
+
+  /**
+   * For static HTML files (SPA mode), find every
+   * `<script type="module" src="...">` that points to a TS/JSX file, eagerly
+   * bundle it so CSS lands in cssOutputCache, then inject `<link>` tags before
+   * `</head>`.  This mirrors the CSS-injection done by handlePageRouteInner for
+   * file-based routes so that `import './style.css'` works in SPA entry points.
+   */
+  private async injectEntryCSSLinks(
+    htmlFilePath: string,
+    html: string,
+  ): Promise<string> {
+    const htmlDir = path.dirname(htmlFilePath);
+    const scriptSrcRe =
+      /<script[^>]+type=["']module["'][^>]+src=["']([^"']+)["']/gi;
+    const cssLinkTags: string[] = [];
+
+    let match: RegExpExecArray | null;
+    while ((match = scriptSrcRe.exec(html)) !== null) {
+      const src = match[1];
+      // Only handle local TS/JSX/MJS entry points
+      if (!/\.(tsx?|jsx?|mjs)$/.test(src)) continue;
+      if (/^https?:\/\//.test(src)) continue;
+
+      // Resolve relative to the HTML file's directory (strips leading /)
+      const relSrc = src.replace(/^\//, "");
+      const absoluteSrc = src.startsWith("/")
+        ? path.join(this.root, relSrc)
+        : path.resolve(htmlDir, src);
+
+      if (!fs.existsSync(absoluteSrc)) continue;
+
+      // Bundle to populate cssOutputCache (result cached; fast on repeat)
+      await bundleFile(absoluteSrc, this.root, this.config?.resolve);
+      const css = getCSSOutput(absoluteSrc);
+      if (css) {
+        const relPath = path
+          .relative(this.root, absoluteSrc)
+          .split(path.sep)
+          .join("/");
+        cssLinkTags.push(`<link rel="stylesheet" href="/__pyra/styles/${relPath}">`);
+      }
+    }
+
+    if (cssLinkTags.length === 0) return html;
+
+    // Inject before </head> (or at the top of <body> as fallback)
+    const linkBlock = cssLinkTags.join("\n  ");
+    if (html.includes("</head>")) {
+      return html.replace("</head>", `  ${linkBlock}\n</head>`);
+    }
+    return html.replace("<body>", `<head>\n  ${linkBlock}\n</head>\n<body>`);
+  }
+
   // ── SPA Shell ────────────────────────────────────────────────────────────────
 
   /**
