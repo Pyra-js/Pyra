@@ -28,6 +28,7 @@ import {
   invalidateDependentCache,
   getCSSOutput,
 } from "./bundler.js";
+import { applyCORS } from "./cors.js";
 import { runPostCSS } from "./css-plugin.js";
 import { metricsStore } from "./metrics.js";
 import { scanRoutes } from "./scanner.js";
@@ -130,6 +131,14 @@ export class DevServer {
 
     // Remove query parameters
     const cleanUrl = url.split("?")[0];
+
+    // Apply CORS headers early — before all other handlers so every response
+    // path (routes, static files, internal endpoints) gets the headers.
+    // Dev server defaults to cors: true (allow all) so cross-origin fetches
+    // work out of the box during development (e.g. frontend on :3002 calling
+    // an API on :3000). Set `server.cors: false` in pyra.config to disable,
+    // or pass a CorsConfig object for fine-grained origin/method control.
+    if (applyCORS(this.config?.server?.cors, req, res)) return;
 
     // Create tracer for every request in dev mode
     const tracer = new RequestTracer(method, cleanUrl);
