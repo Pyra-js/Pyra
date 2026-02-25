@@ -22,6 +22,7 @@ import {
   escapeJsonForScript,
 } from "./request-context.js";
 import { RequestTracer, shouldTrace } from "./tracer.js";
+import { applyCORS } from "./cors.js";
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
@@ -316,6 +317,11 @@ export class ProdServer {
     const url = req.url || "/";
     const method = req.method || "GET";
     const cleanUrl = url.split("?")[0];
+
+    // Apply CORS headers. Production CORS is opt-in — configure
+    // `server.cors` in pyra.config.ts. OPTIONS preflights are handled
+    // here and return 204 immediately.
+    if (applyCORS(this.config?.server?.cors, req, res)) return;
 
     // v0.9: Conditionally create tracer based on config
     const tracing = shouldTrace(
