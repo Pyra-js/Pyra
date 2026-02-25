@@ -12,6 +12,35 @@ export type PyraMode = 'development' | 'production';
 export type RenderMode = 'ssr' | 'spa' | 'ssg';
 
 /**
+ * CORS configuration for the dev and production servers.
+ */
+export type CorsConfig = {
+  /**
+   * Allowed origin(s).
+   * - `true` (default) — reflect `*` (allow all origins)
+   * - `false` — disable CORS entirely
+   * - `string` — a single allowed origin, e.g. `'https://app.example.com'`
+   * - `string[]` — whitelist of allowed origins; the request Origin is echoed
+   *   back when it matches, otherwise the header is omitted.
+   */
+  origin?: boolean | string | string[];
+  /** Allowed HTTP methods (default: GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS) */
+  methods?: string[];
+  /** Allowed request headers (default: Content-Type, Authorization) */
+  allowedHeaders?: string[];
+  /** Headers to expose to the browser via Access-Control-Expose-Headers */
+  exposedHeaders?: string[];
+  /**
+   * Allow credentials (cookies, Authorization headers, TLS certificates).
+   * Note: credentials cannot be combined with `origin: true` (`*`) — set a
+   * specific origin when enabling this.
+   */
+  credentials?: boolean;
+  /** Preflight response cache duration in seconds (default: 86400 — 24 h) */
+  maxAge?: number;
+};
+
+/**
  * Dev server configuration
  */
 export type DevServerConfig = {
@@ -25,8 +54,13 @@ export type DevServerConfig = {
   open?: boolean;
   /** Enable HMR (Hot Module Replacement) (default: true) */
   hmr?: boolean;
-  /** CORS configuration (default: true) */
-  cors?: boolean;
+  /**
+   * CORS configuration.
+   * - `true` (default in dev) — allow all origins with `Access-Control-Allow-Origin: *`
+   * - `false` — disable CORS headers entirely
+   * - `CorsConfig` — fine-grained control over origins, methods, headers, etc.
+   */
+  cors?: boolean | CorsConfig;
   /** Proxy configuration for API requests */
   proxy?: Record<string, string | { target: string; changeOrigin?: boolean; rewrite?: (path: string) => string }>;
   /** Custom middleware */
