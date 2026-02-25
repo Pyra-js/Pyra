@@ -242,7 +242,7 @@ describe('createReactAdapter — renderToHTML with layouts', () => {
       return createElement('main', null, 'Hello');
     }
 
-    const html = adapter.renderToHTML(Page, {}, { params: {}, layouts: [Layout] });
+    const html = await adapter.renderToHTML(Page, {}, mockContext({ layouts: [Layout] }));
     expect(html).toContain('id="layout"');
     expect(html).toContain('Hello');
   });
@@ -255,7 +255,7 @@ describe('createReactAdapter — renderToHTML with layouts', () => {
       return createElement('h1', null, title);
     }
 
-    const html = adapter.renderToHTML(Page, { title: 'My Title' }, { params: {} });
+    const html = await adapter.renderToHTML(Page, { title: 'My Title' }, mockContext());
     expect(html).toContain('My Title');
   });
 
