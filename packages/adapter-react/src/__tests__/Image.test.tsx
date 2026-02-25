@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { createElement } from 'react';
+import type { RenderContext } from 'pyrajs-shared';
 import { Image } from '../Image.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -8,6 +9,16 @@ import { Image } from '../Image.js';
 /** Render the Image component to an HTML string for assertion. */
 function render(props: Parameters<typeof Image>[0]): string {
   return renderToString(createElement(Image, props));
+}
+
+/** Build a minimal RenderContext for adapter tests. */
+function mockContext(overrides: Partial<RenderContext> = {}): RenderContext {
+  return {
+    url: new URL('http://localhost/'),
+    params: {},
+    pushHead: () => {},
+    ...overrides,
+  };
 }
 
 /** Extract all srcSet values from a rendered HTML string as an array of entries. */
