@@ -279,7 +279,7 @@ describe('createReactAdapter — renderToHTML with layouts', () => {
       return createElement('p', null, 'standalone');
     }
 
-    const html = adapter.renderToHTML(Page, {}, { params: {} });
+    const html = await adapter.renderToHTML(Page, {}, mockContext());
     expect(html).toContain('standalone');
   });
 
@@ -297,7 +297,7 @@ describe('createReactAdapter — renderToHTML with layouts', () => {
       return createElement('span', null, 'content');
     }
 
-    const html = adapter.renderToHTML(Page, {}, { params: {}, layouts: [Outer, Inner] });
+    const html = await adapter.renderToHTML(Page, {}, mockContext({ layouts: [Outer, Inner] }));
     const outerPos = html.indexOf('id="outer"');
     const innerPos = html.indexOf('id="inner"');
     const contentPos = html.indexOf('content');
