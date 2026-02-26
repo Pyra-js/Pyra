@@ -12,7 +12,7 @@ Pyra.js is a TypeScript-first framework for building modern full-stack web appli
 
 For guides, API reference, and examples visit the docs site:
 
-**[pyrajs.netlify.app](https://pyrajs.netlify.app/)**
+**[pyrajs.dev](https://pyrajs.dev/)**
 
 ---
 
