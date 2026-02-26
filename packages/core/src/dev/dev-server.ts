@@ -336,6 +336,7 @@ export class DevServer
             params: match.params,
             routeId: match.route.id,
             mode: "development",
+            envPrefix: this.config?.env?.prefix,
           });
 
           // Load middleware chain

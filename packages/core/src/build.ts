@@ -503,6 +503,7 @@ export async function build(
             pathname,
             params,
             routeId,
+            envPrefix: options.config.env?.prefix,
           });
           try {
             const loadResult = await mod.load(ctx);

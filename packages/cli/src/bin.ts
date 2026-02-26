@@ -104,6 +104,7 @@ program
       const server = new DevServer({
         port: actualPort,
         root,
+        config,
         adapter,
         routesDir,
       });
