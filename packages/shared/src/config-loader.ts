@@ -3,6 +3,7 @@ import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { PyraConfig, PyraMode } from './types.js';
 import { log } from './logger.js';
+import { loadEnvFiles } from './env-loader.js';
 
 /**
  * Configuration file names in order of priority
@@ -154,6 +155,17 @@ export async function loadConfig(options: {
 
   // Resolve and merge with defaults
   const config = resolveConfig(userConfig, mode);
+
+  // Load .env files into process.env.
+  // This runs after config is resolved so we have access to env.dir and
+  // env.files from the user's pyra.config.  The loaded vars are then
+  // available to every ctx.env read that happens at request/build time.
+  loadEnvFiles({
+    root,
+    mode,
+    dir: config.env?.dir,
+    files: config.env?.files,
+  });
 
   return config;
 }
