@@ -5,6 +5,33 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-02-26
+
+### Added
+- CORS support - configure cross-origin resource sharing via the `cors` field in `pyra.config.ts`
+  - New `CorsConfig` type in `packages/shared/src/types.ts`: `origin`, `methods`, `allowedHeaders`, `exposedHeaders`, `credentials`, `maxAge` fields
+  - `packages/core/src/cors.ts` — `buildCORSHeaders()` and `applyCors()` helpers; origin resolution supports wildcard, string, and array allow-lists; automatic `OPTIONS` preflight handling
+  - Dev server and production server both apply CORS headers via `applyCors()` before routing
+- Static HTML CSS injection in dev server — prerendered/static HTML pages now receive `<link rel="stylesheet">` tags for co-located CSS imports, consistent with SSR pages
+- HMR client CSS injection - extracted CSS is now injected into the HMR client bundle so hot-reloaded pages receive stylesheet updates
+
+### Refactored
+- `packages/core/src/dev-server.ts` split into eight focused modules under `packages/core/src/dev/`
+  - `dev-compiler.ts` — on-demand esbuild compilation
+  - `dev-hmr.ts` — WebSocket HMR server and client injection
+  - `dev-dashboard.ts` — `/_pyra` dashboard and API endpoint handlers
+  - `dev-static.ts` — static file and `public/` directory serving
+  - `dev-api.ts` — API route dispatch and method validation
+  - `dev-routes.ts` — page route matching and SSR pipeline entry
+  - `dev-errors.ts` — error boundary rendering and 404 handling
+  - `dev-ssr.ts` — core SSR assembly (load → render → shell → inject assets)
+  - Dead code removed; `dev-server.ts` now re-exports and wires the modules together
+
+### Fixed
+- TypeScript typecheck errors in `Image.test.tsx` — corrected `mockContext`, `renderToHTML`, adapter, and React type annotations across multiple test helpers
+- Image plugin tests - added missing manifest fixture to `image-plugin-tests.ts`
+- Middleware tests - corrected assertions after middleware refactor
+
 ## [0.18.4] - 2026-02-22
 
 ### Added

@@ -1,6 +1,6 @@
 {
   "name": "pyrajs-shared",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Shared utilities and types for Pyra.js",
   "type": "module",
   "main": "./dist/index.js",
