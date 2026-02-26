@@ -90,12 +90,21 @@ function serializeSetCookie(
 
 /**
  * Filter environment variables by prefix and strip the prefix from keys.
+ *
+ * When prefix is an array, a variable is included if it starts with ANY of
+ * the given prefixes.  The first matching prefix (in array order) is stripped.
+ * When prefix is a plain string the behaviour is identical to before.
  */
-function filterEnv(prefix: string): Record<string, string> {
+function filterEnv(prefix: string | string[]): Record<string, string> {
+  const prefixes = Array.isArray(prefix) ? prefix : [prefix];
   const result: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith(prefix) && value !== undefined) {
-      result[key.slice(prefix.length)] = value;
+    if (value === undefined) continue;
+    for (const p of prefixes) {
+      if (key.startsWith(p)) {
+        result[key.slice(p.length)] = value;
+        break;
+      }
     }
   }
   return result;
