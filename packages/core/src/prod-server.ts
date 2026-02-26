@@ -386,7 +386,7 @@ export class ProdServer {
         params: match.params,
         routeId: match.entry.id,
         mode: "production",
-        envPrefix: (this.config?.env?.prefix as string) || "PYRA_",
+        envPrefix: this.config?.env?.prefix,
       });
 
       // 4. Load middleware chain
