@@ -126,7 +126,7 @@ export interface CreateRequestContextOptions {
   params: Record<string, string>;
   routeId: string;
   mode: PyraMode;
-  envPrefix?: string;
+  envPrefix?: string | string[];
 }
 
 /**
@@ -240,7 +240,7 @@ export interface BuildTimeRequestContextOptions {
   pathname: string;
   params: Record<string, string>;
   routeId: string;
-  envPrefix?: string;
+  envPrefix?: string | string[];
 }
 
 /**
