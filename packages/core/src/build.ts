@@ -301,6 +301,8 @@ export async function build(
     ...buildEsbuildResolveOptions(options.config.resolve, root),
   });
 
+  if (!silent) console.log(`  ${pc.green("\u2713")}  server`);
+
   // Detect exports (hasLoad, prerender, cache, render mode, API methods)
   const globalMode: RenderMode = options.config.renderMode ?? "ssr";
   const hasLoadMap = new Map<string, boolean>();
@@ -378,7 +380,6 @@ export async function build(
   }
 
   // ── 8. Generate manifest ───────────────────────────────────────────────
-  log.info("Generating manifest...");
 
   // Build client output map: routeId → { entry, chunks, css }
   const clientOutputMap = buildClientOutputMap(
@@ -452,13 +453,10 @@ export async function build(
       .replace("<!--pyra-head-->", "");
     fs.writeFileSync(path.join(clientDir, "__spa.html"), spaHtml, "utf-8");
     manifest.spaFallback = "__spa.html";
-    log.info("Generated SPA fallback: dist/client/__spa.html");
   }
 
   // ── 9. Prerender static routes (SSG) ─────────────────────────────────
   if (prerenderMap.size > 0) {
-    log.info(`Prerendering ${prerenderMap.size} route(s)...`);
-
     const shell = adapter.getDocumentShell?.() || DEFAULT_SHELL;
     const clientDir = path.join(outDir, "client");
 
@@ -617,7 +615,10 @@ export async function build(
         entry.prerenderedCount = renderedCount;
       }
 
-      log.info(`  Prerendered ${routeId} → ${renderedCount} page(s)`);
+      if (!silent) {
+        const pagesStr = renderedCount === 1 ? "1 page" : `${renderedCount} pages`;
+        console.log(`  ${pc.green("\u2713")}  ${routeId}  ${pc.dim(`prerendered (${pagesStr})`)}`);
+      }
     }
   }
 
@@ -626,7 +627,6 @@ export async function build(
   const publicDirPath = path.resolve(root, publicDirName);
   if (fs.existsSync(publicDirPath)) {
     fs.cpSync(publicDirPath, path.join(outDir, "client"), { recursive: true });
-    log.info(`Copied ${publicDirName}/ → dist/client/`);
   }
 
   // ── Plugin: buildEnd() hooks — mutate manifest before writing ────────────
