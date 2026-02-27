@@ -49,7 +49,7 @@ export async function buildSPA(
     format: "esm",
     platform: "browser",
     target: options.config.build?.target || "es2020",
-    splitting: true,
+    splitting: options.config.build?.splitting ?? true,
     metafile: true,
     entryNames: "[name]-[hash]",
     chunkNames: "chunk-[hash]",
