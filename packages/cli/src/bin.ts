@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { log } from "pyrajs-shared";
-import { isSilent, useColor, getVersion } from "./utils/reporter.js";
+import { isSilent, useColor, getVersion, startTimer, printBanner, printDone } from "./utils/reporter.js";
 import { devCommand } from "./commands/dev.js";
 import { buildCommand } from "./commands/build.js";
 import { startCommand } from "./commands/start.js";
@@ -131,12 +131,10 @@ program
     const color = useColor(process.argv, process.env);
 
     if (!silent) {
-      const { printBanner } = await import("./utils/reporter.js");
       printBanner({ silent, color });
       console.log("");
     }
 
-    const { startTimer, printDone } = await import("./utils/reporter.js");
     const stop = startTimer();
 
     try {
