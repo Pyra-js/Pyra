@@ -622,32 +622,39 @@ async function diagnose(
     };
   }
 
-  // ── Entry point ────────────────────────────────────────────────────────────
-  const entry = getEntry(config);
-  const primaryEntry =
-    typeof entry === 'string'
-      ? entry
-      : Array.isArray(entry)
-        ? entry[0]
-        : typeof entry === 'object' && entry !== null
-          ? Object.values(entry)[0]
-          : undefined;
-
-  if (primaryEntry) {
-    const entryPath = path.resolve(root, primaryEntry as string);
-    if (existsSync(entryPath)) {
-      checks.push({ level: 'ok', message: `Entry point: ${primaryEntry}` });
-    } else {
-      checks.push({ level: 'warn', message: `Entry point not found: ${primaryEntry}` });
-    }
-  }
-
   // ── Routes directory ───────────────────────────────────────────────────────
+  // Compute this before the entry check: SSR projects use file-based routing
+  // and have no entry point, so we skip the entry check when routes exist.
   const routesDirRel = config.routesDir || DEFAULT_ROUTES_DIR;
   const routesDirAbs = path.resolve(root, routesDirRel);
   const routesDirExists = existsSync(routesDirAbs);
   const routesDirExplicitlySet =
     config.routesDir !== undefined && config.routesDir !== DEFAULT_ROUTES_DIR;
+
+  // ── Entry point ────────────────────────────────────────────────────────────
+  // Only relevant for SPA projects. Full-stack (SSR) projects use file-based
+  // routing via src/routes/ and don't need a top-level entry point — skip the
+  // check so we don't falsely warn about the missing src/index.ts default.
+  if (!routesDirExists) {
+    const entry = getEntry(config);
+    const primaryEntry =
+      typeof entry === 'string'
+        ? entry
+        : Array.isArray(entry)
+          ? entry[0]
+          : typeof entry === 'object' && entry !== null
+            ? Object.values(entry)[0]
+            : undefined;
+
+    if (primaryEntry) {
+      const entryPath = path.resolve(root, primaryEntry as string);
+      if (existsSync(entryPath)) {
+        checks.push({ level: 'ok', message: `Entry point: ${primaryEntry}` });
+      } else {
+        checks.push({ level: 'warn', message: `Entry point not found: ${primaryEntry}` });
+      }
+    }
+  }
 
   // ── Route scan ─────────────────────────────────────────────────────────────
   let scanResult: ScanResult | null = null;
