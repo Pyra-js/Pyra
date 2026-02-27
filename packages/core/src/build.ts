@@ -188,8 +188,6 @@ export async function build(
   }
 
   // Client build
-  log.info("Building client bundles...");
-
   const clientResult = await esbuild.build({
     entryPoints: clientEntryPoints,
     bundle: true,
@@ -218,9 +216,9 @@ export async function build(
     ...buildEsbuildResolveOptions(options.config.resolve, root),
   });
 
-  // Server build
-  log.info("Building server bundles...");
+  if (!silent) console.log(`  ${pc.green("\u2713")}  client`);
 
+  // Server build
   const serverEntryPoints: Record<string, string> = {};
   const serverEntryRouteMap = new Map<
     string,
