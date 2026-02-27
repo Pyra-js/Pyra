@@ -38,7 +38,8 @@
   },
   "pnpm": {
     "overrides": {
-      "sucrase": "^3.35.1"
+      "sucrase": "^3.35.1",
+      "rollup": "^4.59.0"
     }
   }
 }
