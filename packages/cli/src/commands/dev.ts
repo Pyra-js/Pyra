@@ -22,7 +22,7 @@ export async function devCommand(options: DevOptions): Promise<void> {
 
   try {
     const config = await loadConfig({
-      mode: options.mode,
+      mode: options.mode as "development" | "production" | undefined,
       configFile: options.config,
       silent: !options.verbose,
     });

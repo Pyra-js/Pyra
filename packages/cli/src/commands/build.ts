@@ -29,7 +29,7 @@ export async function buildCommand(options: BuildOptions): Promise<void> {
 
   try {
     const config = await loadConfig({
-      mode: options.mode,
+      mode: options.mode as "development" | "production" | undefined,
       configFile: options.config,
     });
 

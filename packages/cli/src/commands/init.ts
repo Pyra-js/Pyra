@@ -53,7 +53,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
     }
 
     const template: Template =
-      options.template ||
+      (options.template as Template | undefined) ||
       (await select({
         message: "Select a framework:",
         choices: [
@@ -94,7 +94,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
     }
 
     const language: Language =
-      options.language ||
+      (options.language as Language | undefined) ||
       (await select({
         message: "Select a language:",
         choices: [
