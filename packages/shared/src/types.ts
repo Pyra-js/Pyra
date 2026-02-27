@@ -200,14 +200,6 @@ export type PyraConfig = {
   /** Custom esbuild options (advanced) */
   esbuild?: Record<string, any>;
 
-  /** Framework-specific options (deprecated — use adapter instead) */
-  framework?: {
-    /** Framework name: 'react' | 'vue' | 'svelte' | 'preact' | 'solid' */
-    name?: string;
-    /** Framework-specific options */
-    options?: Record<string, any>;
-  };
-
   /** The UI framework adapter. */
   adapter?: string | PyraAdapter | false;
 
