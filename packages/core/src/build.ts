@@ -660,8 +660,6 @@ export async function build(
     );
   }
 
-  log.success(`Build completed in ${(totalDurationMs / 1000).toFixed(2)}s`);
-
   return {
     manifest,
     clientOutputCount,
@@ -1073,7 +1071,6 @@ function buildEmptyManifest(
   };
 }
 
-// Enhanced build report with MW, Layouts, shared chunks, gzip, and size warnings.
 function printBuildReport(
   manifest: RouteManifest,
   totalDurationMs: number,
@@ -1081,11 +1078,15 @@ function printBuildReport(
   serverOutDir: string,
   config?: PyraConfig,
 ): void {
-  const sortedRoutes = Object.values(manifest.routes).sort((a, b) =>
-    a.pattern.localeCompare(b.pattern),
-  );
-
   const warnSize = config?.buildReport?.warnSize ?? 51200; // 50 KB default
+
+  // Exclude the internal __404 sentinel; sort pages before APIs, then alphabetically.
+  const sortedRoutes = Object.values(manifest.routes)
+    .filter((r) => r.id !== "__404")
+    .sort((a, b) => {
+      if (a.type !== b.type) return a.type === "page" ? -1 : 1;
+      return a.pattern.localeCompare(b.pattern);
+    });
 
   let pageCount = 0;
   let apiCount = 0;
@@ -1094,130 +1095,140 @@ function printBuildReport(
   let totalJS = 0;
   let totalCSS = 0;
 
+  // Column geometry
+  const ROUTE_W = 32;
+  const MODE_W = 8;
+  const JS_W = 10;
+  const SEP = "\u2500".repeat(70);
+
+  // ── Header ───────────────────────────────────────────────────────────────
   console.log("");
   console.log(
-    `  ${pc.bold("Route")}                     Type   Mode      JS        CSS      load()  MW  Layouts`,
+    `  ${pc.bold("Route".padEnd(ROUTE_W))}${pc.bold("Mode".padEnd(MODE_W + 2))}${pc.bold("Client JS".padStart(JS_W))}   ${pc.bold("CSS")}`,
   );
-  console.log("  " + pc.dim("\u2500".repeat(85)));
+  console.log("  " + pc.dim(SEP));
 
+  // ── Rows ─────────────────────────────────────────────────────────────────
   for (const entry of sortedRoutes) {
-    const routeCol = entry.pattern.padEnd(26);
+    // Truncate long paths so the table stays narrow
+    const truncated =
+      entry.pattern.length > ROUTE_W - 1
+        ? entry.pattern.slice(0, ROUTE_W - 2) + "\u2026"
+        : entry.pattern;
+    const routeCol = truncated.padEnd(ROUTE_W);
 
     if (entry.type === "page") {
       pageCount++;
       const routeMode = entry.renderMode ?? "ssr";
-      let mode = routeMode.toUpperCase();
+
+      // Mode label — colored by rendering strategy
+      let modeLabel: string;
       if (routeMode === "ssg") {
         ssgCount++;
-        if (entry.prerenderedCount) {
-          mode = `SSG (${entry.prerenderedCount})`;
-          prerenderTotal += entry.prerenderedCount;
-        } else {
-          prerenderTotal += 1;
-        }
+        const countSuffix =
+          entry.prerenderedCount && entry.prerenderedCount > 1
+            ? `(${entry.prerenderedCount})`
+            : "";
+        prerenderTotal += entry.prerenderedCount ?? 1;
+        modeLabel = pc.green(("SSG" + countSuffix).padEnd(MODE_W));
+      } else if (routeMode === "spa") {
+        modeLabel = pc.yellow("SPA".padEnd(MODE_W));
+      } else {
+        modeLabel = pc.blue("SSR".padEnd(MODE_W));
       }
 
-      // Calculate JS size from manifest assets
+      // JS size — sum of client entry + shared chunks
       let jsSize = 0;
       if (entry.clientEntry) {
         const asset = manifest.assets[entry.clientEntry];
         if (asset) jsSize += asset.size;
       }
-      for (const chunk of entry.clientChunks || []) {
+      for (const chunk of entry.clientChunks ?? []) {
         const asset = manifest.assets[chunk];
         if (asset) jsSize += asset.size;
       }
       totalJS += jsSize;
 
+      // CSS size
       let cssSize = 0;
-      for (const css of entry.css || []) {
+      for (const css of entry.css ?? []) {
         const asset = manifest.assets[css];
         if (asset) cssSize += asset.size;
       }
       totalCSS += cssSize;
 
-      // Size warning
-      const jsSizeRaw = formatSize(jsSize);
-      let jsSizeStr: string;
-      if (jsSize > warnSize) {
-        jsSizeStr = pc.yellow(`\u26A0 ${jsSizeRaw}`).padStart(9 + 10); // account for color codes
-      } else {
-        jsSizeStr = jsSizeRaw.padStart(9);
-      }
+      // Warning flag placed AFTER the number so column alignment is preserved
+      const jsRaw = formatSize(jsSize).padStart(JS_W);
+      const warn = jsSize > warnSize;
+      const jsFull = warn
+        ? pc.yellow(jsRaw) + "  " + pc.yellow("\u26a0")
+        : jsRaw + "   ";
 
-      const cssSizeStr =
-        cssSize > 0 ? formatSize(cssSize).padStart(9) : "        -";
-      const hasLoad = entry.hasLoad ? "yes" : "no ";
+      const cssFull =
+        cssSize > 0
+          ? formatSize(cssSize).padStart(8)
+          : pc.dim("\u2014".padStart(8));
 
-      // MW count
-      const mwCount = entry.middleware ? entry.middleware.length : 0;
-      const mwStr = String(mwCount).padStart(2);
-
-      // Layout chain
-      let layoutStr = "\u2014";
-      if (entry.layouts && entry.layouts.length > 0) {
-        layoutStr = entry.layouts
-          .map((id) => {
-            if (id === "/") return "root";
-            return id.slice(1).split("/").pop() || id;
-          })
-          .join(" \u2192 ");
-      }
-
-      console.log(
-        `  ${routeCol} page   ${mode.padEnd(9)} ${jsSizeStr} ${cssSizeStr}   ${hasLoad}    ${mwStr}  ${pc.dim(layoutStr)}`,
-      );
+      console.log(`  ${pc.cyan(routeCol)}${modeLabel}  ${jsFull}  ${cssFull}`);
     } else {
       apiCount++;
-      // MW count for API routes
-      const mwCount = entry.middleware ? entry.middleware.length : 0;
-      const mwStr = String(mwCount).padStart(2);
+
+      // Show HTTP methods in the Mode column for API routes
+      const methods = entry.methods?.join(" ") ?? "\u2014";
+      const modeLabel = pc.dim(methods.padEnd(MODE_W));
+      const dash = pc.dim("\u2014");
+
       console.log(
-        `  ${routeCol} api    \u2014         \u2014         \u2014        \u2014     ${mwStr}  \u2014`,
+        `  ${pc.dim(routeCol)}${modeLabel}  ${"\u2014".padStart(JS_W)}     ${dash}`,
       );
     }
   }
 
-  console.log("  " + pc.dim("\u2500".repeat(85)));
+  console.log("  " + pc.dim(SEP));
 
-  // Totals line
-  const totalLine1 = `  Totals                    ${pageCount} pg   ${ssgCount} SSG     ${formatSize(totalJS).padStart(9)} ${formatSize(totalCSS).padStart(9)}`;
-  const totalLine2 = `                            ${apiCount} api  ${prerenderTotal > 0 ? `${prerenderTotal} pre` : ""}`;
+  // ── Totals ────────────────────────────────────────────────────────────────
+  const pagePart = `${pageCount} page${pageCount !== 1 ? "s" : ""}`;
+  const apiPart = apiCount > 0 ? ` · ${apiCount} API` : "";
+  const ssgPart = ssgCount > 0 ? ` · ${ssgCount} SSG` : "";
+  const countLabel = pc.dim((pagePart + apiPart + ssgPart).padEnd(ROUTE_W + MODE_W));
 
-  // Gzip estimation
-  let gzipStr = "";
   const clientDir = path.dirname(clientOutDir);
   const gzipSize = estimateGzipSize(clientDir);
-  if (gzipSize > 0) {
-    gzipStr = `    ${pc.dim(`(gzip: ${formatSize(gzipSize)})`)}`;
-  }
+  const gzipPart =
+    gzipSize > 0 ? pc.dim(`   gzip ~${formatSize(gzipSize)}`) : "";
 
-  console.log(totalLine1 + gzipStr);
-  console.log(totalLine2);
+  console.log(
+    `  ${countLabel}  ${formatSize(totalJS).padStart(JS_W)}${gzipPart}`,
+  );
   console.log("");
 
-  // Shared chunks section
+  // ── Shared chunks ─────────────────────────────────────────────────────────
   const sharedChunks = getSharedChunks(manifest);
   if (sharedChunks.length > 0) {
     console.log(`  ${pc.bold("Shared chunks")}`);
-    console.log("  " + pc.dim("\u2500".repeat(54)));
     for (const chunk of sharedChunks) {
-      const sizeStr = formatSize(chunk.size).padStart(12);
-      const usageStr = pc.dim(`(used by ${chunk.usedBy} pages)`);
-      console.log(`  ${chunk.name.padEnd(30)} ${sizeStr}   ${usageStr}`);
+      const sizeStr = formatSize(chunk.size).padStart(10);
+      const usage = pc.dim(
+        `shared by ${chunk.usedBy} page${chunk.usedBy !== 1 ? "s" : ""}`,
+      );
+      console.log(`  ${pc.dim(chunk.name.padEnd(32))} ${sizeStr}  ${usage}`);
     }
     console.log("");
   }
 
-  // Count output files
+  // ── Output dirs ───────────────────────────────────────────────────────────
   const clientFiles = countFilesRecursive(clientDir);
   const serverFiles = countFilesRecursive(serverOutDir);
-
   console.log(
-    `  Output:   dist/client/ (${clientFiles} files)  dist/server/ (${serverFiles} files)`,
+    `  ${pc.dim("dist/client/")}   ${clientFiles} files    ${pc.dim("dist/server/")}   ${serverFiles} files`,
   );
-  console.log("  Manifest: dist/manifest.json");
-  console.log(`  Built in ${(totalDurationMs / 1000).toFixed(1)}s`);
+  console.log("");
+
+  // ── Final timing line ─────────────────────────────────────────────────────
+  const ms = Math.round(totalDurationMs);
+  const durationStr = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
+  console.log(`  ${pc.green("\u279c")}  built in ${pc.bold(durationStr)}`);
+  console.log("");
 }
 
 // Estimate gzip size of all JS/CSS files in the client output.
