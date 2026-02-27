@@ -91,8 +91,6 @@ export async function build(
   const clientOutDir = path.join(outDir, "client", "assets");
   const serverOutDir = path.join(outDir, "server");
 
-  log.info("Building for production...");
-
   // Clean output directory
   if (fs.existsSync(outDir)) {
     fs.rmSync(outDir, { recursive: true, force: true });
@@ -111,9 +109,13 @@ export async function build(
   const pageRoutes = router.pageRoutes();
   const apiRoutes = router.apiRoutes();
 
-  log.info(
-    `Discovered ${pageRoutes.length} page route(s), ${apiRoutes.length} API route(s)`,
-  );
+  if (!silent) {
+    const pg = pageRoutes.length;
+    const api = apiRoutes.length;
+    const pgStr = `${pg} page${pg !== 1 ? "s" : ""}`;
+    const apiStr = api > 0 ? ` · ${api} API` : "";
+    console.log(`  ${pc.green("\u2713")}  ${pgStr + apiStr}`);
+  }
 
   if (pageRoutes.length === 0 && apiRoutes.length === 0) {
     log.warn("No routes found. Nothing to build.");
