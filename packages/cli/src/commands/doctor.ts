@@ -100,18 +100,26 @@ function getNewestMtimeInDir(dir: string, maxDepth = 4, depth = 0): number {
 async function runTscCheck(
   root: string,
 ): Promise<{ errors: number; timedOut: boolean; notFound: boolean }> {
-  const localTsc = path.join(root, 'node_modules/.bin/tsc');
-  const tscCmd = existsSync(localTsc) ? localTsc : 'tsc';
+  const isWindows = process.platform === 'win32';
+  // On Windows we need the .cmd shim; on Unix the plain binary works.
+  const ext = isWindows ? '.cmd' : '';
+  const localTsc = path.join(root, `node_modules/.bin/tsc${ext}`);
+  const tscBin = existsSync(localTsc) ? localTsc : `tsc${ext}`;
+
+  // On Windows, .cmd files cannot be spawned directly (causes EINVAL), and
+  // using shell:true with a separate args array triggers DEP0190. The fix is
+  // to invoke cmd.exe explicitly — it is a real executable that handles .cmd
+  // interpretation natively, so no shell:true option is needed at all.
+  const spawnCmd = isWindows ? 'cmd.exe' : tscBin;
+  const spawnArgs = isWindows ? ['/c', tscBin, '--noEmit'] : ['--noEmit'];
 
   return new Promise((resolve) => {
     let output = '';
     let settled = false;
 
-    const child = spawn(tscCmd, ['--noEmit'], {
+    const child = spawn(spawnCmd, spawnArgs, {
       cwd: root,
       stdio: 'pipe',
-      // Required on Windows for PATH resolution when using the global tsc.
-      shell: process.platform === 'win32',
     });
 
     child.stdout?.on('data', (d: Buffer) => { output += d.toString(); });
