@@ -209,13 +209,16 @@ program
     const silent = isSilent(process.argv, process.env);
     const color = useColor(process.argv, process.env);
 
-    // Print banner
+    // Print a styled build header (version + command label)
     if (!silent) {
-      printBanner({ silent, color });
-      console.log(""); // Add spacing
+      const v = getVersion();
+      if (color) {
+        console.log(`\n  ${chalk.bold.red("PYRA")} ${chalk.red(`v${v}`)}  ${chalk.dim("build")}`);
+      } else {
+        console.log(`\n  PYRA v${v}  build`);
+      }
+      console.log("");
     }
-
-    const stop = startTimer();
 
     try {
       // Load configuration
@@ -233,7 +236,7 @@ program
       const minify = options.minify ?? config.build?.minify ?? true;
       const sourcemap = options.sourcemap ?? config.build?.sourcemap ?? false;
 
-      // Call the build orchestrator
+      // Call the build orchestrator — the report at the end handles timing
       await build({
         config,
         adapter,
@@ -243,12 +246,6 @@ program
         sourcemap,
         silent,
       });
-
-      // Print completion message
-      if (!silent) {
-        console.log(""); // Add spacing
-        printDone({ verb: "built", elapsedMs: stop(), silent, color });
-      }
     } catch (error) {
       log.error(`Build failed: ${error}`);
       process.exit(1);
