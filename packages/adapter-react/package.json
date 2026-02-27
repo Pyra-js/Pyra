@@ -1,6 +1,6 @@
 {
   "name": "pyrajs-adapter-react",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "React adapter for Pyra.js - SSR, hydration, and JSX compilation",
   "type": "module",
   "main": "./dist/index.js",
