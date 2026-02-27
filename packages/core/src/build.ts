@@ -68,12 +68,12 @@ export async function build(
   const adapter = options.adapter;
   const silent = options.silent ?? false;
 
-  // Entry-based SPA: no file-based routing — produce a static dist/ like Vite
-  if (typeof options.config.entry === "string") {
+  // SPA build: fall back when there is no routes directory on disk. We check the filesystem rather than config.entry because the config loader
+  if (!fs.existsSync(routesDir)) {
     return buildSPA(options);
   }
 
-  // ── Plugin: config() hooks ─────────────────────────────────────────────
+  // Plugin: config() hooks
   const plugins = options.config.plugins ?? [];
   let resolvedConfig = options.config;
   for (const plugin of plugins) {
@@ -100,7 +100,7 @@ export async function build(
   fs.mkdirSync(clientOutDir, { recursive: true });
   fs.mkdirSync(serverOutDir, { recursive: true });
 
-  // ── Plugin: buildStart() hooks ─────────────────────────────────────────
+  // Plugin: buildStart() hooks
   for (const plugin of plugins) {
     await plugin.buildStart?.();
   }
