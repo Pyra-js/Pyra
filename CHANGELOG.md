@@ -5,6 +5,45 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.23] - 2026-02-27
+
+### Fixed
+- `pyra doctor` no longer reports "Entry point not found: src/index.ts" in full-stack (file-based routing) projects, the entry check is now skipped when a routes directory is detected, since file-based projects do not use a single entry file
+- `pyra doctor` TypeScript check no longer triggers Node.js DEP0190 deprecation warning ("Passing args to a child process with shell option true"), `runTscCheck()` now spawns `cmd.exe /c tsc.cmd --noEmit` on Windows instead of using `shell: true`, eliminating both the warning and the follow-on `EINVAL` spawn error
+
+### Security
+- Patched GHSA-mw96-cpmx-2vgc (high severity) - Rollup arbitrary file write via path traversal in versions `>=4.0.0 <4.59.0`; resolved by adding `"rollup": "^4.59.0"` to `pnpm.overrides` in the root `package.json`
+
+### Removed
+- Deprecated `framework` field removed from `PyraConfig` in `packages/shared/src/types.ts` - the `adapter` field fully replaces it and has been the intended API since v0.3
+
+### Changed
+- `build.splitting` is now read from `config.build?.splitting` instead of being hardcoded to `true`, applies to both the SSR client build (`build-orchestrator.ts`) and the SPA build (`buildSPA.ts`); server build remains hardcoded to `false` as Node.js ESM cannot load split chunks dynamically
+
+### Refactored
+- `packages/cli/src/bin.ts` extracted into per-command files under `packages/cli/src/commands/`
+  - `commands/dev.ts` - exports `DevOptions` and `devCommand()`
+  - `commands/build.ts` - exports `BuildOptions` and `buildCommand()`
+  - `commands/start.ts` - exports `StartOptions` and `startCommand()`
+  - `commands/init.ts` - exports `InitOptions` and `initCommand()`
+  - `bin.ts` reduced from ~625 lines to ~155 lines; now a pure wiring file that resolves `silent`/`color` and delegates to each command function
+  - Follows the same pattern already used by `commands/graph.ts` and `commands/doctor.ts`
+- `packages/core/src/build.ts` split into focused modules under `packages/core/src/build/`
+  - `build-utils.ts` - `routeIdToSafeName()`, `getAncestorDirIds()` pure string utilities
+  - `build-client.ts` - `buildClientOutputMap()`, `buildClientLayoutOutputMap()` esbuild metafile correlation
+  - `build-server.ts` - `buildServerOutputMap()`, `buildServerMwLayoutOutputMap()` server entry path resolution
+  - `build-manifest.ts` - `assembleManifest()`, `buildEmptyManifest()`, `getMimeType()`, `DEFAULT_SHELL`
+  - `build-prerender.ts` - `buildPrerenderAssetTags()` SSG asset tag generation
+  - `build-report.ts` - `printBuildReport()` and private helpers (`estimateGzipSize`, `getSharedChunks`, `formatSize`, `countFilesRecursive`)
+  - `build-orchestrator.ts` - main `build()` function
+  - `build.ts` replaced with a 3-line re-export shim; all external imports remain unchanged
+- `packages/core/src/prod-server.ts` split into focused modules under `packages/core/src/prod/`
+  - `prod-matcher.ts` - `MatchResult`, `buildMatcher()` trie-based manifest route matcher
+  - `prod-assets.ts` - `buildCacheControlHeader()`, `getCacheControl()`, `getContentType()`, `buildAssetTags()` static asset helpers
+  - `prod-html.ts` - `DEFAULT_SHELL`, `getErrorHTML()`, `get404HTML()` HTML string generators
+  - `prod-server.ts` - `ProdServer` class importing from the three helpers above
+  - `prod-server.ts` at `src/` root replaced with a 4-line re-export shim; all external imports remain unchanged
+
 ## [0.19.0] - 2026-02-26
 
 ### Added
