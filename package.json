@@ -34,7 +34,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@types/node": "^24.10.0"
+    "@types/node": "^25.3.2"
   },
   "pnpm": {
     "overrides": {
