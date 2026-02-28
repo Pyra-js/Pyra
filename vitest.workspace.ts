@@ -20,6 +20,11 @@ export default defineWorkspace([
       environment: 'node',
       root: resolve(root, 'packages/core'),
       include: ['src/__tests__/**/*.test.ts'],
+      server: {
+        deps: {
+          inline: ['pyrajs-shared'],
+        },
+      },
     },
     resolve: {
       alias: {
