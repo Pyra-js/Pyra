@@ -51,6 +51,7 @@ import {
   handleApiRouteInner as _handleApiRouteInner,
   type ApiHost,
 } from "./dev-api.js";
+import { matchProxyRule, handleProxyRequest } from "./dev-proxy.js";
 import {
   buildRouteGraph as _buildRouteGraph,
   type RoutesHost,
@@ -309,6 +310,19 @@ export class DevServer
         });
         res.end(compiled);
         return;
+      }
+
+      // ── Proxy ────────────────────────────────────────────────────────────
+      // Check proxy rules before static files and route matching so that
+      // user-configured prefixes (e.g. /api → localhost:4000) are forwarded
+      // upstream. The full original URL (including query string) is forwarded.
+      const proxyConfig = this.config?.server?.proxy;
+      if (proxyConfig) {
+        const proxyRule = matchProxyRule(url, proxyConfig);
+        if (proxyRule) {
+          await handleProxyRequest(req, res, url, proxyRule);
+          return;
+        }
       }
 
       // Serve static files from public/ before route matching.
