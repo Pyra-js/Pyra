@@ -187,9 +187,6 @@ export type PyraConfig = {
   /** Define global constants for build-time replacement */
   define?: Record<string, any>;
 
-  /** Custom esbuild options (advanced) */
-  esbuild?: Record<string, any>;
-
   /** The UI framework adapter. */
   adapter?: string | PyraAdapter | false;
 
