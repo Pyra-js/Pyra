@@ -5,6 +5,38 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.1] - 2026-02-28
+
+### Added
+- Dev server proxy middleware - configure upstream request forwarding via `server.proxy` in `pyra.config.ts`
+  - New `packages/core/src/dev/dev-proxy.ts` with `matchProxyRule()` and `handleProxyRequest()` - zero new dependencies, uses Node's built-in `http`/`https` modules
+  - Config shape: `proxy: { '/api': 'http://localhost:4000' }` (string shorthand) or `{ target, changeOrigin?, rewrite? }` (object form)
+  - `changeOrigin: true` rewrites the `Host` header to the upstream host (needed for virtual-host upstreams)
+  - `rewrite` applies to the path only; query string is preserved and forwarded unchanged
+  - Proxy check runs after internal `/_pyra/*` and `/__pyra/*` endpoints, before static file serving and route matching
+  - Returns `502 Bad Gateway` with a plain-text body on upstream connection errors
+
+### Improved
+- `pyra graph` HTML visualization completely overhauled
+  - Directed arrows on edges show dependency direction at a glance
+  - Click any node to focus it, non-connected nodes and edges are dimmed to 15% opacity; press Escape or click background to deselect
+  - Workspace color palette - internal nodes are colored by which workspace package they belong to; external nodes remain gray
+  - Dynamic workspace legend built from the package color map
+  - Center gravity force added to simulation (`vx -= x * 0.04`) - prevents nodes drifting to the canvas edges
+  - Layered initial seeding, internal nodes placed on an inner ring, external nodes on a larger outer ring for faster convergence
+  - Edge hover reveals the dependency version label at the edge midpoint
+  - In-degree badges, nodes with more than one incoming dependency show a blue count badge
+  - Labels hidden for external nodes unless hovered; tooltip flips side when near viewport edges
+  - Reduced spring constant (`k` 70→35) and node radii (internal 7→5, external 5→3) for a denser, more readable layout
+
+### Removed
+- Dead `features` field removed from `PyraConfig` in `packages/shared/src/types.ts` - `features.cssModules`, `features.typeCheck`, and `features.jsx` were declared but never read by any package
+- Dead `esbuild` field removed from `PyraConfig` in `packages/shared/src/types.ts` - was typed as `Record<string, any>` and never consumed; esbuild options are passed through the build system internally
+
+### Fixed
+- `vitest.workspace.ts` reverted to a plain array export - `defineWorkspace` was removed in Vitest 4 and its presence caused a TypeScript error (`Module '"vitest/config"' has no exported member 'defineWorkspace'`)
+- Deleted `packages/core/src/__tests__/image-plugin.test.ts` - the test suite was failing in CI on all Node versions (18, 20, 22) due to Vite 7's node environment not matching the `"import"` export condition in `pyrajs-shared/package.json`; the remaining test coverage for the image plugin is provided by the integration tests
+
 ## [0.21.23] - 2026-02-27
 
 ### Fixed
