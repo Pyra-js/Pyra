@@ -367,11 +367,11 @@ export function serializeHtml(graph: DependencyGraph): string {
       // More compact initial positioning
       nodes = graphData.nodes.map((node, i) => ({
         ...node,
-        x: Math.random() * 150 - 75,
-        y: Math.random() * 150 - 75,
+        x: Math.random() * 80 - 40,
+        y: Math.random() * 80 - 40,
         vx: 0,
         vy: 0,
-        radius: node.type === 'internal' ? 7 : 5,
+        radius: node.type === 'internal' ? 5 : 3,
       }));
 
       edges = graphData.edges.map(edge => ({
@@ -390,8 +390,8 @@ export function serializeHtml(graph: DependencyGraph): string {
     // Force-directed layout (simplified)
     function runSimulation() {
       const iterations = 300;
-      const k = 70; // Ideal spring length (reduced for more compact layout)
-      const c = 0.1; // Damping
+      const k = 35; // Ideal spring length — smaller = more compact layout
+      const c = 0.15; // Damping
 
       for (let iter = 0; iter < iterations; iter++) {
         // Repulsive forces between all nodes
