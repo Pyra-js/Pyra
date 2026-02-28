@@ -489,9 +489,9 @@ export function serializeHtml(graph: DependencyGraph): string {
 
         // Draw label
         ctx.fillStyle = '#e0e0e0';
-        ctx.font = '11px sans-serif';
+        ctx.font = node.type === 'internal' ? '10px sans-serif' : '9px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(node.label, node.x, node.y - 12);
+        ctx.fillText(node.label, node.x, node.y - node.radius - 3);
       }
 
       ctx.restore();
