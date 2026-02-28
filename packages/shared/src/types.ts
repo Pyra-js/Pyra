@@ -187,16 +187,6 @@ export type PyraConfig = {
   /** Define global constants for build-time replacement */
   define?: Record<string, any>;
 
-  /** Enable/disable specific features */
-  features?: {
-    /** Enable CSS modules (default: true) */
-    cssModules?: boolean;
-    /** Enable TypeScript type checking (default: true) */
-    typeCheck?: boolean;
-    /** Enable JSX/TSX support (default: true) */
-    jsx?: boolean;
-  };
-
   /** Custom esbuild options (advanced) */
   esbuild?: Record<string, any>;
 
