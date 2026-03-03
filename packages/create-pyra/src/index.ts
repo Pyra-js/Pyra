@@ -407,8 +407,7 @@ async function main(): Promise<void> {
   // Detect PM early for default selection
   const detectedPM = pmOverride || (await autoDetectPM());
 
-  // Dynamic step count: vanilla skips rendering mode
-  let totalSteps = 7;
+  let totalSteps = 7; // refined after framework + mode are known
   let currentStep = 0;
 
   const next = (label: string) => stepLabel(++currentStep, totalSteps, label);
@@ -467,11 +466,6 @@ async function main(): Promise<void> {
   })) as Framework;
   onCancel(framework);
 
-  // Adjust total steps: vanilla has no rendering mode prompt
-  if (framework === "vanilla") {
-    totalSteps = 6;
-  }
-
   // Step 3: Rendering Mode (React/Preact only)
   let appMode: AppMode = "spa";
 
@@ -494,6 +488,9 @@ async function main(): Promise<void> {
     onCancel(appMode);
   }
 
+  // Refine step count now that we know framework + mode
+  totalSteps = computeTotalSteps(framework, appMode);
+
   // Step N: Variant
   const language = (await prompt.select({
     message: next("Variant"),
@@ -511,6 +508,44 @@ async function main(): Promise<void> {
     ],
   })) as Language;
   onCancel(language);
+
+  // Step N: Router (React SPA only)
+  let spaRouter: SpaRouter = "none";
+
+  if (framework === "react" && appMode === "spa") {
+    spaRouter = (await prompt.select({
+      message: next("Router"),
+      options: [
+        {
+          value: "none" as SpaRouter,
+          label: pc.dim("None"),
+          hint: "add one later",
+        },
+        {
+          value: "react-router" as SpaRouter,
+          label: pc.cyan("React Router v7"),
+          hint: "react-router",
+        },
+        {
+          value: "tanstack-router" as SpaRouter,
+          label: pc.green("TanStack Router"),
+          hint: "@tanstack/react-router",
+        },
+      ],
+    })) as SpaRouter;
+    onCancel(spaRouter);
+  }
+
+  // Step N: React Compiler (React only)
+  let reactCompiler = false;
+
+  if (framework === "react") {
+    reactCompiler = (await prompt.confirm({
+      message: next("Enable React Compiler?"),
+      initialValue: false,
+    })) as boolean;
+    onCancel(reactCompiler);
+  }
 
   // Step N: Tailwind
   const tailwind = await prompt.confirm({
