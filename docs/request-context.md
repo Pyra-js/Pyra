@@ -12,7 +12,7 @@ You never construct one yourself. Pyra builds it from Node's raw `IncomingMessag
 
 ```ts
 // src/routes/blog/[slug]/page.tsx
-import type { RequestContext } from '@pyra/shared';
+import type { RequestContext } from '@pyra-js/shared';
 
 export async function load(ctx: RequestContext) {
   const post = await db.getPost(ctx.params.slug);
@@ -22,7 +22,7 @@ export async function load(ctx: RequestContext) {
 
 ```ts
 // src/routes/api/users/route.ts
-import type { RequestContext } from '@pyra/shared';
+import type { RequestContext } from '@pyra-js/shared';
 
 export function GET(ctx: RequestContext) {
   return ctx.json({ users: [] });

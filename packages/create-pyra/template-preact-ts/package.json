@@ -13,7 +13,7 @@
     "preact": "^10.25.0"
   },
   "devDependencies": {
-    "@pyra/cli": "^{{PYRA_VERSION}}",
+    "@pyra-js/cli": "^{{PYRA_VERSION}}",
     "typescript": "^5.7.0"
   }
 }

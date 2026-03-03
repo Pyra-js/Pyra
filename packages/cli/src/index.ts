@@ -1,5 +1,5 @@
 /**
- * @pyra/cli
+ * @pyra-js/cli
  *
  * Public API exports for Pyra CLI
  * Re-exports types and utilities that users need in their config files
@@ -20,6 +20,6 @@ export type {
   ErrorPageProps,
   CacheConfig,
   PrerenderConfig,
-} from '@pyra/shared';
+} from '@pyra-js/shared';
 
-export { defineConfig, defineConfigFn } from '@pyra/shared';
+export { defineConfig, defineConfigFn } from '@pyra-js/shared';

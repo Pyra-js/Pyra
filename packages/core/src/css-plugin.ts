@@ -45,7 +45,7 @@ export async function runPostCSS(root: string, source: string, from: string): Pr
  *
  * PostCSS and its plugins are loaded lazily from the user's own node_modules
  * on the first CSS file encountered — no PostCSS dependency is required in
- * @pyra/core itself. If no postcss.config.* is found, or if postcss is not
+ * @pyra-js/core itself. If no postcss.config.* is found, or if postcss is not
  * installed in the user's project, CSS files pass through esbuild unchanged.
  */
 export function createPostCSSPlugin(root: string): esbuild.Plugin {

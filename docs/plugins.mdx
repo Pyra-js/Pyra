@@ -20,7 +20,7 @@ Plugins are registered in your `pyra.config.ts` and run in order:
 
 ```ts
 // pyra.config.ts
-import { defineConfig } from '@pyra/core';
+import { defineConfig } from '@pyra-js/core';
 import myPlugin from './plugins/my-plugin';
 
 export default defineConfig({
@@ -36,7 +36,7 @@ A plugin is a plain object. The only required field is `name` — everything els
 
 ```ts
 // plugins/hello.ts
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra-js/shared';
 
 export function helloPlugin(): PyraPlugin {
   return {
@@ -59,7 +59,7 @@ Wrapping the object in a function is the convention even when there are no optio
 Called before the config is finalized. Receives the current config and the active mode (`"development"` or `"production"`). Return a modified config object to change it, or `null` to leave it unchanged.
 
 ```ts
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra-js/shared';
 
 export function envDefaultsPlugin(): PyraPlugin {
   return {
@@ -86,7 +86,7 @@ This is the right place to inject defaults, normalize config fields, or read ext
 Called once when the build pipeline is assembled, before any files are processed. Receives an API object you use to register esbuild plugins, dev server middleware, and to read the current config.
 
 ```ts
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra-js/shared';
 import myEsbuildPlugin from './my-esbuild-plugin';
 
 export function integratePlugin(): PyraPlugin {
@@ -125,7 +125,7 @@ export function integratePlugin(): PyraPlugin {
 Called for each module before it's bundled. Receives the source code string and the file path. Return `{ code, map? }` to replace the source, or `null` to leave it unchanged.
 
 ```ts
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra-js/shared';
 
 export function bannerPlugin(text: string): PyraPlugin {
   return {
@@ -149,7 +149,7 @@ The `id` is the absolute file path. Use it to filter which files the transform a
 Called once when the dev server starts, after it is listening for connections. Receives the raw Node.js `http.Server` instance.
 
 ```ts
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra-js/shared';
 
 export function serverInfoPlugin(): PyraPlugin {
   return {
@@ -171,7 +171,7 @@ This hook only runs during `pyra dev`. It does not run during `pyra build` or `p
 Called once before the production build begins, after `config` and `setup` have run. Use this for setup work that must happen before any files are compiled — cleaning temporary directories, prefetching data, validating external dependencies.
 
 ```ts
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra-js/shared';
 
 export function validatePlugin(): PyraPlugin {
   return {
@@ -195,7 +195,7 @@ Throwing inside `buildStart` aborts the build with a non-zero exit code.
 Called once after all bundles have been compiled and the manifest has been assembled, but **before** it is written to disk. Receives a context object with the mutable manifest, the output directory path, and the project root.
 
 ```ts
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra-js/shared';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -237,8 +237,8 @@ Pyra ships one official plugin: `pyraImages()`.
 It adds on-demand image optimization in development and pre-built variant generation at build time. See the [Image Optimization](./image-optimization.mdx) guide for full setup instructions.
 
 ```ts
-import { defineConfig } from '@pyra/core';
-import { pyraImages } from '@pyra/core';
+import { defineConfig } from '@pyra-js/core';
+import { pyraImages } from '@pyra-js/core';
 
 export default defineConfig({
   plugins: [

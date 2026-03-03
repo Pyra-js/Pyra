@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/cli';
+import type { RequestContext } from '@pyra-js/cli';
 
 export async function load(ctx: RequestContext) {
   const { id } = ctx.params;

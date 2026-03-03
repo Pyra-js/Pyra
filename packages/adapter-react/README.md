@@ -1,11 +1,11 @@
-# @pyra/adapter-react
+# @pyra-js/adapter-react
 
 React adapter for Pyra.js. Wires React 18/19 into the Pyra SSR pipeline, server-side rendering with `renderToString()`, client-side hydration with `hydrateRoot()`, layout wrapping, and an `<Image>` component for responsive image optimization.
 
 ```bash
-npm install @pyra/adapter-react react react-dom
+npm install @pyra-js/adapter-react react react-dom
 # or
-pnpm add @pyra/adapter-react react react-dom
+pnpm add @pyra-js/adapter-react react react-dom
 ```
 
 **Peer dependencies:** `react ^18.0.0 || ^19.0.0` and `react-dom ^18.0.0 || ^19.0.0`
@@ -18,8 +18,8 @@ Pass the adapter to your Pyra config:
 
 ```ts
 // pyra.config.ts
-import { defineConfig } from '@pyra/cli';
-import { createReactAdapter } from '@pyra/adapter-react';
+import { defineConfig } from '@pyra-js/cli';
+import { createReactAdapter } from '@pyra-js/adapter-react';
 
 export default defineConfig({
   adapter: createReactAdapter(),
@@ -123,10 +123,10 @@ export const prerender = {
 
 ## The `<Image>` Component
 
-The adapter exports an `<Image>` component that generates responsive `<picture>` elements. It works with the `pyraImages()` plugin from `@pyra/core` to serve optimized WebP/AVIF variants.
+The adapter exports an `<Image>` component that generates responsive `<picture>` elements. It works with the `pyraImages()` plugin from `@pyra-js/core` to serve optimized WebP/AVIF variants.
 
 ```tsx
-import { Image } from '@pyra/adapter-react';
+import { Image } from '@pyra-js/adapter-react';
 
 export default function Hero() {
   return (
@@ -164,7 +164,7 @@ Enable the plugin in your config to activate image optimization:
 
 ```ts
 // pyra.config.ts
-import { pyraImages } from '@pyra/core';
+import { pyraImages } from '@pyra-js/core';
 
 export default defineConfig({
   adapter: createReactAdapter(),

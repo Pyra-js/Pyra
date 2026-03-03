@@ -27,7 +27,7 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",
     "memfs": "^4.56.10",
-    "@pyra/cli": "workspace:*",
+    "@pyra-js/cli": "workspace:*",
     "tsup": "^8.5.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",

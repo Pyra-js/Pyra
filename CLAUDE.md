@@ -10,10 +10,10 @@ Pyra.js is a full-stack web framework built as a TypeScript monorepo using pnpm 
 
 Four packages with strict build order: **shared → core → adapter-react → cli**
 
-- **packages/shared** (`@pyra/shared`) — Types (`types.ts`), config loader (`config-loader.ts`), logger (`logger.ts`), network utilities (`net-utils.ts`)
-- **packages/core** (`@pyra/core`) — Dev server with HMR, production server, esbuild bundler with caching, file-based route scanner, trie-based router, middleware runner, request context, request tracer, metrics collection, build orchestrator
-- **packages/adapter-react** (`@pyra/adapter-react`) — React SSR adapter implementing `PyraAdapter` interface. Uses `renderToString()` for server rendering and `hydrateRoot()` for client hydration. Supports layout wrapping.
-- **packages/cli** (`@pyra/cli`) — CLI commands (`bin.ts` entry point), project scaffolding (`scaffold.ts`, `init.ts`), package manager detection (`pm.ts`), dependency graph visualization (`graph/`), project diagnostics (`commands/doctor.ts`), dev/prod banners, keyboard shortcuts, templates
+- **packages/shared** (`@pyra-js/shared`) — Types (`types.ts`), config loader (`config-loader.ts`), logger (`logger.ts`), network utilities (`net-utils.ts`)
+- **packages/core** (`@pyra-js/core`) — Dev server with HMR, production server, esbuild bundler with caching, file-based route scanner, trie-based router, middleware runner, request context, request tracer, metrics collection, build orchestrator
+- **packages/adapter-react** (`@pyra-js/adapter-react`) — React SSR adapter implementing `PyraAdapter` interface. Uses `renderToString()` for server rendering and `hydrateRoot()` for client hydration. Supports layout wrapping.
+- **packages/cli** (`@pyra-js/cli`) — CLI commands (`bin.ts` entry point), project scaffolding (`scaffold.ts`, `init.ts`), package manager detection (`pm.ts`), dependency graph visualization (`graph/`), project diagnostics (`commands/doctor.ts`), dev/prod banners, keyboard shortcuts, templates
 
 ## Build & Development Commands
 

@@ -1,7 +1,7 @@
-// Deprecated: this package has been renamed to @pyra/shared.
+// Deprecated: this package has been renamed to @pyra-js/shared.
 // Please update your imports:
-//   import { ... } from '@pyra/shared'  →  import { ... } from '@pyra/cli'
+//   import { ... } from '@pyra-js/shared'  →  import { ... } from '@pyra-js/cli'
 //
-// @pyra/cli re-exports all user-facing types (RequestContext, Middleware, etc.)
+// @pyra-js/cli re-exports all user-facing types (RequestContext, Middleware, etc.)
 // and helpers (defineConfig, defineConfigFn).
-export * from '@pyra/shared';
+export * from '@pyra-js/shared';

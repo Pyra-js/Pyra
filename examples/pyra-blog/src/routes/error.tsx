@@ -1,4 +1,4 @@
-import type { ErrorPageProps } from '@pyra/cli';
+import type { ErrorPageProps } from '@pyra-js/cli';
 
 export default function ErrorPage({ message, statusCode, pathname, stack }: ErrorPageProps) {
   return (

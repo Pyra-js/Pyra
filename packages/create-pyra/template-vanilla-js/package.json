@@ -8,6 +8,6 @@
     "build": "pyra build"
   },
   "devDependencies": {
-    "@pyra/cli": "^{{PYRA_VERSION}}"
+    "@pyra-js/cli": "^{{PYRA_VERSION}}"
   }
 }

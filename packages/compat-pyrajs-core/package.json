@@ -1,7 +1,7 @@
 {
   "name": "pyrajs-core",
   "version": "0.21.23",
-  "description": "Deprecated: renamed to @pyra/core. This package will be removed in a future major version.",
+  "description": "Deprecated: renamed to @pyra-js/core. This package will be removed in a future major version.",
   "type": "module",
   "main": "./dist/index.js",
   "exports": {
@@ -11,7 +11,7 @@
     "build": "tsup src/index.ts --format esm --out-dir dist --dts"
   },
   "dependencies": {
-    "@pyra/core": "workspace:*"
+    "@pyra-js/core": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0"

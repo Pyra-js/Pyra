@@ -1,7 +1,7 @@
 {
   "name": "pyrajs-cli",
   "version": "0.21.23",
-  "description": "Deprecated: renamed to @pyra/cli. This package will be removed in a future major version.",
+  "description": "Deprecated: renamed to @pyra-js/cli. This package will be removed in a future major version.",
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
@@ -14,7 +14,7 @@
     "build": "tsup src/index.ts --format esm --out-dir dist --dts"
   },
   "dependencies": {
-    "@pyra/cli": "workspace:*"
+    "@pyra-js/cli": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0"

@@ -1,7 +1,7 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
-import type { RequestContext, RouteMatch } from "@pyra/shared";
-import { HTTP_METHODS } from "@pyra/shared";
+import type { RequestContext, RouteMatch } from "@pyra-js/shared";
+import { HTTP_METHODS } from "@pyra-js/shared";
 import type { RequestTracer } from "../tracer.js";
 
 // ── ApiHost ───────────────────────────────────────────────────────────────────

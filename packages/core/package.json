@@ -1,5 +1,5 @@
 {
-  "name": "@pyra/core",
+  "name": "@pyra-js/core",
   "version": "0.4.14",
   "description": "Core bundler engine for Pyra.js",
   "type": "module",
@@ -44,7 +44,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@pyra/shared": "workspace:*",
+    "@pyra-js/shared": "workspace:*",
     "chokidar": "^4.0.3",
     "esbuild": "^0.25.0",
     "ws": "^8.18.0"

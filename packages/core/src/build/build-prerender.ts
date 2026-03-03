@@ -1,4 +1,4 @@
-import type { ManifestRouteEntry } from "@pyra/shared";
+import type { ManifestRouteEntry } from "@pyra-js/shared";
 
 /**
  * Generate <link> and <script> tags for a prerendered page's

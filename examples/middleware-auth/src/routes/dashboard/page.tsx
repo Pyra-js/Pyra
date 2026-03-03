@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/cli';
+import type { RequestContext } from '@pyra-js/cli';
 
 export async function load(ctx: RequestContext) {
   // By the time load() runs, the middleware has already confirmed the session exists.

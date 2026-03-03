@@ -1,5 +1,5 @@
 import React from "react";
-import type { ImageFormat } from "@pyra/shared";
+import type { ImageFormat } from "@pyra-js/shared";
 
 export interface ImageProps {
   /** URL path to the source image (e.g. '/images/hero.jpg'). Must be served from public/. */

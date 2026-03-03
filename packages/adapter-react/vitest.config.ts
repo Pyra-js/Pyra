@@ -13,7 +13,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@pyra/shared': resolve(__dirname, '../shared/src/index.ts'),
+      '@pyra-js/shared': resolve(__dirname, '../shared/src/index.ts'),
     },
   },
   esbuild: {

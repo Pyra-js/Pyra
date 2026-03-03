@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { log } from '@pyra/shared';
+import { log } from '@pyra-js/shared';
 import { addTailwind, type TailwindPreset } from './utils/tailwind.js';
 import { detectPM, type PM } from './pm.js';
 import { getVersion } from './utils/reporter.js';

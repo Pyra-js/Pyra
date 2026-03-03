@@ -1,4 +1,4 @@
-import type { ManifestRouteEntry } from "@pyra/shared";
+import type { ManifestRouteEntry } from "@pyra-js/shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

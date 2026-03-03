@@ -1,7 +1,7 @@
 import path from "node:path";
-import { log, loadConfig, getPort, findAvailablePort } from "@pyra/shared";
-import { DevServer } from "@pyra/core";
-import { createReactAdapter } from "@pyra/adapter-react";
+import { log, loadConfig, getPort, findAvailablePort } from "@pyra-js/shared";
+import { DevServer } from "@pyra-js/core";
+import { createReactAdapter } from "@pyra-js/adapter-react";
 import { getVersion } from "../utils/reporter.js";
 import { printDevBanner, detectCapabilities } from "../utils/dev-banner.js";
 import { setupKeyboardShortcuts } from "../utils/keyboard.js";

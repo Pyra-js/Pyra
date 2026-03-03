@@ -5,7 +5,7 @@
  * and request traces (v0.9).
  */
 
-import type { RequestTrace, TraceFilter, RouteStats } from '@pyra/shared';
+import type { RequestTrace, TraceFilter, RouteStats } from '@pyra-js/shared';
 
 export interface FileMetric {
   path: string;

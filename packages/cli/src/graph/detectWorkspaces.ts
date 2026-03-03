@@ -5,7 +5,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { WorkspaceInfo, PackageJsonInfo } from './types.js';
-import { log } from '@pyra/shared';
+import { log } from '@pyra-js/shared';
 
 /**
  * Detect workspaces in a monorepo

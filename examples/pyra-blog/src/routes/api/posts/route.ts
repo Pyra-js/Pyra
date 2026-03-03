@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/cli';
+import type { RequestContext } from '@pyra-js/cli';
 import { getAllPosts, createPost } from '../../../data/posts.js';
 
 export function GET(ctx: RequestContext) {

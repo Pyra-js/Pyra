@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Middleware } from "@pyra/shared";
+import type { Middleware } from "@pyra-js/shared";
 import esbuild from "esbuild";
 
 // ── CompilerHost ──────────────────────────────────────────────────────────────

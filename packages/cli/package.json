@@ -1,5 +1,5 @@
 {
-  "name": "@pyra/cli",
+  "name": "@pyra-js/cli",
   "version": "0.21.23",
   "description": "🔥 @Pyra/cli - A cli tool for using core cli commands",
   "type": "module",
@@ -60,8 +60,8 @@
     "chalk": "^5.6.2",
     "commander": "^12.1.0",
 "picocolors": "^1.1.1",
-    "@pyra/adapter-react": "workspace:*",
-    "@pyra/core": "workspace:*",
-    "@pyra/shared": "workspace:*"
+    "@pyra-js/adapter-react": "workspace:*",
+    "@pyra-js/core": "workspace:*",
+    "@pyra-js/shared": "workspace:*"
   }
 }

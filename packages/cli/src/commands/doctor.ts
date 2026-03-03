@@ -2,10 +2,10 @@ import { existsSync, readFileSync, statSync, readdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import pc from 'picocolors';
-import { loadConfig, findConfigFile, getEntry } from '@pyra/shared';
-import type { PyraConfig } from '@pyra/shared';
-import { scanRoutes } from '@pyra/core';
-import type { ScanResult } from '@pyra/core';
+import { loadConfig, findConfigFile, getEntry } from '@pyra-js/shared';
+import type { PyraConfig } from '@pyra-js/shared';
+import { scanRoutes } from '@pyra-js/core';
+import type { ScanResult } from '@pyra-js/core';
 import { getVersion } from '../utils/reporter.js';
 import { detectCapabilities } from '../utils/dev-banner.js';
 
@@ -55,10 +55,10 @@ const LOCKFILES: Record<string, string> = {
 // The four packages that form the Pyra platform. We read their installed
 // versions from node_modules/ to surface drift at a glance.
 const PYRA_PACKAGES = [
-  '@pyra/cli',
-  '@pyra/core',
-  '@pyra/shared',
-  '@pyra/adapter-react',
+  '@pyra-js/cli',
+  '@pyra-js/core',
+  '@pyra-js/shared',
+  '@pyra-js/adapter-react',
 ];
 
 // ─── Helper: Walk src/ and find the newest file mtime ────────────────────────
@@ -232,7 +232,7 @@ function checkDependencies(
     checks.push({ level: 'info', message: `Installed: ${versions.join('  ')}` });
   }
 
-  // React peer dependency. React is a peer dep of @pyra/adapter-react, so it
+  // React peer dependency. React is a peer dep of @pyra-js/adapter-react, so it
   // won't be auto-installed and is the most common "works on my machine" mistake.
   const adapterName =
     config?.adapter === false
@@ -258,7 +258,7 @@ function checkDependencies(
     }
   }
 
-  // sharp is an optional peer dep of @pyra/core — only needed when the
+  // sharp is an optional peer dep of @pyra-js/core — only needed when the
   // pyraImages() plugin is active. Flag it when the plugin is configured
   // but the package is missing to prevent silent no-op image optimization.
   const hasImagePlugin = config?.plugins?.some((p) => p.name === 'pyra:images') ?? false;

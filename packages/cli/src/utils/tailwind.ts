@@ -6,7 +6,7 @@
 
 import { existsSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { log } from '@pyra/shared';
+import { log } from '@pyra-js/shared';
 import { spawnPM, type PM } from '../pm.js';
 
 export type TailwindPreset = 'basic' | 'shadcn';

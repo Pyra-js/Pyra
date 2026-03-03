@@ -1,18 +1,18 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import type { ImageFormat } from "@pyra/shared";
+import type { ImageFormat } from "@pyra-js/shared";
 import { performance } from "node:perf_hooks";
 import { WebSocketServer, WebSocket } from "ws";
 import type { FSWatcher } from "chokidar";
-import { log } from "@pyra/shared";
+import { log } from "@pyra-js/shared";
 import type {
   PyraConfig,
   PyraAdapter,
   RouteGraph,
   DevServerResult,
   RouteMatch,
-} from "@pyra/shared";
+} from "@pyra-js/shared";
 import { runMiddleware } from "../middleware.js";
 import {
   bundleFile,

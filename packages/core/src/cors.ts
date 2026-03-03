@@ -1,5 +1,5 @@
 import type http from "node:http";
-import type { CorsConfig } from "@pyra/shared";
+import type { CorsConfig } from "@pyra-js/shared";
 
 const DEFAULT_METHODS = [
   "GET",

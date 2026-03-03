@@ -1,6 +1,6 @@
-import { log, loadConfig, getOutDir } from "@pyra/shared";
-import { build } from "@pyra/core";
-import { createReactAdapter } from "@pyra/adapter-react";
+import { log, loadConfig, getOutDir } from "@pyra-js/shared";
+import { build } from "@pyra-js/core";
+import { createReactAdapter } from "@pyra-js/adapter-react";
 import { getVersion } from "../utils/reporter.js";
 import chalk from "chalk";
 

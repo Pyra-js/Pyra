@@ -1,4 +1,4 @@
-import type { RequestContext, CacheConfig } from '@pyra/cli';
+import type { RequestContext, CacheConfig } from '@pyra-js/cli';
 
 /**
  * SSR page with cache hints.

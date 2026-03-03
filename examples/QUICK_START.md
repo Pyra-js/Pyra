@@ -7,9 +7,9 @@ Get started with Pyra configuration in **under 2 minutes**.
 ## Step 1: Install Pyra
 
 ```bash
-npm install -D @pyra/cli
+npm install -D @pyra-js/cli
 # or
-pnpm add -D @pyra/cli
+pnpm add -D @pyra-js/cli
 ```
 
 ---
@@ -39,7 +39,7 @@ Pyra uses these defaults:
 **Create `pyra.config.ts` in your project root:**
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   entry: 'src/main.ts',
@@ -124,7 +124,7 @@ npx pyra build --minify --sourcemap
 
 ```typescript
 // pyra.config.ts
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   entry: 'src/main.tsx',
@@ -189,7 +189,7 @@ fetch('/api/users');
 
 ```typescript
 // pyra.config.ts
-import { defineConfigFn } from '@pyra/cli';
+import { defineConfigFn } from '@pyra-js/cli';
 
 export default defineConfigFn((mode) => ({
   build: {
@@ -255,7 +255,7 @@ Pyra looks for config files in this order (first found wins):
 Get full IntelliSense by using `defineConfig`:
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   // Your editor shows ALL available options!

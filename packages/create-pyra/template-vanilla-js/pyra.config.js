@@ -1,4 +1,4 @@
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   entry: 'src/index.js',

@@ -1,6 +1,6 @@
 import pc from 'picocolors';
-import type { DevServerResult, ProdServerResult } from '@pyra/shared';
-import { resolveUrls } from '@pyra/shared';
+import type { DevServerResult, ProdServerResult } from '@pyra-js/shared';
+import { resolveUrls } from '@pyra-js/shared';
 import { formatDuration } from './reporter.js';
 
 export interface DevBannerOptions {

@@ -18,7 +18,7 @@
 import http from "node:http";
 import https from "node:https";
 import { URL } from "node:url";
-import { log } from "@pyra/shared";
+import { log } from "@pyra-js/shared";
 
 type ProxyTarget =
   | string

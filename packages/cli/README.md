@@ -1,4 +1,4 @@
-# @pyra/cli
+# @pyra-js/cli
 
 > 🔥 **Pyra.js** - Next-gen build tool for blazing-fast web development
 
@@ -19,16 +19,16 @@ A modern, TypeScript-first build tool with zero-config defaults, instant dev ser
 
 ```bash
 # npm
-npm install -D @pyra/cli
+npm install -D @pyra-js/cli
 
 # pnpm
-pnpm add -D @pyra/cli
+pnpm add -D @pyra-js/cli
 
 # yarn
-yarn add -D @pyra/cli
+yarn add -D @pyra-js/cli
 
 # bun
-bun add -D @pyra/cli
+bun add -D @pyra-js/cli
 ```
 
 ## 🚀 Quick Start
@@ -37,20 +37,20 @@ bun add -D @pyra/cli
 
 ```bash
 # Auto-detects your package manager
-npx @pyra/cli create my-app
+npx @pyra-js/cli create my-app
 
 # Or specify package manager
-npx @pyra/cli create my-app --pm pnpm
+npx @pyra-js/cli create my-app --pm pnpm
 
 # Or use a template
-npx @pyra/cli init my-app --template react
+npx @pyra-js/cli init my-app --template react
 ```
 
 ### Use in Existing Project
 
 ```bash
 # Install
-npm install -D @pyra/cli
+npm install -D @pyra-js/cli
 
 # Add scripts to package.json
 {
@@ -113,7 +113,7 @@ pyra create my-app --pm yarn
 Create a `pyra.config.js` or `pyra.config.ts` in your project root:
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   // Entry point (default: 'src/index.ts')
@@ -185,7 +185,7 @@ my-app/
 
 ```typescript
 // pyra.config.ts
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   entry: 'src/main.tsx',
@@ -248,7 +248,7 @@ Pyra supports all major frameworks:
 Type-safe configuration helper:
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   // Your config with full TypeScript autocomplete
@@ -263,7 +263,7 @@ import type {
   PyraPlugin,
   DevServerConfig,
   BuildConfig,
-} from '@pyra/cli';
+} from '@pyra-js/cli';
 ```
 
 ## 🤝 Contributing

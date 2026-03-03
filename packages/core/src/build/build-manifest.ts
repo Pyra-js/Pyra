@@ -9,7 +9,7 @@ import type {
   RenderMode,
   CacheConfig,
   PrerenderConfig,
-} from "@pyra/shared";
+} from "@pyra-js/shared";
 import type { ScanResult } from "../scanner.js";
 import { getAncestorDirIds } from "./build-utils.js";
 

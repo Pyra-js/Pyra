@@ -1,4 +1,4 @@
-import type { RouteNode, RouteMatch, RouteGraph, SerializedRouteGraph } from '@pyra/shared';
+import type { RouteNode, RouteMatch, RouteGraph, SerializedRouteGraph } from '@pyra-js/shared';
 import type { ScanResult, ScannedLayout } from './scanner.js';
 
 // Trie internals 
@@ -311,7 +311,7 @@ function getAncestorDirIds(routeId: string): string[] {
  *
  * @example
  * ```ts
- * import { scanRoutes, createRouter } from '@pyra/core';
+ * import { scanRoutes, createRouter } from '@pyra-js/core';
  *
  * const scanResult = await scanRoutes('src/routes', ['.tsx', '.jsx']);
  * const router = createRouter(scanResult);

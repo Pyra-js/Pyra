@@ -1,6 +1,6 @@
-// Deprecated: this package has been renamed to @pyra/cli.
+// Deprecated: this package has been renamed to @pyra-js/cli.
 // Please update your package.json devDependencies:
-//   "pyrajs-cli" → "@pyra/cli"
+//   "pyrajs-cli" → "@pyra-js/cli"
 // And update your config file imports:
-//   import { defineConfig } from 'pyrajs-cli'  →  import { defineConfig } from '@pyra/cli'
-export * from '@pyra/cli';
+//   import { defineConfig } from 'pyrajs-cli'  →  import { defineConfig } from '@pyra-js/cli'
+export * from '@pyra-js/cli';

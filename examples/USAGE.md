@@ -9,7 +9,7 @@ This guide explains how users actually use Pyra configuration files in their pro
 In your project root, create `pyra.config.ts`:
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   entry: 'src/index.ts',
@@ -59,7 +59,7 @@ Defaults:
 Create `pyra.config.ts`:
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   entry: 'src/main.tsx',
@@ -95,7 +95,7 @@ pyra dev --mode production
 Create `pyra.config.ts` that returns different configs per mode:
 
 ```typescript
-import { defineConfigFn } from '@pyra/cli';
+import { defineConfigFn } from '@pyra-js/cli';
 
 export default defineConfigFn((mode) => {
   return {
@@ -289,7 +289,7 @@ pyra dev --config configs/preset-react.ts
 Using `defineConfig` provides full autocomplete:
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   // Your editor shows all available options!
@@ -303,7 +303,7 @@ export default defineConfig({
 ### Type-Safe Plugins
 
 ```typescript
-import type { PyraPlugin } from '@pyra/cli';
+import type { PyraPlugin } from '@pyra-js/cli';
 
 const myPlugin: PyraPlugin = {
   name: 'my-plugin',
@@ -334,7 +334,7 @@ export const baseConfig = {
 };
 
 // pyra.config.ts
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 import { baseConfig } from './pyra.config.base';
 
 export default defineConfig({
@@ -346,7 +346,7 @@ export default defineConfig({
 ### Pattern 2: Dynamic Environment Variables
 
 ```typescript
-import { defineConfigFn } from '@pyra/cli';
+import { defineConfigFn } from '@pyra-js/cli';
 
 export default defineConfigFn((mode) => ({
   define: {
@@ -363,8 +363,8 @@ export default defineConfigFn((mode) => ({
 ### Pattern 3: Conditional Plugins
 
 ```typescript
-import { defineConfigFn } from '@pyra/cli';
-import { bundleAnalyzer } from '@pyra/plugins';
+import { defineConfigFn } from '@pyra-js/cli';
+import { bundleAnalyzer } from '@pyra-js/plugins';
 
 export default defineConfigFn((mode) => ({
   plugins: [
@@ -393,7 +393,7 @@ export default defineConfigFn((mode) => ({
 
 **Solution:**
 - ✅ Check for TypeScript errors: `npx tsc --noEmit pyra.config.ts`
-- ✅ Ensure imports are correct: `import { defineConfig } from '@pyra/cli'`
+- ✅ Ensure imports are correct: `import { defineConfig } from '@pyra-js/cli'`
 - ✅ Check the error message for specific issues
 
 ### Config not taking effect

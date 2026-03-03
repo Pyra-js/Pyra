@@ -16,7 +16,7 @@ importers:
         specifier: ^24.10.0
         version: 24.10.0
     devDependencies:
-      '@pyra/cli':
+      '@pyra-js/cli':
         specifier: workspace:*
         version: link:packages/cli
       '@vitest/coverage-v8':
@@ -40,7 +40,7 @@ importers:
 
   examples:
     dependencies:
-      '@pyra/shared':
+      '@pyra-js/shared':
         specifier: workspace:*
         version: link:../packages/shared
 
@@ -53,7 +53,7 @@ importers:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@pyra/cli':
+      '@pyra-js/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@types/react':
@@ -75,7 +75,7 @@ importers:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@pyra/cli':
+      '@pyra-js/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@types/react':
@@ -97,7 +97,7 @@ importers:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@pyra/cli':
+      '@pyra-js/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@types/react':
@@ -119,7 +119,7 @@ importers:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@pyra/cli':
+      '@pyra-js/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@types/react':
@@ -141,7 +141,7 @@ importers:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
     devDependencies:
-      '@pyra/cli':
+      '@pyra-js/cli':
         specifier: workspace:*
         version: link:../../packages/cli
       '@types/react':
@@ -156,13 +156,13 @@ importers:
 
   examples/test-config:
     dependencies:
-      '@pyra/shared':
+      '@pyra-js/shared':
         specifier: workspace:*
         version: link:../../packages/shared
 
   packages/adapter-react:
     dependencies:
-      '@pyra/shared':
+      '@pyra-js/shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -184,13 +184,13 @@ importers:
       '@inquirer/prompts':
         specifier: ^7.2.0
         version: 7.9.0(@types/node@24.10.0)
-      '@pyra/adapter-react':
+      '@pyra-js/adapter-react':
         specifier: workspace:*
         version: link:../adapter-react
-      '@pyra/core':
+      '@pyra-js/core':
         specifier: workspace:*
         version: link:../core
-      '@pyra/shared':
+      '@pyra-js/shared':
         specifier: workspace:*
         version: link:../shared
       chalk:
@@ -205,7 +205,7 @@ importers:
 
   packages/compat-pyrajs-adapter-react:
     dependencies:
-      '@pyra/adapter-react':
+      '@pyra-js/adapter-react':
         specifier: workspace:*
         version: link:../adapter-react
     devDependencies:
@@ -215,7 +215,7 @@ importers:
 
   packages/compat-pyrajs-cli:
     dependencies:
-      '@pyra/cli':
+      '@pyra-js/cli':
         specifier: workspace:*
         version: link:../cli
     devDependencies:
@@ -225,7 +225,7 @@ importers:
 
   packages/compat-pyrajs-core:
     dependencies:
-      '@pyra/core':
+      '@pyra-js/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -235,7 +235,7 @@ importers:
 
   packages/compat-pyrajs-shared:
     dependencies:
-      '@pyra/shared':
+      '@pyra-js/shared':
         specifier: workspace:*
         version: link:../shared
     devDependencies:
@@ -245,7 +245,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@pyra/shared':
+      '@pyra-js/shared':
         specifier: workspace:*
         version: link:../shared
       chokidar:

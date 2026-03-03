@@ -2,7 +2,7 @@ import {
   type PyraConfig,
   type PyraAdapter,
   type RouteManifest,
-} from "@pyra/shared";
+} from "@pyra-js/shared";
 
 // Public API
 export interface BuildOrchestratorOptions {

@@ -175,7 +175,7 @@ export async function POST(ctx) {
 
 ```ts
 // src/routes/dashboard/middleware.ts
-import type { Middleware } from '@pyra/shared';
+import type { Middleware } from '@pyra-js/shared';
 
 const auth: Middleware = async (ctx, next) => {
   const token = ctx.cookies.get('session');

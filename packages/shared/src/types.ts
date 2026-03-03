@@ -387,7 +387,7 @@ export interface RenderContext {
 /**
  * The contract every UI framework adapter must implement.
  * Core calls these methods at build time and request time.
- * Adapters MUST NOT import or depend on @pyra/core.
+ * Adapters MUST NOT import or depend on @pyra-js/core.
  */
 export interface PyraAdapter {
   /** Human-readable name: 'react', 'svelte', 'vue', etc. */

@@ -37,7 +37,7 @@ Pyra's behavior differs between development and production because the needs are
 Configure CORS in your `pyra.config.ts` under `server.cors`:
 
 ```ts
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   server: {
@@ -167,7 +167,7 @@ In development, CORS is on by default. A frontend on `:3002` can reach an API on
 
 ```ts
 // pyra.config.ts — no server.cors needed in development
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   // ...
@@ -245,7 +245,7 @@ const res = await fetch('https://api.example.com/dashboard', {
 Different CORS settings for development and production using `defineConfigFn`:
 
 ```ts
-import { defineConfigFn } from '@pyra/cli';
+import { defineConfigFn } from '@pyra-js/cli';
 
 export default defineConfigFn((mode) => ({
   server: {
@@ -268,7 +268,7 @@ If you need different CORS rules on different parts of your API, use [middleware
 ```ts
 // src/routes/api/public/middleware.ts
 // Only routes under /api/public get these permissive headers
-import type { Middleware } from '@pyra/shared';
+import type { Middleware } from '@pyra-js/shared';
 
 const publicCors: Middleware = async (context, next) => {
   const response = await next();
@@ -282,7 +282,7 @@ export default publicCors;
 ```ts
 // src/routes/api/private/middleware.ts
 // Routes under /api/private only allow your own frontend
-import type { Middleware } from '@pyra/shared';
+import type { Middleware } from '@pyra-js/shared';
 
 const privateCors: Middleware = async (context, next) => {
   const response = await next();

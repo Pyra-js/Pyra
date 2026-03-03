@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createRouter } from '../router.js';
-import type { RouteNode } from '@pyra/shared';
+import type { RouteNode } from '@pyra-js/shared';
 import type { ScanResult, ScannedLayout } from '../scanner.js';
 
 // ─── Builders ────────────────────────────────────────────────────────────────

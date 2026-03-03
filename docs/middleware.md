@@ -27,7 +27,7 @@ Create a `middleware.ts` (or `middleware.js`) file in any directory under `src/r
 A middleware file must default-export a function with this shape:
 
 ```ts
-import type { Middleware } from '@pyra/shared';
+import type { Middleware } from '@pyra-js/shared';
 
 const myMiddleware: Middleware = async (context, next) => {
   // Do something before the route handler runs
@@ -111,7 +111,7 @@ Record every request with its method, path, and response time:
 
 ```ts
 // src/routes/middleware.ts
-import type { Middleware } from '@pyra/shared';
+import type { Middleware } from '@pyra-js/shared';
 
 const logger: Middleware = async (context, next) => {
   const start = Date.now();
@@ -132,7 +132,7 @@ Block unauthorized users from accessing dashboard routes:
 
 ```ts
 // src/routes/dashboard/middleware.ts
-import type { Middleware } from '@pyra/shared';
+import type { Middleware } from '@pyra-js/shared';
 
 const auth: Middleware = async (context, next) => {
   const token = context.cookies.get('session');
@@ -157,7 +157,7 @@ Modify the response after it comes back from the route handler:
 
 ```ts
 // src/routes/api/middleware.ts
-import type { Middleware } from '@pyra/shared';
+import type { Middleware } from '@pyra-js/shared';
 
 const cors: Middleware = async (context, next) => {
   const response = await next();
@@ -178,7 +178,7 @@ Send users from an old path to a new one:
 
 ```ts
 // src/routes/middleware.ts
-import type { Middleware } from '@pyra/shared';
+import type { Middleware } from '@pyra-js/shared';
 
 const redirects: Middleware = async (context, next) => {
   if (context.url.pathname === '/old-blog') {

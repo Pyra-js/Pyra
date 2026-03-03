@@ -129,7 +129,7 @@ By default, tracing is **completely off** in production. No performance overhead
 You can change this in your `pyra.config.ts`:
 
 ```ts
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   trace: {

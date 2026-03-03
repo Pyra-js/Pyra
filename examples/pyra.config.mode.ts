@@ -1,4 +1,4 @@
-import { defineConfigFn } from '@pyra/cli';
+import { defineConfigFn } from '@pyra-js/cli';
 
 /**
  * Mode-based Configuration

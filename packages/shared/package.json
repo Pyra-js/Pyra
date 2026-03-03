@@ -1,5 +1,5 @@
 {
-  "name": "@pyra/shared",
+  "name": "@pyra-js/shared",
   "version": "0.2.7",
   "description": "Shared utilities and types for Pyra.js",
   "type": "module",

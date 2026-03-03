@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/cli';
+import type { RequestContext } from '@pyra-js/cli';
 import { getItems, createItem } from '../../../data/store.js';
 
 export function GET(ctx: RequestContext) {

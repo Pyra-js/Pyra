@@ -1,5 +1,5 @@
-import { defineConfig } from '@pyra/cli';
-import type { PyraPlugin } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
+import type { PyraPlugin } from '@pyra-js/cli';
 
 /**
  * Full Pyra Configuration

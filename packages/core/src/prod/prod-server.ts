@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
-import { log } from "@pyra/shared";
+import { log } from "@pyra-js/shared";
 import type {
   PyraConfig,
   PyraAdapter,
@@ -14,7 +14,7 @@ import type {
   Middleware,
   ErrorPageProps,
   RequestContext,
-} from "@pyra/shared";
+} from "@pyra-js/shared";
 import { runMiddleware } from "../middleware.js";
 import {
   createRequestContext,

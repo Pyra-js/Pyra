@@ -1,11 +1,11 @@
-# @pyra/core
+# @pyra-js/core
 
 The engine that powers Pyra.js. Handles everything from file-based route scanning to the production build pipeline: dev server with HMR, production server, esbuild bundling, trie-based routing, middleware execution, request context, request tracing, metrics, and image optimization.
 
 ```bash
-npm install @pyra/core
+npm install @pyra-js/core
 # or
-pnpm add @pyra/core
+pnpm add @pyra-js/core
 ```
 
 > **Node.js >=18.0.0 required.** The package uses native `Request`, `Response`, and `Headers` globals introduced in Node 18.
@@ -19,7 +19,7 @@ pnpm add @pyra/core
 HTTP + WebSocket server for local development. Compiles pages on request, injects HMR, and serves the Pyra dashboard UI.
 
 ```ts
-import { DevServer } from '@pyra/core';
+import { DevServer } from '@pyra-js/core';
 
 const server = new DevServer({
   config,
@@ -46,7 +46,7 @@ The dev server handles everything in one process:
 Reads the build manifest and serves pre-built assets from `dist/`. Has the same SSR pipeline as the dev server but imports pre-built modules instead of compiling on the fly.
 
 ```ts
-import { ProdServer } from '@pyra/core';
+import { ProdServer } from '@pyra-js/core';
 
 const server = new ProdServer({
   config,
@@ -65,7 +65,7 @@ Supports graceful shutdown with in-flight request draining (10-second timeout), 
 Recursively walks `src/routes/` and discovers all route files.
 
 ```ts
-import { scanRoutes } from '@pyra/core';
+import { scanRoutes } from '@pyra-js/core';
 
 const result = await scanRoutes('src/routes', ['.tsx', '.jsx']);
 ```
@@ -85,7 +85,7 @@ Supports dynamic segments (`[slug]`), catch-all segments (`[...rest]`), route gr
 Builds a trie from a `ScanResult` and exposes a `match(pathname)` method.
 
 ```ts
-import { scanRoutes, createRouter } from '@pyra/core';
+import { scanRoutes, createRouter } from '@pyra-js/core';
 
 const scan = await scanRoutes('src/routes', ['.tsx']);
 const router = createRouter(scan);
@@ -101,7 +101,7 @@ Priority order: static segments > dynamic segments > catch-all segments. The rou
 Wraps esbuild with an in-memory cache (5-second TTL) and dependency tracking for smart cache invalidation.
 
 ```ts
-import { bundleFile, clearBundleCache, invalidateDependentCache } from '@pyra/core';
+import { bundleFile, clearBundleCache, invalidateDependentCache } from '@pyra-js/core';
 
 const result = await bundleFile('src/routes/blog/[slug]/page.tsx', {
   platform: 'node',
@@ -116,7 +116,7 @@ The cache is intentionally short-lived for the dev server and cleared on file ch
 Runs a full production build: client JS bundles with code splitting + content hashing, server SSR bundles, prerendered HTML for SSG pages, and a `dist/manifest.json`.
 
 ```ts
-import { build } from '@pyra/core';
+import { build } from '@pyra-js/core';
 
 await build({
   config,
@@ -134,7 +134,7 @@ The build report table shows per-route sizes, render modes (SSR / SSG / SPA), an
 Constructs the `RequestContext` object passed to `load()` functions and middleware from a Node.js `IncomingMessage`.
 
 ```ts
-import { createRequestContext } from '@pyra/core';
+import { createRequestContext } from '@pyra-js/core';
 
 const ctx = createRequestContext({
   req,
@@ -161,7 +161,7 @@ For prerendering at build time, use `createBuildTimeRequestContext()` to create 
 Executes a chain of middleware functions with a `next()` continuation pattern.
 
 ```ts
-import { runMiddleware } from '@pyra/core';
+import { runMiddleware } from '@pyra-js/core';
 
 const response = await runMiddleware(
   [authMiddleware, loggingMiddleware],
@@ -177,7 +177,7 @@ Short-circuits the chain if any middleware returns a `Response` without calling 
 Per-request timing using `performance.now()`. Produces W3C `Server-Timing` headers, tree-style terminal logs with bottleneck highlighting, and structured `RequestTrace` objects queryable via the dashboard API.
 
 ```ts
-import { RequestTracer, shouldTrace } from '@pyra/core';
+import { RequestTracer, shouldTrace } from '@pyra-js/core';
 
 const tracer = new RequestTracer(requestId, pathname);
 tracer.start('load');
@@ -196,7 +196,7 @@ Configure tracing with `trace.production: 'off' | 'header' | 'on'` in your Pyra 
 Singleton that accumulates build metrics, HMR events, dependency graph data, and a ring buffer of request traces (default 200 entries).
 
 ```ts
-import { metricsStore, measureAsync } from '@pyra/core';
+import { metricsStore, measureAsync } from '@pyra-js/core';
 
 const result = await measureAsync('compile', () => compile());
 
@@ -222,8 +222,8 @@ npm install sharp
 
 ```ts
 // pyra.config.ts
-import { defineConfig } from '@pyra/cli';
-import { pyraImages } from '@pyra/core';
+import { defineConfig } from '@pyra-js/cli';
+import { pyraImages } from '@pyra-js/core';
 
 export default defineConfig({
   plugins: [
@@ -251,7 +251,7 @@ If sharp is not installed, the plugin disables itself with a warning and your ap
 ### Low-level optimizer API
 
 ```ts
-import { isSharpAvailable, getImageMetadata, optimizeImage } from '@pyra/core';
+import { isSharpAvailable, getImageMetadata, optimizeImage } from '@pyra-js/core';
 
 if (await isSharpAvailable()) {
   const meta = await getImageMetadata('/path/to/image.jpg');
@@ -273,7 +273,7 @@ if (await isSharpAvailable()) {
 A `PyraPlugin` is an object with lifecycle hooks. All hooks are optional.
 
 ```ts
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra-js/shared';
 
 function myPlugin(): PyraPlugin {
   return {
@@ -310,7 +310,7 @@ function myPlugin(): PyraPlugin {
 | `esbuild` | JavaScript/TypeScript compilation and bundling |
 | `chokidar` | File watching for HMR |
 | `ws` | WebSocket server for HMR client communication |
-| `@pyra/shared` | Shared types and utilities |
+| `@pyra-js/shared` | Shared types and utilities |
 | `sharp` *(optional peer)* | Image resizing and format conversion |
 
 ## License

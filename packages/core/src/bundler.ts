@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { log, type ResolveConfig } from '@pyra/shared';
+import { log, type ResolveConfig } from '@pyra-js/shared';
 import path from 'node:path';
 import { metricsStore } from './metrics.js';
 import { createPostCSSPlugin } from './css-plugin.js';

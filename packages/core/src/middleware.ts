@@ -1,4 +1,4 @@
-import type { Middleware, RequestContext } from "@pyra/shared";
+import type { Middleware, RequestContext } from "@pyra-js/shared";
 
 /**
  * Run a chain of middleware functions in order, then call the final handler.

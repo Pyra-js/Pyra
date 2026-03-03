@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { log } from "@pyra/shared";
+import { log } from "@pyra-js/shared";
 import { isSilent, useColor, getVersion, startTimer, printBanner, printDone } from "./utils/reporter.js";
 import { devCommand } from "./commands/dev.js";
 import { buildCommand } from "./commands/build.js";

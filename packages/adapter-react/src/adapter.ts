@@ -1,6 +1,6 @@
 import { renderToString } from "react-dom/server";
 import { createElement } from "react";
-import type { PyraAdapter, RenderContext } from "@pyra/shared";
+import type { PyraAdapter, RenderContext } from "@pyra-js/shared";
 
 const DEFAULT_SHELL = `<!DOCTYPE html>
 <html lang="en">

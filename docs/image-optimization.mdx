@@ -42,8 +42,8 @@ Add `pyraImages()` to the `plugins` array in your `pyra.config.ts`:
 
 ```ts
 // pyra.config.ts
-import { defineConfig } from '@pyra/core';
-import { pyraImages } from '@pyra/core';
+import { defineConfig } from '@pyra-js/core';
+import { pyraImages } from '@pyra-js/core';
 
 export default defineConfig({
   plugins: [
@@ -68,10 +68,10 @@ With no arguments, `pyraImages()` uses sensible defaults:
 
 ## The `<Image>` Component
 
-The React adapter exports an `<Image>` component that builds the right HTML for responsive images. Import it from `@pyra/adapter-react`:
+The React adapter exports an `<Image>` component that builds the right HTML for responsive images. Import it from `@pyra-js/adapter-react`:
 
 ```tsx
-import { Image } from '@pyra/adapter-react';
+import { Image } from '@pyra-js/adapter-react';
 
 export default function HeroSection() {
   return (
@@ -189,7 +189,7 @@ Configure the plugin to match your design's breakpoints:
 
 ```ts
 // pyra.config.ts
-import { pyraImages } from '@pyra/core';
+import { pyraImages } from '@pyra-js/core';
 
 export default {
   plugins: [

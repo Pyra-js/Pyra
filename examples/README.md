@@ -21,7 +21,7 @@ The simplest possible configuration. Pyra works out-of-the-box with sensible def
 Common options most projects need: custom entry, output directory, port, and path aliases.
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   entry: 'src/main.ts',
@@ -64,7 +64,7 @@ Covers:
 Use `defineConfigFn` to return different configurations based on mode (development vs production).
 
 ```typescript
-import { defineConfigFn } from '@pyra/cli';
+import { defineConfigFn } from '@pyra-js/cli';
 
 export default defineConfigFn((mode) => {
   return {
@@ -137,7 +137,7 @@ Open `pyra.config.ts` and adjust values to match your project structure.
 The `defineConfig` helper provides full IntelliSense:
 
 ```typescript
-import { defineConfig } from '@pyra/cli';
+import { defineConfig } from '@pyra-js/cli';
 
 export default defineConfig({
   // Your editor will autocomplete all options!
