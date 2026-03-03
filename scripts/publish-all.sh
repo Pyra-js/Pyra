@@ -1,15 +1,13 @@
 #!/bin/bash
-
 # Publish all Pyra packages to npm in the correct order.
-#
-# Usage:
-#   ./scripts/publish-all.sh           # full publish
-#   ./scripts/publish-all.sh --dry-run # simulate without publishing
+
+
+# ./scripts/publish-all.sh           # full publish
+# ./scripts/publish-all.sh --dry-run # simulate without publishing
 
 set -e
 
-# ─── Flags ────────────────────────────────────────────────────────────────────
-
+# Flags
 DRY_RUN=false
 for arg in "$@"; do
   case $arg in
@@ -18,8 +16,7 @@ for arg in "$@"; do
   esac
 done
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-
+# Helpers
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 publish() {
@@ -48,22 +45,44 @@ deprecate() {
   echo ""
 }
 
-# ─── Banner ───────────────────────────────────────────────────────────────────
+# Sync compat versions to match real packages
+# Compat shims must always publish at the same version as the real packages so users upgrading pyrajs-cli always get a shim that points at the matching @pyra-js/cli version.
+sync_compat_versions() {
+  local version="$1"
+  for f in "$ROOT"/packages/compat-pyrajs-*/package.json; do
+    node -e "
+      const fs = require('fs');
+      const pkg = JSON.parse(fs.readFileSync('$f', 'utf8'));
+      pkg.version = '$version';
+      fs.writeFileSync('$f', JSON.stringify(pkg, null, 2) + '\n');
+    "
+  done
+}
 
+# Banner
 VERSION=$(cd "$ROOT" && node -e "console.log(require('./packages/cli/package.json').version)")
 
 echo ""
 echo "╔════════════════════════════════════════╗"
-echo "║        Pyra — Publishing v$VERSION        ║"
+echo "║        Pyra - Publishing v$VERSION        ║"
 echo "╚════════════════════════════════════════╝"
 echo ""
 
 if [ "$DRY_RUN" = true ]; then
-  echo "🔍  DRY RUN — no packages will be published or deprecated"
+  echo "🔍  DRY RUN - no packages will be published or deprecated"
   echo ""
 fi
 
-# Step 1: Build 
+# Sync compat versions + Build
+echo "🔄  Syncing compat shim versions to v$VERSION..."
+if [ "$DRY_RUN" = true ]; then
+  echo "    [dry-run] set compat versions to $VERSION"
+else
+  sync_compat_versions "$VERSION"
+fi
+echo "    ✅ Compat versions synced"
+echo ""
+
 echo "🔨  Building all packages..."
 if [ "$DRY_RUN" = true ]; then
   echo "    [dry-run] pnpm build"
@@ -73,8 +92,7 @@ fi
 echo "    ✅ Build complete"
 echo ""
 
-# Step 2: Publish scoped packages (@pyra-js/*)
-
+# Publish scoped packages (@pyra-js/*)
 echo "── Scoped packages (@pyra-js/*) ──────────────────────────────────────────"
 echo ""
 
@@ -86,12 +104,10 @@ publish "packages/create-pyra"   "create-pyra"
 
 # Step 3: Publish compat shims (pyrajs-*)
 # These are NEW versions of the old package names that re-export from @pyra-js/*.
-# The old pyrajs-* packages on npm are NOT replaced — this publishes a higher
-# version (0.21.24) on top of them so existing installs keep working and
-# new installs get the shim with the deprecation warning.
 
+# new installs get the shim with the deprecation warning.
 echo "── Compat shims (pyrajs-*) ───────────────────────────────────────────────"
-echo "   (new versions of old names — re-export from @pyra-js/*)"
+echo "   (new versions of old names - re-export from @pyra-js/*)"
 echo ""
 
 publish "packages/compat-pyrajs-shared"        "pyrajs-shared"
@@ -110,7 +126,7 @@ deprecate "pyrajs-adapter-react" "Renamed to @pyra-js/adapter-react."
 
 # Done
 echo "╔════════════════════════════════════════╗"
-echo "║   🎉  All packages published — v$VERSION  ║"
+echo "║   🎉  All packages published - v$VERSION  ║"
 echo "╚════════════════════════════════════════╝"
 echo ""
 echo "Get started:"

@@ -11,7 +11,7 @@
     "build": "tsup src/index.ts --format esm --out-dir dist --dts"
   },
   "dependencies": {
-    "@pyra-js/adapter-react": "workspace:*"
+    "@pyra-js/adapter-react": "workspace:^"
   },
   "files": ["dist", "bin", "README.md"],
   "devDependencies": {
