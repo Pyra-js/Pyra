@@ -139,7 +139,7 @@ PYRA_STRIPE_KEY=sk_test_your_personal_key
 All `.env` behavior is controlled by the `env` block in `pyra.config.ts`:
 
 ```ts
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 
 export default defineConfig({
   env: {

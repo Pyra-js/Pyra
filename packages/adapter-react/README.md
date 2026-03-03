@@ -18,7 +18,7 @@ Pass the adapter to your Pyra config:
 
 ```ts
 // pyra.config.ts
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 import { createReactAdapter } from '@pyra/adapter-react';
 
 export default defineConfig({

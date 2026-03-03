@@ -37,7 +37,7 @@ Pyra's behavior differs between development and production because the needs are
 Configure CORS in your `pyra.config.ts` under `server.cors`:
 
 ```ts
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 
 export default defineConfig({
   server: {
@@ -167,7 +167,7 @@ In development, CORS is on by default. A frontend on `:3002` can reach an API on
 
 ```ts
 // pyra.config.ts — no server.cors needed in development
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 
 export default defineConfig({
   // ...
@@ -245,7 +245,7 @@ const res = await fetch('https://api.example.com/dashboard', {
 Different CORS settings for development and production using `defineConfigFn`:
 
 ```ts
-import { defineConfigFn } from '@pyra/shared';
+import { defineConfigFn } from '@pyra/cli';
 
 export default defineConfigFn((mode) => ({
   server: {

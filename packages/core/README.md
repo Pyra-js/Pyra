@@ -222,7 +222,7 @@ npm install sharp
 
 ```ts
 // pyra.config.ts
-import { defineConfig } from '@pyra/shared';
+import { defineConfig } from '@pyra/cli';
 import { pyraImages } from '@pyra/core';
 
 export default defineConfig({
