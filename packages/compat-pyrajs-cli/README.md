@@ -1,6 +1,6 @@
 # pyrajs-cli
 
-> ⚠️ **Deprecated** — this package has been renamed to [`@pyra-js/cli`](https://www.npmjs.com/package/@pyra-js/cli).
+> ⚠️ **Deprecated** - this package has been renamed to [`@pyra-js/cli`](https://www.npmjs.com/package/@pyra-js/cli).
 
 This package is a compatibility shim. It re-exports everything from `@pyra-js/cli` so existing projects continue to work without changes, but it will be removed in a future major version.
 
@@ -30,7 +30,7 @@ npm install
 pnpm install
 ```
 
-That's it. The API is identical — no other changes needed.
+That's it. The API is identical, no other changes needed.
 
 ## Why was it renamed?
 

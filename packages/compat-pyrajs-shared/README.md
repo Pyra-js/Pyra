@@ -1,6 +1,6 @@
 # pyrajs-shared
 
-> ⚠️ **Deprecated** — this package has been renamed to [`@pyra-js/shared`](https://www.npmjs.com/package/@pyra-js/shared).
+> ⚠️ **Deprecated** - this package has been renamed to [`@pyra-js/shared`](https://www.npmjs.com/package/@pyra-js/shared).
 
 This package is a compatibility shim. It re-exports everything from `@pyra-js/shared` so existing projects continue to work without changes, but it will be removed in a future major version.
 

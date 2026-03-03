@@ -13,6 +13,7 @@
   "dependencies": {
     "@pyra-js/adapter-react": "workspace:*"
   },
+  "files": ["dist", "bin", "README.md"],
   "devDependencies": {
     "tsup": "^8.0.0"
   }

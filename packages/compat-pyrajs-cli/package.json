@@ -16,6 +16,7 @@
   "dependencies": {
     "@pyra-js/cli": "workspace:*"
   },
+  "files": ["dist", "bin", "README.md"],
   "devDependencies": {
     "tsup": "^8.0.0"
   }
