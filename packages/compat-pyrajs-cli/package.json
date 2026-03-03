@@ -1,6 +1,6 @@
 {
   "name": "pyrajs-cli",
-  "version": "0.21.23",
+  "version": "0.21.24",
   "description": "Deprecated: renamed to @pyra-js/cli. This package will be removed in a future major version.",
   "type": "module",
   "main": "./dist/index.js",
