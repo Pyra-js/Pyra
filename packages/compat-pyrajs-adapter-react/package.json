@@ -1,0 +1,19 @@
+{
+  "name": "pyrajs-adapter-react",
+  "version": "0.21.23",
+  "description": "Deprecated: renamed to @pyra/adapter-react. This package will be removed in a future major version.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --out-dir dist --dts"
+  },
+  "dependencies": {
+    "@pyra/adapter-react": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0"
+  }
+}
