@@ -1,12 +1,9 @@
 {
-  "name": "pyrajs-cli",
+  "name": "pyrajs-core",
   "version": "0.21.23",
-  "description": "Deprecated: renamed to @pyra/cli. This package will be removed in a future major version.",
+  "description": "Deprecated: renamed to @pyra/core. This package will be removed in a future major version.",
   "type": "module",
   "main": "./dist/index.js",
-  "bin": {
-    "pyra": "./bin/pyra.mjs"
-  },
   "exports": {
     ".": "./dist/index.js"
   },
@@ -14,7 +11,7 @@
     "build": "tsup src/index.ts --format esm --out-dir dist --dts"
   },
   "dependencies": {
-    "@pyra/cli": "workspace:*"
+    "@pyra/core": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0"
