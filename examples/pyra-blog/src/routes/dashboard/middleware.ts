@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/shared';
+import type { RequestContext } from '@pyra/cli';
 
 export default async function authCheck(ctx: RequestContext, next: () => Promise<Response>) {
   const authToken = ctx.cookies.get('auth_token');

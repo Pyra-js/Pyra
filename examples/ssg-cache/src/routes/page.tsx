@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/shared';
+import type { RequestContext } from '@pyra/cli';
 
 export async function load(_ctx: RequestContext) {
   // SSR — rendered fresh on every request. No prerender export.

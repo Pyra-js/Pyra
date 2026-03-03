@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/shared';
+import type { RequestContext } from '@pyra/cli';
 
 export async function load(ctx: RequestContext) {
   const { getAllPosts } = await import('../../data/posts.js');

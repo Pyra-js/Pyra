@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/shared';
+import type { RequestContext } from '@pyra/cli';
 
 export async function POST(ctx: RequestContext) {
   const body = await ctx.request.json() as { user?: string };

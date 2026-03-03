@@ -1,4 +1,4 @@
-import type { RequestContext } from '@pyra/shared';
+import type { RequestContext } from '@pyra/cli';
 
 export default async function requestLogger(ctx: RequestContext, next: () => Promise<Response>) {
   const start = Date.now();

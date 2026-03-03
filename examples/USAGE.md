@@ -303,7 +303,7 @@ export default defineConfig({
 ### Type-Safe Plugins
 
 ```typescript
-import type { PyraPlugin } from '@pyra/shared';
+import type { PyraPlugin } from '@pyra/cli';
 
 const myPlugin: PyraPlugin = {
   name: 'my-plugin',
