@@ -1,4 +1,4 @@
-import type { RenderMode } from 'pyrajs-shared';
+import type { RenderMode } from '@pyra/shared';
 
 /**
  * Resolve the rendering mode for a single route module.

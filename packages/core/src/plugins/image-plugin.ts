@@ -1,8 +1,8 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { log } from "pyrajs-shared";
-import type { ImageConfig, ImageFormat, ImageManifestEntry, PyraConfig, PyraPlugin, RouteManifest } from "pyrajs-shared";
+import { log } from "@pyra/shared";
+import type { ImageConfig, ImageFormat, ImageManifestEntry, PyraConfig, PyraPlugin, RouteManifest } from "@pyra/shared";
 import { getImageMetadata, isSharpAvailable, optimizeImage } from "../image-optimizer.js";
 
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif"]);
@@ -40,7 +40,7 @@ function contentHash(buf: Buffer): string {
  *
  * @example
  * // pyra.config.ts
- * import { pyraImages } from 'pyrajs-core';
+ * import { pyraImages } from '@pyra/core';
  * export default {
  *   plugins: [pyraImages({ formats: ['webp', 'avif'], sizes: [640, 1280] })]
  * };

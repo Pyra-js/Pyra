@@ -1,4 +1,4 @@
-import type { ErrorPageProps } from 'pyrajs-shared';
+import type { ErrorPageProps } from '@pyra/shared';
 
 export default function ErrorPage({ message, statusCode, pathname, stack }: ErrorPageProps) {
   return (

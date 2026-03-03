@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { runMiddleware } from '../middleware.js';
-import type { RequestContext, Middleware } from 'pyrajs-shared';
+import type { RequestContext, Middleware } from '@pyra/shared';
 
 function makeContext(): RequestContext {
   return {} as RequestContext;

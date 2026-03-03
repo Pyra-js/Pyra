@@ -1,4 +1,4 @@
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 
 /**
  * Dashboard middleware — runs only for routes under /dashboard.

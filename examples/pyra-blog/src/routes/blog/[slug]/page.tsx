@@ -1,4 +1,4 @@
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 
 export const prerender = {
   paths() {

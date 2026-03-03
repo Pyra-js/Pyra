@@ -5,6 +5,6 @@
   "description": "Configuration examples for Pyra.js",
   "type": "module",
   "dependencies": {
-    "pyrajs-shared": "workspace:*"
+    "@pyra/shared": "workspace:*"
   }
 }

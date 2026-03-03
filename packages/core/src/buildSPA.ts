@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { gzipSync } from "node:zlib";
 import * as esbuild from "esbuild";
 import pc from "picocolors";
-import { log, getOutDir, type PyraConfig, type RouteManifest, type RenderMode } from "pyrajs-shared";
+import { log, getOutDir, type PyraConfig, type RouteManifest, type RenderMode } from "@pyra/shared";
 import { createPostCSSPlugin } from "./css-plugin.js";
 import { type BuildOrchestratorOptions, type BuildResult } from "./types.js";
 

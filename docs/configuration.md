@@ -6,10 +6,10 @@ A single `pyra.config.ts` showing every available option filled in. Copy it as a
 
 ```ts
 // pyra.config.ts
-import { defineConfig } from 'pyrajs-shared';
-import { createReactAdapter } from 'pyrajs-adapter-react';
-import { pyraImages } from 'pyrajs-core';
-import type { PyraPlugin } from 'pyrajs-shared';
+import { defineConfig } from '@pyra/shared';
+import { createReactAdapter } from '@pyra/adapter-react';
+import { pyraImages } from '@pyra/core';
+import type { PyraPlugin } from '@pyra/shared';
 
 // ─── Example custom plugin (all hooks shown) ──────────────────────────────────
 
@@ -311,8 +311,8 @@ Use `defineConfigFn` when you need different values in development vs. productio
 
 ```ts
 // pyra.config.ts
-import { defineConfigFn } from 'pyrajs-shared';
-import { createReactAdapter } from 'pyrajs-adapter-react';
+import { defineConfigFn } from '@pyra/shared';
+import { createReactAdapter } from '@pyra/adapter-react';
 
 export default defineConfigFn((mode) => ({
   adapter: createReactAdapter(),

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 import chokidar, { type FSWatcher } from "chokidar";
-import { log } from "pyrajs-shared";
+import { log } from "@pyra/shared";
 import { invalidateDependentCache } from "../bundler.js";
 import { metricsStore } from "../metrics.js";
 

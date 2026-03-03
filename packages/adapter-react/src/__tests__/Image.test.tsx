@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { createElement } from 'react';
-import type { RenderContext } from 'pyrajs-shared';
+import type { RenderContext } from '@pyra/shared';
 import { Image } from '../Image.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -45,7 +45,7 @@ Then read the values inside a `load()` function:
 
 ```ts
 // src/routes/dashboard/page.tsx
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 
 export async function load(ctx: RequestContext) {
   const apiUrl = ctx.env.API_URL;         // "https://api.example.com"
@@ -66,7 +66,7 @@ Note that the `PYRA_` prefix is stripped from the key — `PYRA_API_URL` becomes
 
 ```ts
 // src/routes/middleware.ts — authentication using an env var
-import type { Middleware } from 'pyrajs-shared';
+import type { Middleware } from '@pyra/shared';
 
 const auth: Middleware = async (ctx, next) => {
   const token = ctx.headers.get('Authorization')?.replace('Bearer ', '');
@@ -83,7 +83,7 @@ export default auth;
 
 ```ts
 // src/routes/api/data/route.ts
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 
 export async function GET(ctx: RequestContext) {
   const upstream = await fetch(ctx.env.UPSTREAM_URL);
@@ -139,7 +139,7 @@ PYRA_STRIPE_KEY=sk_test_your_personal_key
 All `.env` behavior is controlled by the `env` block in `pyra.config.ts`:
 
 ```ts
-import { defineConfig } from 'pyrajs-shared';
+import { defineConfig } from '@pyra/shared';
 
 export default defineConfig({
   env: {

@@ -1,4 +1,4 @@
-import { defineConfig } from 'pyrajs-cli';
+import { defineConfig } from '@pyra/cli';
 
 /**
  * Demo configuration file

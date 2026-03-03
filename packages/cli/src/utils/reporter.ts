@@ -33,7 +33,7 @@ export function getVersion(): string {
       join(currentDir, '../package.json'),
       // When built as separate files: dist/utils/reporter.js -> ../../package.json
       join(currentDir, '../../package.json'),
-      // When globally linked via npm link: might be in node_modules/pyrajs-cli
+      // When globally linked via npm link: might be in node_modules/@pyra/cli
       join(currentDir, '../../../package.json'),
     ];
 
@@ -42,7 +42,7 @@ export function getVersion(): string {
         try {
           const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
           // Make sure we're reading the right package.json (CLI package)
-          if (pkg.name === 'pyrajs-cli' && pkg.version) {
+          if (pkg.name === '@pyra/cli' && pkg.version) {
             return pkg.version;
           }
         } catch {

@@ -1,4 +1,4 @@
-import { defineConfigFn } from 'pyrajs-cli';
+import { defineConfigFn } from '@pyra/cli';
 
 /**
  * Mode-based Configuration

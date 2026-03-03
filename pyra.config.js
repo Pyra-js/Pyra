@@ -7,7 +7,7 @@ import { defineConfig } from './packages/cli/dist/index.js';
  * For example configurations that users would use, see the examples/ directory.
  *
  * Note: This imports from the built dist files in the monorepo.
- * User projects would import from 'pyrajs-cli' instead.
+ * User projects would import from '@pyra/cli' instead.
  */
 export default defineConfig({
   // Default entry point

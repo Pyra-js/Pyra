@@ -168,7 +168,7 @@ Create the folders and file `src/routes/api/todos/route.ts`:
 ```typescript
 // src/routes/api/todos/route.ts
 
-import type { RequestContext } from "pyrajs-shared";
+import type { RequestContext } from "@pyra/shared";
 import { getAllTodos, createTodo } from "../../../data/todos.js";
 
 export function GET(ctx: RequestContext) {
@@ -202,7 +202,7 @@ Create `src/routes/api/todos/[id]/route.ts`:
 ```typescript
 // src/routes/api/todos/[id]/route.ts
 
-import type { RequestContext } from "pyrajs-shared";
+import type { RequestContext } from "@pyra/shared";
 import { updateTodo, deleteTodo } from "../../../../data/todos.js";
 
 export async function PUT(ctx: RequestContext) {
@@ -326,7 +326,7 @@ Replace `src/routes/page.tsx` with this:
 // src/routes/page.tsx
 
 import React, { useState } from "react";
-import type { RequestContext } from "pyrajs-shared";
+import type { RequestContext } from "@pyra/shared";
 import type { Todo } from "../types.js";
 
 // Runs on the server before rendering.

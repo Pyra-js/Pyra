@@ -1,4 +1,4 @@
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 import { getPostById, updatePost, deletePost } from '../../../../data/posts.js';
 
 export function GET(ctx: RequestContext) {

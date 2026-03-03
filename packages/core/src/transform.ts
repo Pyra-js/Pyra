@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { log } from 'pyrajs-shared';
+import { log } from '@pyra/shared';
 import path from 'node:path';
 
 /**

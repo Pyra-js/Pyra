@@ -12,7 +12,7 @@ import {
   type PrerenderConfig,
   HTTP_METHODS,
   getOutDir,
-} from "pyrajs-shared";
+} from "@pyra/shared";
 import { resolveRouteRenderMode } from "../render-mode.js";
 import { createPostCSSPlugin } from "../css-plugin.js";
 import pc from "picocolors";

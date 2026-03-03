@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import type { ImageFormat } from "pyrajs-shared";
+import type { ImageFormat } from "@pyra/shared";
 
 export interface ImageMetadata {
   width: number;

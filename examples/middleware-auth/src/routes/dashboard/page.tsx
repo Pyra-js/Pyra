@@ -1,4 +1,4 @@
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 
 export async function load(ctx: RequestContext) {
   // By the time load() runs, the middleware has already confirmed the session exists.

@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { join, relative, sep, posix } from "node:path";
-import type { RouteNode } from "pyrajs-shared";
+import type { RouteNode } from "@pyra/shared";
 
 // Internal types for scanner output
 

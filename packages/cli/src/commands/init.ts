@@ -1,5 +1,5 @@
 import path from "node:path";
-import { log } from "pyrajs-shared";
+import { log } from "@pyra/shared";
 import { select, confirm } from "@inquirer/prompts";
 import {
   scaffold,

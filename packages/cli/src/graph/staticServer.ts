@@ -5,7 +5,7 @@
 import { createServer, type Server } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { log } from 'pyrajs-shared';
+import { log } from '@pyra/shared';
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',

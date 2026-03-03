@@ -1,5 +1,5 @@
 {
-  "name": "pyrajs-adapter-react",
+  "name": "@pyra/adapter-react",
   "version": "0.4.6",
   "description": "React adapter for Pyra.js - SSR, hydration, and JSX compilation",
   "type": "module",
@@ -35,7 +35,7 @@
     "directory": "packages/adapter-react"
   },
   "dependencies": {
-    "pyrajs-shared": "workspace:*"
+    "@pyra/shared": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",

@@ -1,7 +1,7 @@
 import path from "node:path";
-import { log, loadConfig, getPort, getOutDir } from "pyrajs-shared";
-import { ProdServer } from "pyrajs-core";
-import { createReactAdapter } from "pyrajs-adapter-react";
+import { log, loadConfig, getPort, getOutDir } from "@pyra/shared";
+import { ProdServer } from "@pyra/core";
+import { createReactAdapter } from "@pyra/adapter-react";
 import { getVersion } from "../utils/reporter.js";
 import { printProdBanner, detectCapabilities } from "../utils/dev-banner.js";
 import { setupKeyboardShortcuts } from "../utils/keyboard.js";

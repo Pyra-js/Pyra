@@ -4,7 +4,7 @@
 
 import { resolve, join, dirname } from 'node:path';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
-import { log } from 'pyrajs-shared';
+import { log } from '@pyra/shared';
 import type { GraphOptions } from '../graph/types.js';
 import { buildGraph, filterGraph, markCycles } from '../graph/buildGraph.js';
 import { parseLockfile, enrichGraphWithLockfile } from '../graph/parseLockfile.js';

@@ -1,4 +1,4 @@
-import type { ManifestRouteEntry } from "pyrajs-shared";
+import type { ManifestRouteEntry } from "@pyra/shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

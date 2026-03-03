@@ -5,7 +5,7 @@ import type {
   RequestContext,
   CookieJar,
   CookieOptions,
-} from "pyrajs-shared";
+} from "@pyra/shared";
 
 /**
  * Internal CookieJar implementation.

@@ -46,7 +46,7 @@ Throughout this entire flow, Pyra's core never touches React or any framework co
 
 ## The React Adapter
 
-The React adapter (`pyrajs-adapter-react`) is the first and currently only adapter. Here's what it does:
+The React adapter (`@pyra/adapter-react`) is the first and currently only adapter. Here's what it does:
 
 - **File extensions:** `.tsx` and `.jsx`
 - **esbuild plugins:** None needed — esbuild compiles JSX natively
@@ -124,7 +124,7 @@ If not provided, Pyra uses a sensible default.
 Here's a conceptual sketch of what a Svelte adapter might look like. This isn't working code — it's meant to show the shape of an adapter:
 
 ```ts
-import type { PyraAdapter } from 'pyrajs-shared';
+import type { PyraAdapter } from '@pyra/shared';
 
 export function createSvelteAdapter(): PyraAdapter {
   return {

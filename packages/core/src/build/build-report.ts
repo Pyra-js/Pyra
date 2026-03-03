@@ -2,7 +2,7 @@ import { gzipSync } from "node:zlib";
 import path from "node:path";
 import fs from "node:fs";
 import pc from "picocolors";
-import type { RouteManifest, PyraConfig } from "pyrajs-shared";
+import type { RouteManifest, PyraConfig } from "@pyra/shared";
 
 export function printBuildReport(
   manifest: RouteManifest,

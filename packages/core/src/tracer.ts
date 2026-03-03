@@ -7,7 +7,7 @@
  */
 
 import pc from 'picocolors';
-import type { RequestTrace, TraceStage } from 'pyrajs-shared';
+import type { RequestTrace, TraceStage } from '@pyra/shared';
 
 let traceIdCounter = 0;
 

@@ -1,4 +1,4 @@
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 
 export function GET(ctx: RequestContext) {
   ctx.cookies.delete('session');

@@ -6,8 +6,8 @@ import type {
   RouteMatch,
   RenderContext,
   ErrorPageProps,
-} from "pyrajs-shared";
-import { log } from "pyrajs-shared";
+} from "@pyra/shared";
+import { log } from "@pyra/shared";
 import type { RequestTracer } from "../tracer.js";
 import { injectHMRClient } from "./dev-hmr.js";
 import { DEFAULT_SHELL } from "./dev-ssr.js";

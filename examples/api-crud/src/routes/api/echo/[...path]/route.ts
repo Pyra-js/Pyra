@@ -1,4 +1,4 @@
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 
 /**
  * Catch-all API route — matches /api/echo/anything/at/all.

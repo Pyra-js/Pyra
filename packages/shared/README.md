@@ -1,6 +1,6 @@
-# pyrajs-shared
+# @pyra/shared
 
-Shared types, configuration loader, logger, and network utilities for the Pyra.js framework. This package is an internal dependency, it is consumed by `pyrajs-core`, `pyrajs-adapter-react`, and `pyrajs-cli`. You do not need to install it directly in an application.
+Shared types, configuration loader, logger, and network utilities for the Pyra.js framework. This package is an internal dependency, it is consumed by `@pyra/core`, `@pyra/adapter-react`, and `@pyra/cli`. You do not need to install it directly in an application.
 
 ## What's in here
 
@@ -34,7 +34,7 @@ The canonical type definitions for the entire framework. Every other package imp
 Discovers and loads `pyra.config.ts` (and its variants) from a project root. Handles static objects, mode-aware functions (`defineConfigFn`), and async configs. Merges user config with framework defaults.
 
 ```ts
-import { loadConfig, resolveConfig, findConfigFile } from 'pyrajs-shared';
+import { loadConfig, resolveConfig, findConfigFile } from '@pyra/shared';
 
 const config = await loadConfig({ root: process.cwd(), mode: 'production' });
 ```
@@ -67,7 +67,7 @@ pyra.config.ts → pyra.config.js → pyra.config.mjs → pyra.config.cjs → .p
 A minimal colored logger used throughout the framework. Prefixes every message with `[pyra]` in the appropriate color.
 
 ```ts
-import { log } from 'pyrajs-shared';
+import { log } from '@pyra/shared';
 
 log.info('Server started');    // cyan
 log.success('Build complete'); // green

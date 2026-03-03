@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { ManifestRouteEntry, CacheConfig } from "pyrajs-shared";
+import type { ManifestRouteEntry, CacheConfig } from "@pyra/shared";
 
 // ─── Cache-Control ────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { RequestContext } from 'pyrajs-shared';
+import type { RequestContext } from '@pyra/shared';
 
 export async function load(ctx: RequestContext) {
   const isLoggedIn = !!ctx.cookies.get('session');

@@ -35,10 +35,10 @@ shared → core → adapter-react → cli
 
 | Package | npm Name | Description |
 |---------|----------|-------------|
-| `packages/shared` | `pyrajs-shared` | Types, config loader, logger, network utilities |
-| `packages/core` | `pyrajs-core` | Dev server, prod server, bundler, router, scanner, tracer, metrics |
-| `packages/adapter-react` | `pyrajs-adapter-react` | React SSR adapter (renderToString, hydration) |
-| `packages/cli` | `pyrajs-cli` | CLI commands, scaffolding, graph visualization, templates |
+| `packages/shared` | `@pyra/shared` | Types, config loader, logger, network utilities |
+| `packages/core` | `@pyra/core` | Dev server, prod server, bundler, router, scanner, tracer, metrics |
+| `packages/adapter-react` | `@pyra/adapter-react` | React SSR adapter (renderToString, hydration) |
+| `packages/cli` | `@pyra/cli` | CLI commands, scaffolding, graph visualization, templates |
 
 ## Development Workflow
 
@@ -98,7 +98,7 @@ pnpm clean
 
 - Always write TypeScript. No plain JavaScript source files.
 - Define types explicitly. Avoid `any` unless absolutely necessary.
-- Use shared types from `pyrajs-shared`, import from `'pyrajs-shared'` in core, adapter-react, and cli packages.
+- Use shared types from `@pyra/shared`, import from `'@pyra/shared'` in core, adapter-react, and cli packages.
 - Prefer `interface` over `type` for object shapes.
 - Use `export type` for type-only exports.
 
@@ -124,9 +124,9 @@ pnpm clean
 - Use double quotes for strings in source files.
 - Use 2-space indentation.
 - Use `picocolors` (imported as `pc`) for terminal coloring, not chalk or other alternatives.
-- Use `log` from `pyrajs-shared` for user-facing console output:
+- Use `log` from `@pyra/shared` for user-facing console output:
   ```typescript
-  import { log } from 'pyrajs-shared';
+  import { log } from '@pyra/shared';
   log.info('Server started');
   log.error('Build failed');
   ```
@@ -164,7 +164,7 @@ Examples
 
 1. Define it in `packages/shared/src/types.ts`.
 2. It's automatically exported via `export * from './types.js'` in `packages/shared/src/index.ts`.
-3. Import it in other packages with `import type { YourType } from 'pyrajs-shared'`.
+3. Import it in other packages with `import type { YourType } from '@pyra/shared'`.
 
 ### Adding a Core Module
 

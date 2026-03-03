@@ -6,7 +6,7 @@ Every command available in the Pyra CLI.
 
 ## Overview
 
-The Pyra CLI is how you develop, build, and run your Pyra apps. It's provided by the `pyrajs-cli` package and exposes the `pyra` command.
+The Pyra CLI is how you develop, build, and run your Pyra apps. It's provided by the `@pyra/cli` package and exposes the `pyra` command.
 
 ```bash
 # If installed globally

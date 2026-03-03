@@ -4,8 +4,8 @@
  * Pretty terminal output for build metrics
  */
 
-import { log } from 'pyrajs-shared';
-import type { FileMetric, BuildMetrics } from 'pyrajs-core';
+import { log } from '@pyra/shared';
+import type { FileMetric, BuildMetrics } from '@pyra/core';
 
 /**
  * Format bytes to human-readable size

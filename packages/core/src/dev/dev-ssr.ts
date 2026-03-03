@@ -8,7 +8,7 @@ import type {
   RouteMatch,
   RouteNode,
   RenderContext,
-} from "pyrajs-shared";
+} from "@pyra/shared";
 import { resolveRouteRenderMode } from "../render-mode.js";
 import { bundleFile, getCSSOutput } from "../bundler.js";
 import { escapeJsonForScript } from "../request-context.js";
@@ -59,7 +59,7 @@ export interface SSRHost {
 export async function handlePageRouteInner(
   host: SSRHost,
   req: http.IncomingMessage,
-  ctx: import("pyrajs-shared").RequestContext,
+  ctx: import("@pyra/shared").RequestContext,
   pathname: string,
   match: RouteMatch,
   tracer: RequestTracer,

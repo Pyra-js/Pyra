@@ -11,6 +11,6 @@
     "preact": "^10.25.0"
   },
   "devDependencies": {
-    "pyrajs-cli": "^{{PYRA_VERSION}}"
+    "@pyra/cli": "^{{PYRA_VERSION}}"
   }
 }
