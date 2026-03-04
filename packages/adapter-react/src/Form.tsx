@@ -2,7 +2,7 @@ import { createElement, useState } from "react";
 import type { FormHTMLAttributes, ReactNode } from "react";
 import { useNavigate } from "./hooks.js";
 
-export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, "action" | "method" | "onSubmit"> {
+export interface FormProps extends Omit<FormHTMLAttributes<HTMLFormElement>, "action" | "method" | "onSubmit" | "onError"> {
   /** The API route path to submit to (e.g. "/api/posts"). */
   action: string;
   /** HTTP method to use. Defaults to "POST". */
