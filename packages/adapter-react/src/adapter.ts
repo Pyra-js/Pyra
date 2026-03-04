@@ -23,7 +23,7 @@ const DEFAULT_SHELL = `<!DOCTYPE html>
  * - Provides a hydration script that calls hydrateRoot()
  * - Returns a document shell with placeholder markers
  *
- * Core never sees React — it calls these methods through the
+ * Core never sees React, it calls these methods through the
  * PyraAdapter interface with opaque `component` and `data` values.
  */
 export function createReactAdapter(): PyraAdapter {
