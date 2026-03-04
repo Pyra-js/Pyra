@@ -121,6 +121,7 @@ function PyraApp() {
         setComponent(() => mod.default);
         setData(nav.data || {});
         window.scrollTo(0, 0);
+        window.dispatchEvent(new Event("pyra:navigate"));
       } catch { location.href = href; }
     }
     window.__pyra = window.__pyra || {};
