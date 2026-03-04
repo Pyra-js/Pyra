@@ -5,6 +5,28 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.2] - 2026-03-03
+
+### Added
+- Client-side navigation (CSN) - same-layout routes now transition without a full page reload
+  - New `/_pyra/navigate?path=...` JSON endpoint in both dev and prod servers, runs middleware + `load()`, returns `{ data, clientEntry, layoutClientEntries, routeId }`
+  - Dev server: synthetic `fakeReq` via `Object.create(req)` ensures `ctx.url` reflects the navigated path so `load()` reads the correct query params
+  - Prod server: manifest-driven, same response shape as dev
+  - Middleware redirects (3xx) returned as `{ redirect: location }` so the client performs a full navigation to the correct destination
+  - `<Link>` component added to `@pyra-js/adapter-react` - intercepts same-origin clicks, passes through modifier-key clicks (Cmd/Ctrl/Shift/Alt) for native browser behavior, calls `window.__pyra.navigate()` for client-side transitions
+  - `getHydrationScript()` in the React adapter now generates a persistent `PyraApp` shell component using `useState`/`useEffect` instead of a one-shot `hydrateRoot()` call
+    - `useState(() => InitialComponent)` + `useState(initialData)` hold the current page component and data
+    - `useEffect` registers `window.__pyra.navigate(href)` and a `popstate` handler for Back/Forward button support
+    - Layout chain comparison: if `nav.layoutClientEntries` differs from the boot-time `pageLayouts`, falls back to `location.href` (full reload) - keeps layout boundaries clean without complex diffing
+    - `window.scrollTo(0, 0)` on each client-side navigation
+
+### Changed
+- React Compiler wizard prompt updated from `"Enable React Compiler?"` to `"Enable React Compiler? (beta - adds Babel build step, benefits are client-side only)"` - makes the tradeoffs visible before the user opts in
+
+### Fixed
+- Tailwind CSS scaffolding in `create-pyra` for full-stack projects now prepends `@tailwind` directives to the existing `style.css` instead of creating a separate `index.css` - preserves all custom template styles (nav, cards, hero, etc.) that were previously lost
+- Tailwind `index.css` was previously written to `src/` but full-stack layouts import from `src/routes/`, file is no longer created separately; directives are merged into the existing `style.css` in `src/routes/`
+
 ## [0.24.0] - 2026-03-03
 
 ### Added
