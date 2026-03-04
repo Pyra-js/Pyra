@@ -541,7 +541,7 @@ async function main(): Promise<void> {
 
   if (framework === "react") {
     reactCompiler = (await prompt.confirm({
-      message: next("Enable React Compiler?"),
+      message: next("Enable React Compiler? (beta - adds Babel build step, benefits are client-side only)"),
       initialValue: false,
     })) as boolean;
     onCancel(reactCompiler);
