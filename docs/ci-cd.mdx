@@ -1,0 +1,294 @@
+# CI/CD
+
+Set up automated checks and deployment pipelines for Pyra applications using GitHub Actions. This page covers a recommended CI workflow, environment variable handling, dependency caching, and continuous deployment.
+
+---
+
+## Recommended CI workflow
+
+Add this file to your repository to run type checking, building, and tests on every push and pull request:
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: CI (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+```
+
+### What each step does
+
+**`actions/checkout@v4`** — Clones your repository into the runner. Without this the VM has an empty filesystem.
+
+**`pnpm/action-setup@v4`** — Installs pnpm. Reads the `"packageManager"` field from your root `package.json` and installs that exact version, so CI matches your local environment exactly.
+
+**`actions/setup-node@v4`** — Installs the specified Node.js version and restores the pnpm store from cache. The first run downloads everything fresh; subsequent runs reuse the cached store, cutting install time from minutes to seconds.
+
+**`pnpm install --frozen-lockfile`** — Installs dependencies and fails if `pnpm-lock.yaml` is out of sync with `package.json`. This is the default behavior in CI environments. If you see `ERR_PNPM_OUTDATED_LOCKFILE`, run `pnpm install` locally and commit the updated lockfile.
+
+**`pnpm typecheck`** — Runs `tsc --noEmit` across all packages. Fails if any TypeScript error exists. Type errors never block the build (esbuild strips types without checking them), so this step is what enforces correctness.
+
+**`pnpm build`** — Compiles the application with esbuild. Fails if any module fails to compile.
+
+**`pnpm test`** — Runs the Vitest suite. Fails if any test fails.
+
+### Node version matrix
+
+Testing across Node 18, 20, and 22 catches version-specific incompatibilities early. `fail-fast: false` means all three versions run even if one fails, so you get the full picture in a single CI run.
+
+Pyra requires **Node ≥ 18**. You can narrow the matrix to just the versions you care about:
+
+```yaml
+matrix:
+  node-version: [20, 22]
+```
+
+---
+
+## Environment variables
+
+Environment variables set in your deployment platform are not available during `pnpm build` unless you explicitly pass them. For prerendered routes that call external APIs in `load()`, set the variables as repository secrets and expose them to the build step:
+
+```yaml
+- name: Build
+  run: pnpm build
+  env:
+    PYRA_API_URL: ${{ secrets.API_URL }}
+    PYRA_API_KEY: ${{ secrets.API_KEY }}
+```
+
+Set secrets in your repository under **Settings → Secrets and variables → Actions**.
+
+For SSR routes (rendered at request time, not build time), environment variables are read when the production server starts — set them in your hosting platform's environment settings instead.
+
+---
+
+## Lockfile discipline
+
+The `--frozen-lockfile` flag is what keeps CI and local development in sync. Follow these rules to avoid lockfile errors in CI:
+
+- **Always commit `pnpm-lock.yaml`.** The lockfile is the contract between developers and CI.
+- **Run `pnpm install` after changing any `package.json`.** The lockfile must be regenerated whenever dependencies change.
+- **Never edit the lockfile by hand.** Let pnpm manage it.
+
+If CI fails with `ERR_PNPM_OUTDATED_LOCKFILE`:
+
+```bash
+# Fix locally
+pnpm install
+
+# Commit the updated lockfile
+git add pnpm-lock.yaml
+git commit -m "chore: update lockfile"
+```
+
+---
+
+## Security audit
+
+Add a scheduled workflow to check for vulnerabilities in your dependencies. This runs every Monday and also triggers whenever you push lockfile or package changes:
+
+```yaml
+# .github/workflows/audit.yml
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"   # Every Monday at 09:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - "pnpm-lock.yaml"
+      - "**/package.json"
+  workflow_dispatch:        # Allow manual runs from the Actions tab
+
+jobs:
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit for vulnerabilities
+        run: pnpm audit --audit-level=high
+```
+
+`--audit-level=high` fails the workflow only for high and critical severity vulnerabilities. Use `--audit-level=moderate` to be stricter.
+
+---
+
+## Continuous deployment
+
+### Deploy on every push to main
+
+The simplest CD pattern: run CI, then deploy if it passes. Most hosting platforms (Railway, Fly.io, Render) can watch your repository and deploy automatically on push — CI is handled separately in GitHub Actions.
+
+If you need more control, trigger deployment from within the workflow after CI passes:
+
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  ci:
+    # ... (CI steps above)
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: ci                     # Only runs if all CI matrix jobs pass
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          PYRA_API_URL: ${{ secrets.API_URL }}
+
+      - name: Deploy
+        run: ./scripts/deploy.sh      # Your platform-specific deploy command
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+```
+
+The `needs: ci` field ensures the deploy job only starts after all three Node version matrix jobs pass. The `if:` condition restricts deploys to pushes to `main` — pull requests run CI but do not deploy.
+
+### Deploy on version tags
+
+For staging and production environments where you want explicit control over what gets deployed, trigger on a version tag:
+
+```yaml
+# .github/workflows/deploy.yml
+name: Deploy
+
+on:
+  push:
+    tags:
+      - "v*"           # Triggers on tags like v1.0.0, v1.2.3
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          PYRA_API_URL: ${{ secrets.API_URL }}
+
+      - name: Deploy
+        run: ./scripts/deploy.sh
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+```
+
+Create a release tag locally to trigger this:
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+---
+
+## Running CI locally
+
+Before pushing, you can replicate the exact CI steps locally to catch failures without a round-trip to GitHub:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm build
+pnpm test
+```
+
+If `--frozen-lockfile` fails locally, your lockfile is out of date — run `pnpm install` first.
+
+To run the full CI workflow locally in Docker using [act](https://github.com/nektos/act):
+
+```bash
+# Install act, then:
+act push                              # Simulate a push event
+act push -j ci                        # Run only the ci job
+act push --matrix node-version:20     # Run a single matrix version
+```
+
+`act` requires Docker and downloads a runner image (~1 GB) on first use.
+
+---
+
+## Tips
+
+- **Separate typecheck from build.** A type error should fail CI independently of whether the build succeeds. Keep them as separate steps rather than combining them.
+- **Cache pnpm, not `node_modules`.** The `cache: pnpm` option in `actions/setup-node` caches the pnpm content-addressable store, which is shared across projects and more efficient than caching `node_modules` directly.
+- **Use `fail-fast: false` in matrix builds.** The default `fail-fast: true` cancels other matrix jobs when one fails. Setting it to `false` gives you failure data across all Node versions in one run.
+- **Don't skip the lockfile check.** `--frozen-lockfile` exists to prevent "works on my machine" dependency drift. If it fails, fix the lockfile — don't work around it with `--no-frozen-lockfile`.
+- **Set environment variables as secrets, not plain vars.** GitHub Actions secrets are masked in logs. Plain `env:` values are not.
