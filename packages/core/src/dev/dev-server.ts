@@ -312,6 +312,126 @@ export class DevServer
         return;
       }
 
+      // Client-side navigation data endpoint.
+      // Returns load() data + client entry URL as JSON so the browser can
+      // swap the page component without a full round-trip.
+      if (cleanUrl === "/_pyra/navigate") {
+        if (method !== "GET") {
+          res.writeHead(405, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
+        if (!this.adapter || !this.router) {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Router not initialized" }));
+          return;
+        }
+
+        const urlObj = new URL(url, `http://${req.headers.host || "localhost"}`);
+        const navigatePath = urlObj.searchParams.get("path") || "/";
+        const cleanNavPath = navigatePath.split("?")[0];
+
+        const navMatch = this.router.match(cleanNavPath);
+        if (!navMatch || navMatch.route.type !== "page") {
+          res.writeHead(404, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Route not found" }));
+          return;
+        }
+
+        // Synthetic request with the navigated URL so ctx.url / ctx.url.searchParams
+        // reflect the target path (important for load() reading query params).
+        const fakeReq = Object.create(req) as typeof req;
+        (fakeReq as any).url = navigatePath;
+
+        const navCtx = createRequestContext({
+          req: fakeReq,
+          params: navMatch.params,
+          routeId: navMatch.route.id,
+          mode: "development",
+          envPrefix: this.config?.env?.prefix,
+        });
+
+        const navChain = await _loadMiddlewareChain(
+          this,
+          navMatch.route.middlewarePaths,
+        );
+
+        let navResponse: Response;
+        try {
+          navResponse = await runMiddleware(navChain, navCtx, async () => {
+            const serverModule = await this.compileForServer(
+              navMatch.route.filePath,
+            );
+            const moduleUrl =
+              pathToFileURL(serverModule).href + `?t=${Date.now()}`;
+            const mod = await import(moduleUrl);
+
+            let navData: unknown = null;
+            if (typeof mod.load === "function") {
+              const loadResult = await mod.load(navCtx);
+              if (loadResult instanceof Response) return loadResult;
+              navData = loadResult;
+            }
+
+            const hydrationData: Record<string, unknown> = {};
+            if (navData && typeof navData === "object") {
+              Object.assign(hydrationData, navData);
+            }
+            hydrationData.params = navMatch.params;
+
+            const clientRelPath = path.relative(
+              this.root,
+              navMatch.route.filePath,
+            );
+            const clientEntry =
+              "/__pyra/modules/" + clientRelPath.split(path.sep).join("/");
+
+            const layoutClientEntries: string[] = [];
+            if (navMatch.layouts && navMatch.layouts.length > 0) {
+              for (const layoutNode of navMatch.layouts) {
+                const layoutRelPath = path.relative(
+                  this.root,
+                  layoutNode.filePath,
+                );
+                layoutClientEntries.push(
+                  "/__pyra/modules/" + layoutRelPath.split(path.sep).join("/"),
+                );
+              }
+            }
+
+            return new Response(
+              JSON.stringify({
+                data: hydrationData,
+                clientEntry,
+                layoutClientEntries,
+                routeId: navMatch.route.id,
+              }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            );
+          });
+        } catch {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Internal server error" }));
+          return;
+        }
+
+        // If middleware returned a redirect, tell the client to do a full reload
+        if (navResponse.status >= 300 && navResponse.status < 400) {
+          const location = navResponse.headers.get("Location") || "/";
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ redirect: location }));
+          return;
+        }
+        if (navResponse.status !== 200) {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ redirect: navigatePath }));
+          return;
+        }
+
+        await sendWebResponse(res, navResponse);
+        return;
+      }
+
       // ── Proxy ────────────────────────────────────────────────────────────
       // Check proxy rules before static files and route matching so that
       // user-configured prefixes (e.g. /api → localhost:4000) are forwarded
