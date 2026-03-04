@@ -1,6 +1,6 @@
 {
   "name": "@pyra-js/cli",
-  "version": "0.24.0",
+  "version": "0.25.2",
   "description": "🔥 @Pyra/cli - A cli tool for using core cli commands",
   "type": "module",
   "main": "./dist/index.js",

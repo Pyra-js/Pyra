@@ -50,11 +50,13 @@ deprecate() {
 sync_compat_versions() {
   local version="$1"
   for f in "$ROOT"/packages/compat-pyrajs-*/package.json; do
+    local winpath
+    winpath=$(cygpath -w "$f")
     node -e "
       const fs = require('fs');
-      const pkg = JSON.parse(fs.readFileSync('$f', 'utf8'));
+      const pkg = JSON.parse(fs.readFileSync('${winpath}', 'utf8'));
       pkg.version = '$version';
-      fs.writeFileSync('$f', JSON.stringify(pkg, null, 2) + '\n');
+      fs.writeFileSync('${winpath}', JSON.stringify(pkg, null, 2) + '\n');
     "
   done
 }
