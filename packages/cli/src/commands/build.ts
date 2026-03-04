@@ -1,6 +1,5 @@
 import { log, loadConfig, getOutDir } from "@pyra-js/shared";
 import { build } from "@pyra-js/core";
-import { createReactAdapter } from "@pyra-js/adapter-react";
 import { getVersion } from "../utils/reporter.js";
 import chalk from "chalk";
 
@@ -34,7 +33,13 @@ export async function buildCommand(options: BuildOptions): Promise<void> {
     });
 
     const root = config.root || process.cwd();
-    const adapter = createReactAdapter();
+
+    if (!config.adapter) {
+      log.error("No adapter configured. Add an adapter to your pyra.config.ts, e.g.:\n\n  import { createReactAdapter } from '@pyra-js/adapter-react';\n  export default defineConfig({ adapter: createReactAdapter() });");
+      process.exit(1);
+    }
+
+    const adapter = config.adapter;
 
     const outDir = options.outDir || getOutDir(config);
     const minify = options.minify ?? config.build?.minify ?? true;
