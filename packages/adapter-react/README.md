@@ -53,10 +53,10 @@ export default function BlogPost({ post, params }) {
 }
 ```
 
-- **`load(context)`** — runs on the server before rendering. Whatever it returns is spread into the component's props. Route `params` are always included automatically.
-- **default export** — the React component that gets server-rendered and then hydrated on the client.
+- **`load(context)`** - runs on the server before rendering. Whatever it returns is spread into the component's props. Route `params` are always included automatically.
+- **default export** - the React component that gets server-rendered and then hydrated on the client.
 
-See the [SSR and Data Loading docs](../../docs/ssr-and-data-loading.md) for a full reference.
+See the [SSR and Data Loading docs](https://pyrajs.dev/docs/ssr) for a full reference.
 
 ---
 
@@ -66,29 +66,24 @@ Create `layout.tsx` files to wrap pages with shared structure. Layouts nest auto
 
 ```tsx
 // src/routes/layout.tsx
+import { Link } from '@pyra-js/adapter-react';
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <head>
-        <meta charSet="UTF-8" />
-        <title>My App</title>
-      </head>
-      <body>
-        <nav>
-          <a href="/">Home</a>
-          <a href="/about">About</a>
-        </nav>
-        <main>{children}</main>
-      </body>
-    </html>
+    <div>
+      <nav>
+        <Link href="/">Home</Link>
+        <Link href="/about">About</Link>
+      </nav>
+      <main>{children}</main>
+    </div>
   );
 }
 ```
 
 Every page in the app is rendered inside this layout. For section-specific layouts (e.g., a dashboard sidebar), add a `layout.tsx` in the relevant subdirectory.
 
-See the [Layouts docs](../../docs/layouts.md) for nesting, route groups, and more.
+See the [Layouts docs](https://pyrajs.dev/docs/layout) for nesting, route groups, and more.
 
 ---
 
@@ -119,103 +114,23 @@ export const prerender = {
 };
 ```
 
----
-
-## The `<Link>` Component
-
-Use `<Link>` instead of `<a>` for internal navigation. It intercepts same-origin clicks and performs client-side navigation, the page swaps without a full reload.
-
-```tsx
-import { Link } from '@pyra-js/adapter-react';
-
-export default function Nav() {
-  return (
-    <nav>
-      <Link href="/">Home</Link>
-      <Link href="/about">About</Link>
-    </nav>
-  );
-}
-```
-
-Modifier-key clicks (Cmd, Ctrl, Shift) and external links fall through to normal browser behavior. If the destination uses a different layout chain, `<Link>` falls back to a full page load automatically.
-
-For programmatic navigation, use `window.__pyra.navigate(href)`.
-
----
-
-## The `<Image>` Component
-
-The adapter exports an `<Image>` component that generates responsive `<picture>` elements. It works with the `pyraImages()` plugin from `@pyra-js/core` to serve optimized WebP/AVIF variants.
-
-```tsx
-import { Image } from '@pyra-js/adapter-react';
-
-export default function Hero() {
-  return (
-    <Image
-      src="/images/hero.jpg"
-      alt="Mountain landscape"
-      width={1280}
-      height={720}
-      sizes="100vw"
-    />
-  );
-}
-```
-
-In development, images are optimized on-demand. In production, pre-built variants are served with immutable cache headers.
-
-### Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-
-| `src` | `string` | required | Image path relative to `public/` |
-| `alt` | `string` | required | Alt text for accessibility |
-| `width` | `number` | - | Intrinsic display width (prevents layout shift) |
-| `height` | `number` | - | Intrinsic display height (prevents layout shift) |
-| `sizes` | `string` | `'100vw'` | CSS `sizes` descriptor for the browser's width selection |
-| `formats` | `ImageFormat[]` | `['avif', 'webp']` | Formats to request, best-first |
-| `widths` | `number[]` | `[640, 1280, 1920]` | Width variants to generate |
-| `quality` | `number` | `80` | Compression quality 1–100 |
-| `loading` | `'lazy' \| 'eager'` | `'lazy'` | Browser loading behavior |
-| `className` | `string` | - | Class applied to the `<img>` element |
-| `style` | `CSSProperties` | - | Inline styles applied to the `<img>` element |
-
-Enable the plugin in your config to activate image optimization:
-
-```ts
-// pyra.config.ts
-import { pyraImages } from '@pyra-js/core';
-
-export default defineConfig({
-  adapter: createReactAdapter(),
-  plugins: [pyraImages({ formats: ['webp', 'avif'] })],
-});
-```
-
-See the [Image Optimization docs](../../docs/image-optimization.mdx) for full details.
-
----
-
 ## How SSR Works
 
 When a request comes in, Pyra calls into the adapter through the `PyraAdapter` interface:
 
-1. **`renderToHTML(component, data, context)`** — the adapter receives the imported page component, the data returned by `load()`, and a `RenderContext` with layouts. It calls `renderToString()` and returns the HTML string.
-2. **`getHydrationScript(clientPath, data, layoutClientPaths)`** — generates the inline `<script type="module">` that calls `hydrateRoot()` on the client.
-3. **`getDocumentShell(appContainerId)`** — returns the base HTML document with `<!--pyra-head-->` and `<!--pyra-outlet-->` markers that Pyra replaces with the rendered content and asset tags.
+1. **`renderToHTML(component, data, context)`** - the adapter receives the imported page component, the data returned by `load()`, and a `RenderContext` with layouts. It calls `renderToString()` and returns the HTML string.
+2. **`getHydrationScript(clientPath, data, layoutClientPaths)`** - generates the inline `<script type="module">` that calls `hydrateRoot()` on the client.
+3. **`getDocumentShell(appContainerId)`** - returns the base HTML document with `<!--pyra-head-->` and `<!--pyra-outlet-->` markers that Pyra replaces with the rendered content and asset tags.
 
 The adapter wraps the page in any layouts before calling `renderToString()`, building the element tree from innermost (page) to outermost (root layout) using `createElement`.
 
-Core never imports React — the adapter boundary in `PyraAdapter` keeps the UI framework completely isolated.
+Core never imports React - the adapter boundary in `PyraAdapter` keeps the UI framework completely isolated.
 
 ---
 
 ## TypeScript
 
-The package ships full TypeScript declarations. JSX is handled by esbuild with `jsx: 'automatic'` and `jsxImportSource: 'react'` — no separate Babel or TSC step is needed.
+The package ships full TypeScript declarations. JSX is handled by esbuild with `jsx: 'automatic'` and `jsxImportSource: 'react'` - no separate Babel or TSC step is needed.
 
 Add `"jsx": "react-jsx"` to your project's `tsconfig.json` for editor support:
 
@@ -226,6 +141,12 @@ Add `"jsx": "react-jsx"` to your project's `tsconfig.json` for editor support:
   }
 }
 ```
+
+## Full Documentation
+
+[pyrajs/adapter-react](https://pyrajs.dev/docs/adapter-react)
+
+---
 
 ## License
 

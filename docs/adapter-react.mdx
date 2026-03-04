@@ -1,0 +1,554 @@
+# React Adapter
+
+How Pyra integrates with React for server-side rendering and client-side hydration.
+
+---
+
+## What is the React Adapter?
+
+Pyra's core is framework-agnostic, it handles routing, data loading, middleware, and the request/response pipeline, but it doesn't know how to render UI. That's the adapter's job.
+
+The React adapter (`@pyra-js/adapter-react`) plugs React into Pyra's rendering pipeline. It:
+
+- Renders your page and layout components to HTML on the server using `renderToString()`
+- Hydrates the rendered HTML on the client using `hydrateRoot()`
+- Provides a `<Link>` and `<NavLink>` component for client-side navigation
+- Provides an `<Image>` component for responsive, optimized images
+- Provides a `<Form>` component for submitting to API routes
+- Provides a `<Head>` component for managing document metadata
+- Provides a `<ClientOnly>` wrapper for browser-only components
+- Exports hooks for location, navigation, params, search params, scroll restoration, and more
+
+---
+
+## Installation
+
+```bash
+npm install @pyra-js/adapter-react react react-dom
+```
+
+**Peer dependencies:** `react` and `react-dom` at `^18.0.0` or `^19.0.0`.
+
+If you scaffold a project with `pyra init` or `npm create pyra`, these are already included in the generated `package.json`.
+
+---
+
+## Setup
+
+Pass the adapter to your Pyra config:
+
+```ts
+// pyra.config.ts
+import { defineConfig } from "@pyra-js/cli";
+import { createReactAdapter } from "@pyra-js/adapter-react";
+
+export default defineConfig({
+  adapter: createReactAdapter(),
+  routesDir: "src/routes",
+});
+```
+
+That's all the configuration required. From this point, Pyra uses the React adapter for every page render.
+
+---
+
+## Components
+
+### `<Link>`
+
+Use `<Link>` anywhere you'd use an `<a>` tag to navigate between pages. It performs client-side navigation: the page component swaps without a full browser reload, keeping the layout mounted and avoiding unnecessary network requests.
+
+```tsx
+import { Link } from "@pyra-js/adapter-react";
+
+export default function Nav() {
+  return (
+    <nav>
+      <Link href="/">Home</Link>
+      <Link href="/blog">Blog</Link>
+      <Link href="/about">About</Link>
+    </nav>
+  );
+}
+```
+
+`<Link>` accepts all the same props as a standard `<a>` element: `className`, `style`, `onClick`, etc.
+
+**How it behaves:**
+
+- **Same-origin links** are intercepted and handled client-side via `window.__pyra.navigate()`
+- **External links** are passed through to the browser normally
+- **Modifier-key clicks** (Cmd, Ctrl, Shift, Alt) are passed through so the browser can open in a new tab
+- **Different layout chain** -- if the destination page uses a different layout than the current page, `<Link>` falls back to a full page load automatically
+
+---
+
+### `<NavLink>`
+
+`<NavLink>` is a `<Link>` that automatically applies an active class or style when its `href` matches the current URL. Use it for navigation menus where you want to highlight the active page.
+
+```tsx
+import { NavLink } from "@pyra-js/adapter-react";
+
+export default function Sidebar() {
+  return (
+    <nav>
+      <NavLink href="/" exact activeClassName="active">Home</NavLink>
+      <NavLink href="/blog" activeClassName="active">Blog</NavLink>
+      <NavLink href="/about" activeClassName="active">About</NavLink>
+    </nav>
+  );
+}
+```
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `href` | `string` | required | The link destination |
+| `activeClassName` | `string` | `'active'` | Class added when the link is active |
+| `activeStyle` | `CSSProperties` | -- | Inline style applied when the link is active |
+| `exact` | `boolean` | `false` | If true, only matches the exact path (not child routes) |
+
+With `exact: false` (the default), `/blog` is active on `/blog`, `/blog/hello`, `/blog/page/2`, and so on. With `exact: true`, only an exact pathname match activates it.
+
+---
+
+### `<Image>`
+
+`<Image>` generates a responsive `<picture>` element with modern format variants (WebP, AVIF) and a fallback `<img>`. It works with the `pyraImages()` plugin to serve optimized images.
+
+```tsx
+import { Image } from "@pyra-js/adapter-react";
+
+export default function Hero() {
+  return (
+    <Image
+      src="/images/hero.jpg"
+      alt="Mountain landscape"
+      width={1280}
+      height={720}
+      sizes="100vw"
+    />
+  );
+}
+```
+
+In development, images are optimized on-demand via a `/_pyra/image` endpoint. In production, pre-built variants are served with immutable cache headers.
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `src` | `string` | required | Image path relative to `public/` |
+| `alt` | `string` | required | Alt text |
+| `width` | `number` | -- | Intrinsic width, prevents layout shift |
+| `height` | `number` | -- | Intrinsic height, prevents layout shift |
+| `sizes` | `string` | `'100vw'` | CSS `sizes` descriptor for responsive selection |
+| `formats` | `string[]` | `['avif', 'webp']` | Format variants, best-first |
+| `widths` | `number[]` | `[640, 1280, 1920]` | Width variants to generate |
+| `quality` | `number` | `80` | Compression quality 1-100 |
+| `loading` | `'lazy' \| 'eager'` | `'lazy'` | Browser loading strategy |
+| `className` | `string` | -- | Applied to the `<img>` element |
+| `style` | `CSSProperties` | -- | Inline styles on the `<img>` element |
+
+Enable image optimization in your config:
+
+```ts
+import { pyraImages } from "@pyra-js/core";
+
+export default defineConfig({
+  adapter: createReactAdapter(),
+  plugins: [pyraImages({ formats: ["webp", "avif"] })],
+});
+```
+
+See the [Image Optimization doc](./image-optimization.mdx) for full details.
+
+---
+
+### `<Form>`
+
+`<Form>` submits to a Pyra API route using `fetch` instead of a full browser form submission. It serializes form fields automatically: POST/PUT/PATCH/DELETE send JSON, GET appends fields as query params.
+
+```tsx
+import { Form } from "@pyra-js/adapter-react";
+
+export default function NewPostForm() {
+  return (
+    <Form action="/api/posts" method="POST" onSuccess="/dashboard">
+      <input name="title" placeholder="Post title" required />
+      <textarea name="body" placeholder="Write something..." required />
+      <button type="submit">Publish</button>
+    </Form>
+  );
+}
+```
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `action` | `string` | required | The API route path to submit to |
+| `method` | `string` | `'POST'` | HTTP method: GET, POST, PUT, PATCH, or DELETE |
+| `onSuccess` | `string \| function` | -- | Navigate to a path (string) or call a callback with the response JSON |
+| `onError` | `function` | -- | Called with an `Error` on non-2xx response or network failure |
+
+While submitting, the form element receives a `data-submitting` attribute you can use to style the loading state:
+
+```css
+form[data-submitting] button {
+  opacity: 0.6;
+  pointer-events: none;
+}
+```
+
+Using a callback for `onSuccess`:
+
+```tsx
+<Form
+  action="/api/posts"
+  method="DELETE"
+  onSuccess={(data) => console.log("Deleted", data)}
+  onError={(err) => alert(err.message)}
+>
+  <button type="submit">Delete post</button>
+</Form>
+```
+
+---
+
+### `<Head>`
+
+`<Head>` updates `<head>` tags from anywhere in the component tree. Changes are applied on mount and restored on unmount, so navigating away from a page cleans up its head tags automatically.
+
+```tsx
+import { Head } from "@pyra-js/adapter-react";
+
+export default function BlogPost({ post }) {
+  return (
+    <>
+      <Head
+        title={post.title}
+        description={post.excerpt}
+        ogImage={post.coverImage}
+      />
+      <article>{post.body}</article>
+    </>
+  );
+}
+```
+
+**Props:**
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `title` | `string` | Sets `document.title` |
+| `description` | `string` | Updates or creates `<meta name="description">` |
+| `ogTitle` | `string` | Updates or creates `<meta property="og:title">` |
+| `ogDescription` | `string` | Updates or creates `<meta property="og:description">` |
+| `ogImage` | `string` | Updates or creates `<meta property="og:image">` |
+| `twitterCard` | `string` | Updates or creates `<meta name="twitter:card">` |
+
+`<Head>` works purely on the client via `useEffect`. It is not involved in the server-rendered `<head>` -- use your layout's document shell for static or load-time head tags.
+
+---
+
+### `<ClientOnly>`
+
+`<ClientOnly>` renders its children only in the browser. During SSR and before hydration it renders `fallback` (default: `null`) instead.
+
+Use this to wrap components that rely on browser-only APIs like `localStorage`, `canvas`, `WebGL`, `window.matchMedia`, or third-party libraries that access `window` or `document` on import.
+
+```tsx
+import { ClientOnly } from "@pyra-js/adapter-react";
+
+export default function Page() {
+  return (
+    <ClientOnly fallback={<div className="map-placeholder" />}>
+      <MapComponent center={coords} zoom={12} />
+    </ClientOnly>
+  );
+}
+```
+
+**Props:**
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `children` | `ReactNode` | required | Content to render in the browser |
+| `fallback` | `ReactNode` | `null` | Content to render on the server and before hydration |
+
+---
+
+## Hooks
+
+### `useLocation()`
+
+Returns the current URL location and re-renders whenever it changes. Updates on `<Link>` navigations, browser Back/Forward, and `setSearchParams()` calls.
+
+```tsx
+import { useLocation } from "@pyra-js/adapter-react";
+
+export default function Breadcrumb() {
+  const { pathname } = useLocation();
+  const segments = pathname.split("/").filter(Boolean);
+  return (
+    <ol>
+      {segments.map((seg, i) => (
+        <li key={i}>{seg}</li>
+      ))}
+    </ol>
+  );
+}
+```
+
+**Returns:**
+
+```ts
+interface Location {
+  pathname: string;
+  search: string;
+  hash: string;
+  searchParams: URLSearchParams;
+}
+```
+
+---
+
+### `useNavigate()`
+
+Returns a `navigate(href)` function for programmatic client-side navigation. Equivalent to calling `window.__pyra.navigate(href)` but typed and safe to use in components.
+
+```tsx
+import { useNavigate } from "@pyra-js/adapter-react";
+
+export default function LogoutButton() {
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await fetch("/api/logout", { method: "POST" });
+    navigate("/login");
+  }
+
+  return <button onClick={handleLogout}>Log out</button>;
+}
+```
+
+---
+
+### `useSearchParams()`
+
+Returns the current URL query string as a `URLSearchParams` object and a setter that updates the URL without triggering a full page navigation. The component re-renders whenever the search params change.
+
+```tsx
+import { useSearchParams } from "@pyra-js/adapter-react";
+
+export default function SearchPage() {
+  const [params, setParams] = useSearchParams();
+  const query = params.get("q") ?? "";
+
+  return (
+    <input
+      value={query}
+      onChange={(e) => setParams({ q: e.target.value })}
+      placeholder="Search..."
+    />
+  );
+}
+```
+
+The setter accepts either a `URLSearchParams` instance or a plain `Record<string, string>`. It pushes to the history stack so the back button works.
+
+---
+
+### `useParams()`
+
+Returns the current route params as a plain object. Useful for accessing params in deeply nested components without prop drilling. Re-renders whenever navigation changes the active route.
+
+```tsx
+import { useParams } from "@pyra-js/adapter-react";
+
+export default function CommentSection() {
+  const { slug } = useParams();
+  return <p>Comments for: {slug}</p>;
+}
+```
+
+Note: params are also always available as a `params` prop on the page component via `load()`. Use this hook when you need params deeper in the tree.
+
+---
+
+### `useNavigating()`
+
+Returns `true` while a client-side navigation is in progress (after a `<Link>` click but before the new page component is rendered). Use this to show a loading indicator or disable interactive elements during transitions.
+
+```tsx
+import { useNavigating } from "@pyra-js/adapter-react";
+
+export default function Layout({ children }) {
+  const navigating = useNavigating();
+  return (
+    <div>
+      {navigating && <div className="progress-bar" />}
+      {children}
+    </div>
+  );
+}
+```
+
+---
+
+### `usePreload()`
+
+Returns a `preload(href)` function that fires a background fetch to warm up the navigation data for a route before the user clicks. Attach it to `onMouseEnter` or `onFocus` on any link to make subsequent navigation feel instant.
+
+```tsx
+import { Link, usePreload } from "@pyra-js/adapter-react";
+
+export default function Nav() {
+  const preload = usePreload();
+  return (
+    <Link href="/blog" onMouseEnter={() => preload("/blog")}>
+      Blog
+    </Link>
+  );
+}
+```
+
+Preload requests use `priority: "low"` so they never compete with real navigation or page resources. Failures are silently ignored. Only same-origin paths are preloaded.
+
+---
+
+### `useBeforeNavigate(guard)`
+
+Registers a navigation guard that runs before every client-side navigation. The guard receives the destination href and must return:
+
+- `true` to allow navigation
+- `false` to silently cancel navigation
+- a string to show a `window.confirm()` dialog with that message (navigation proceeds only if the user confirms)
+
+The guard is automatically removed when the component unmounts.
+
+```tsx
+import { useBeforeNavigate } from "@pyra-js/adapter-react";
+
+export default function EditPostPage() {
+  const [dirty, setDirty] = useState(false);
+
+  useBeforeNavigate((href) => {
+    if (dirty) {
+      return "You have unsaved changes. Leave anyway?";
+    }
+    return true;
+  });
+
+  return <form onChange={() => setDirty(true)}>...</form>;
+}
+```
+
+---
+
+### `useScrollRestoration()`
+
+Opts into scroll position restoration for Back/Forward navigation. Call once in your root layout.
+
+Once active:
+- Forward navigation scrolls to the top
+- Back/Forward navigation restores the scroll position from when you left
+
+Positions are stored in `sessionStorage` keyed by URL, so they survive soft reloads within the same session.
+
+```tsx
+// src/routes/layout.tsx
+import { useScrollRestoration } from "@pyra-js/adapter-react";
+
+export default function Layout({ children }) {
+  useScrollRestoration();
+  return <div>{children}</div>;
+}
+```
+
+---
+
+### `useRouteError()`
+
+Returns the error that caused the nearest `error.tsx` boundary to render. Use this inside error boundary components as an alternative to reading the `error` prop -- useful when you need the error in a nested component without prop drilling.
+
+Returns `null` when there is no active route error.
+
+```tsx
+// src/routes/error.tsx
+import { useRouteError } from "@pyra-js/adapter-react";
+
+export default function ErrorPage() {
+  const error = useRouteError();
+  return (
+    <div>
+      <h1>Something went wrong</h1>
+      <p>{error?.message}</p>
+    </div>
+  );
+}
+```
+
+---
+
+## Programmatic Navigation
+
+For navigating after an event (form submit, button click, timer, etc.) without using the `<Form>` component, use the `useNavigate()` hook or call `window.__pyra.navigate(href)` directly:
+
+```tsx
+async function handleSubmit(e) {
+  e.preventDefault();
+  await saveData();
+  window.__pyra.navigate("/dashboard");
+}
+```
+
+---
+
+## How SSR Works
+
+When a request comes in, Pyra calls the adapter through the `PyraAdapter` interface:
+
+1. **Server render** -- the adapter receives the page component, the data from `load()`, and the layout chain. It builds the full element tree (page wrapped in layouts, outermost first) and calls `renderToString()` to produce an HTML string.
+2. **Shell injection** -- Pyra inserts the rendered HTML into the document shell at the `<!--pyra-outlet-->` marker and injects CSS links, script tags, and serialized load data into `<!--pyra-head-->`.
+3. **Hydration** -- the browser receives the full HTML immediately. A generated `<script type="module">` imports the page component, reads the serialized data from a `<script id="__pyra_data">` tag, and calls `hydrateRoot()`, attaching event handlers to the existing DOM without re-rendering it.
+
+The hydration script also sets up client-side navigation: it mounts a persistent `PyraApp` component that holds the current page component and data in state, swapping them on navigation without unmounting the layout.
+
+---
+
+## TypeScript
+
+The package ships full TypeScript declarations. JSX is compiled by esbuild with `jsx: 'automatic'` and `jsxImportSource: 'react'` -- no separate Babel or TSC step is needed for builds.
+
+Add `"jsx": "react-jsx"` to your `tsconfig.json` for editor support:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  }
+}
+```
+
+---
+
+## What the Adapter Doesn't Do
+
+- **No `load()` support in layouts.** Data loading is a page-level feature. If a layout needs data, fetch it in the page's `load()` and pass it down.
+- **No React Context across server and client.** Context set during `renderToString()` on the server is not transferred to the client. Use the `load()` to props pattern to pass data instead.
+- **No streaming.** Pyra currently uses `renderToString()` (synchronous). Streaming SSR via `renderToPipeableStream()` is not yet supported.
+
+---
+
+## Tips
+
+- **Use `<Link>` instead of `<a>` for internal navigation.** Plain `<a>` tags work, but they cause a full page reload. `<Link>` gives you client-side navigation for free.
+- **Use `<Form>` instead of fetch for simple form submissions.** It handles serialization, loading state, success navigation, and error callbacks out of the box.
+- **Use `<ClientOnly>` for components that break during SSR.** If a third-party component accesses `window` or `document` on import, wrap it in `<ClientOnly>` rather than guarding with `typeof window !== 'undefined'` everywhere.
+- **Don't import React in `load()`.** The `load()` function runs on the server and its code is never bundled into the client. You can use Node APIs, database clients, and server-only packages there without any special configuration.
+- **`window.__pyra` is only available in the browser.** Don't access it in components during SSR -- guard it with `typeof window !== 'undefined'` if needed.
