@@ -278,32 +278,32 @@ function scaffoldTailwind(
   writeFileSync(join(projectDir, "postcss.config.js"), generatePostCSSConfig());
   files.push("postcss.config.js");
 
-  const cssContent = `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n`;
+  const tailwindDirectives = `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n`;
   const ts = lang === "typescript";
 
-  // Full-stack: place index.css alongside the layout in src/routes/ so the
-  // relative import "./index.css" in layout.tsx resolves correctly.
-  const isFullstack = appMode === "ssr";
-  const cssDir = isFullstack
-    ? join(projectDir, "src", "routes")
-    : join(projectDir, "src");
-  const cssRelPath = isFullstack ? "src/routes/index.css" : "src/index.css";
-  mkdirSync(cssDir, { recursive: true });
-  writeFileSync(join(cssDir, "index.css"), cssContent);
-  files.push(cssRelPath);
-
-  // Inject CSS import into the entry file
-  if (framework === "vanilla") {
-    const ext = ts ? "ts" : "js";
-    injectCSSImport(join(projectDir, "src", `index.${ext}`));
-  } else if (appMode === "spa") {
-    const jsxExt = ts ? "tsx" : "jsx";
-    injectCSSImport(join(projectDir, "src", `main.${jsxExt}`));
+  if (appMode === "ssr") {
+    // Full-stack: prepend Tailwind directives to the existing style.css so the
+    // template's custom styles are preserved and Tailwind utilities are available.
+    // layout.tsx already imports './style.css' — no import changes needed.
+    const stylePath = join(projectDir, "src", "routes", "style.css");
+    if (existsSync(stylePath)) {
+      const existing = readFileSync(stylePath, "utf-8");
+      writeFileSync(stylePath, tailwindDirectives + "\n" + existing, "utf-8");
+    }
   } else {
-    const jsxExt = ts ? "tsx" : "jsx";
-    const layoutPath = join(projectDir, "src", "routes", `layout.${jsxExt}`);
-    // Remove the template's style.css import before injecting index.css
-    replaceCSSImport(layoutPath, "./style.css", "./index.css");
+    // SPA / vanilla: write a new index.css and inject the import into the entry.
+    const cssDir = join(projectDir, "src");
+    mkdirSync(cssDir, { recursive: true });
+    writeFileSync(join(cssDir, "index.css"), tailwindDirectives);
+    files.push("src/index.css");
+
+    if (framework === "vanilla") {
+      const ext = ts ? "ts" : "js";
+      injectCSSImport(join(projectDir, "src", `index.${ext}`));
+    } else {
+      const jsxExt = ts ? "tsx" : "jsx";
+      injectCSSImport(join(projectDir, "src", `main.${jsxExt}`));
+    }
   }
 
   // Update package.json with tailwind deps
@@ -332,16 +332,6 @@ function injectCSSImport(entryFilePath: string): void {
   writeFileSync(entryFilePath, 'import "./index.css";\n' + content, "utf-8");
 }
 
-function replaceCSSImport(filePath: string, from: string, to: string): void {
-  if (!existsSync(filePath)) return;
-
-  let content = readFileSync(filePath, "utf-8");
-  // Replace both quote styles
-  content = content
-    .replace(`import '${from}';`, `import '${to}';`)
-    .replace(`import "${from}";`, `import "${to}";`);
-  writeFileSync(filePath, content, "utf-8");
-}
 
 // Display Labels
 const FRAMEWORK_LABELS: Record<Framework, string> = {
