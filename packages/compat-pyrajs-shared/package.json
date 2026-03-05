@@ -1,6 +1,6 @@
 {
   "name": "pyrajs-shared",
-  "version": "0.25.2",
+  "version": "0.27.8",
   "description": "Deprecated: renamed to @pyra-js/shared. This package will be removed in a future major version.",
   "type": "module",
   "main": "./dist/index.js",
