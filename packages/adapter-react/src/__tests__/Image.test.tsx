@@ -425,8 +425,10 @@ describe('createReactAdapter — metadata', () => {
     expect(createReactAdapter().fileExtensions).toContain('.jsx');
   });
 
-  it('esbuildPlugins() returns an empty array', async () => {
+  it('esbuildPlugins() returns the Fast Refresh plugin', async () => {
     const { createReactAdapter } = await import('../adapter.js');
-    expect(createReactAdapter().esbuildPlugins()).toEqual([]);
+    const plugins = createReactAdapter().esbuildPlugins();
+    expect(plugins).toHaveLength(1);
+    expect(plugins[0].name).toBe('pyra-react-fast-refresh');
   });
 });

@@ -14,7 +14,8 @@
     "typecheck": "pnpm -r --filter ./packages/* exec tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "publish": "cd ./scripts && ./publish-all.sh"
   },
   "keywords": [
     "TypeScript",
