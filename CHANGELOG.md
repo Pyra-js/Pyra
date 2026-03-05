@@ -5,6 +5,42 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.8] - 2026-03-04
+
+### Added
+- **React Fast Refresh** - component-level hot updates in the dev server replace full-page reloads, preserving React component state, scroll position, and app context on every file save
+  - New `fast-refresh-plugin.ts` in `@pyra-js/adapter-react` - esbuild `onLoad` plugin that runs `react-refresh/babel` via `@babel/core` on every `.tsx`/`.jsx`/`.ts`/`.js` file outside `node_modules`, inserting `$RefreshReg$` and `$RefreshSig$` registration calls; JSX and TypeScript transforms are still handled by esbuild after the plugin returns the modified source
+  - `getHMRPreamble?(): string` added to the `PyraAdapter` interface in `@pyra-js/shared` - adapters return a `<script type="module">` tag that initialises the HMR runtime in the browser before the hydration script's static imports execute, ensuring globals are in place when component registration calls fire
+  - `/__pyra_refresh_runtime` endpoint in the dev server - lazily resolves `react-refresh/runtime` from the user's project root via `createRequire`, bundles it to ESM with esbuild once per session, and serves it with `Cache-Control: no-cache`; returns 404 if `react-refresh` is not installed
+  - `canFastRefresh(filePath, routesDir)` helper in `dev-hmr.ts` - returns `true` for `.tsx`/`.jsx`/`.ts`/`.js` files that are not server-only route files (`route.*`, `middleware.*`); drives the `update` vs `reload` decision in the file watcher
+  - `window.__pyra_hmr_modules` - a regular `<script>` tag (synchronous, runs before deferred module scripts) injected per page in `dev-ssr.ts` listing all client module URLs (`/__pyra/modules/...`) for the current page and its layouts; kept in sync after client-side navigations in the hydration script
+  - `window.__pyra_refresh` — set by the RFR preamble to the `react-refresh/runtime` instance so the HMR client can call `performReactRefresh()` without importing the runtime again
+  - `@babel/core ^7.24.0` and `react-refresh ^0.14.0` added as dependencies of `@pyra-js/adapter-react`
+- `<Head>` component in `@pyra-js/adapter-react` — manage document head tags (title, meta, link, etc.) from within any page or layout component
+- `<ClientOnly>` component in `@pyra-js/adapter-react` — suppresses SSR rendering of its children; useful for components that depend on browser-only APIs and would otherwise throw during `renderToString()`
+- `<Form>` component in `@pyra-js/adapter-react` — enhanced form element with type-safe props
+- `<NavLink>` component in `@pyra-js/adapter-react` — like `<Link>` but automatically applies an active CSS class when its `href` matches the current pathname; drops in as a replacement for `<Link>` in nav bars and sidebars
+- Routing hooks and utilities in `@pyra-js/adapter-react`
+  - `useLocation()` - returns the current URL as a `URL` object, reactive to client-side navigations
+  - `useRouter()` - exposes `navigate(href)` and the current params object; thin wrapper around `window.__pyra`
+  - Additional routing helpers exported from the package index
+- Deployment documentation (`docs/deployment.md`)
+
+### Changed
+- **Adapter-agnostic core** - `DevServer`, `build()`, and `ProdServer` no longer have any knowledge of React; the adapter must be supplied by the application via `pyra.config.ts`
+  - `@pyra-js/adapter-react` removed from `@pyra-js/cli` dependencies - the CLI no longer bundles the React adapter; projects must install it separately (all templates already do)
+  - Passing `adapter: createReactAdapter()` in `pyra.config.ts` is now the only way to opt into React SSR; omitting `adapter` is an error for `pyra dev`, `pyra build`, and `pyra start` (existing behaviour, now enforced without a React fallback)
+- HMR file watcher now distinguishes between two update strategies for the `change` event
+  - `.tsx`/`.jsx`/`.ts`/`.js` files that are not server-only route files → broadcasts `{ type: 'update' }` (triggers React Fast Refresh in the browser)
+  - Everything else (CSS, JSON, `route.*`, `middleware.*`, config files) → broadcasts `{ type: 'reload' }` (full page reload, same as before)
+  - File `add` events always broadcast `{ type: 'reload' }` (route graph may have changed)
+- HMR client script updated to handle `{ type: 'update' }` messages - re-imports all tracked page and layout modules with a `?__hmr=<timestamp>` cache-bust query, then calls `window.__pyra_refresh.performReactRefresh()`; falls back to `window.location.reload()` if `window.__pyra_refresh` is not defined (non-React adapter) or if the re-import throws
+- `bundleFile()` in `packages/core/src/bundler.ts` accepts an optional `extraPlugins: esbuild.Plugin[]` fourth parameter - prepended before the PostCSS plugin; used to pass adapter-provided esbuild plugins (e.g. the RFR transform) to all client-side bundles from both `/__pyra/modules/*` and `/__pyra/styles/*` endpoints
+
+### Fixed
+- `FormProps` type error in `@pyra-js/adapter-react` - corrected incorrect prop type annotation that caused a TypeScript compile error when using the `<Form>` component
+- Type errors in `PyraAdapter` interface resolved - corrected mismatched signatures that surfaced after the adapter-agnostic refactor
+
 ## [0.25.2] - 2026-03-03
 
 ### Added
