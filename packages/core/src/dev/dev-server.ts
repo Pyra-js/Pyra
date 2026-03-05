@@ -189,6 +189,23 @@ export class DevServer
         return;
       }
 
+      // React Fast Refresh runtime — served as ESM, bundled lazily from the
+      // user's node_modules (react-refresh is a dep of @pyra-js/adapter-react).
+      if (cleanUrl === "/__pyra_refresh_runtime") {
+        const code = await this.getRefreshRuntimeCode();
+        if (code !== null) {
+          res.writeHead(200, {
+            "Content-Type": "application/javascript",
+            "Cache-Control": "no-cache",
+          });
+          res.end(code);
+        } else {
+          res.writeHead(404, { "Content-Type": "text/plain" });
+          res.end("react-refresh/runtime not available");
+        }
+        return;
+      }
+
       if (cleanUrl === "/_pyra") {
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(getDashboardHTML());
@@ -271,9 +288,10 @@ export class DevServer
 
         // bundleFile populates cssOutputCache as a side-effect; call it if
         // the CSS isn't cached yet (e.g. a direct browser refresh).
+        const adapterPlugins = this.adapter?.esbuildPlugins?.() ?? [];
         let css = getCSSOutput(absolutePath);
         if (css === null) {
-          await bundleFile(absolutePath, this.root, this.config?.resolve);
+          await bundleFile(absolutePath, this.root, this.config?.resolve, adapterPlugins);
           css = getCSSOutput(absolutePath);
         }
 
