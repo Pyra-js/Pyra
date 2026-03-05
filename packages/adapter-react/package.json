@@ -38,7 +38,7 @@
   "dependencies": {
     "@babel/core": "^7.24.0",
     "@pyra-js/shared": "workspace:*",
-    "react-refresh": "^0.14.0"
+    "react-refresh": "^0.18.0"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
