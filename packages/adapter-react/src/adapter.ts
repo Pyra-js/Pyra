@@ -1,6 +1,7 @@
 import { renderToString } from "react-dom/server";
 import { createElement } from "react";
 import type { PyraAdapter, RenderContext } from "@pyra-js/shared";
+import { createFastRefreshPlugin } from "./fast-refresh-plugin.js";
 
 const DEFAULT_SHELL = `<!DOCTYPE html>
 <html lang="en">
@@ -32,10 +33,10 @@ export function createReactAdapter(): PyraAdapter {
     fileExtensions: [".tsx", ".jsx"],
 
     esbuildPlugins() {
-      // esbuild has built-in JSX support. The dev server / build orchestrator
-      // sets jsx: 'automatic' and jsxImportSource: 'react' in the esbuild
-      // options when it detects a React adapter. No plugin needed.
-      return [];
+      // The RFR plugin adds $RefreshReg$ / $RefreshSig$ registration calls to
+      // every React component file so the runtime can hot-update them without
+      // a full page reload. JSX/TS transforms are still handled by esbuild.
+      return [createFastRefreshPlugin()];
     },
 
     renderToHTML(
