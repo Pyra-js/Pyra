@@ -116,6 +116,8 @@ export class DevServer
     string,
     { buffer: Buffer; format: ImageFormat; expiresAt: number }
   > = new Map();
+  // React Fast Refresh runtime bundle (lazily built, served at /__pyra_refresh_runtime)
+  private _refreshRuntimeCode: string | null | undefined = undefined;
 
   // ── Bound delegates ────────────────────────────────────────────────────────
   // These arrow properties satisfy the host interfaces that accept these
