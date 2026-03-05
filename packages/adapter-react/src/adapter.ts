@@ -134,6 +134,7 @@ function PyraApp() {
         const mod = await import(nav.clientEntry);
         if (push) history.pushState(null, "", href);
         window.__pyra.params = nav.data?.params || {};
+        window.__pyra_hmr_modules = [nav.clientEntry, ...(nav.layoutClientEntries || [])];
         window.__pyra.routeError = null;
         setComponent(() => mod.default);
         setData(nav.data || {});
