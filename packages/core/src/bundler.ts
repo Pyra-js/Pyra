@@ -82,6 +82,7 @@ export async function bundleFile(
   filePath: string,
   root: string = process.cwd(),
   resolveConfig?: ResolveConfig,
+  extraPlugins: esbuild.Plugin[] = [],
 ): Promise<string> {
   const ext = path.extname(filePath);
 
@@ -108,7 +109,7 @@ export async function bundleFile(
       target: 'es2020',
       platform: 'browser',
       sourcemap: 'inline',
-      plugins: [getPostCSSPlugin(root)],
+      plugins: [...extraPlugins, getPostCSSPlugin(root)],
       loader: {
         '.ts': 'ts',
         '.tsx': 'tsx',
