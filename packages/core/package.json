@@ -1,6 +1,6 @@
 {
   "name": "@pyra-js/core",
-  "version": "0.27.12",
+  "version": "0.30.6",
   "description": "Core bundler engine for Pyra.js",
   "type": "module",
   "main": "./dist/index.js",

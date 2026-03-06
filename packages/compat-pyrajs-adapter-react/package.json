@@ -1,6 +1,6 @@
 {
   "name": "pyrajs-adapter-react",
-  "version": "0.27.12",
+  "version": "0.30.6",
   "description": "Deprecated: renamed to @pyra-js/adapter-react. This package will be removed in a future major version.",
   "type": "module",
   "main": "./dist/index.js",
