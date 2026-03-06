@@ -779,22 +779,26 @@ export class DevServer
     if (!this.router || !this.adapter) return;
 
     const adapterPlugins = this.adapter.esbuildPlugins?.() ?? [];
-    const filesToWarm: string[] = [];
+    const filesToWarm = new Set<string>();
 
     for (const [, node] of this.router.nodes) {
-      if (node.type === "page" || node.type === "layout") {
-        filesToWarm.push(node.filePath);
+      filesToWarm.add(node.filePath);
+      // Also warm the layout file for this route, if one exists.
+      if (node.layoutId) {
+        const layoutNode = this.router.get(node.layoutId);
+        if (layoutNode) filesToWarm.add(layoutNode.filePath);
       }
     }
 
-    if (filesToWarm.length === 0) return;
+    if (filesToWarm.size === 0) return;
 
     // Kick off server-side and client-side compilations in parallel.
     // Promise.allSettled never rejects — individual failures are silently
     // ignored here; they will surface naturally on the first real request.
+    const files = [...filesToWarm];
     void Promise.allSettled([
-      ...filesToWarm.map((f) => this.compileForServer(f)),
-      ...filesToWarm.map((f) =>
+      ...files.map((f) => this.compileForServer(f)),
+      ...files.map((f) =>
         bundleFile(f, this.root, this.config?.resolve, adapterPlugins),
       ),
     ]);
