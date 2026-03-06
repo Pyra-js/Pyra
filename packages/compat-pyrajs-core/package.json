@@ -1,6 +1,6 @@
 {
   "name": "pyrajs-core",
-  "version": "0.27.8",
+  "version": "0.27.12",
   "description": "Deprecated: renamed to @pyra-js/core. This package will be removed in a future major version.",
   "type": "module",
   "main": "./dist/index.js",

@@ -442,6 +442,22 @@ export interface PyraAdapter {
    * modules execute.
    */
   getHMRPreamble?(): string;
+
+  /**
+   * Stream the page to a Node.js readable stream (optional).
+   *
+   * When implemented, the core runtime prefers this over `renderToHTML()` for
+   * better TTFB via progressive HTML flushing and React Suspense support.
+   * The stream must emit the rendered page body HTML (not the full document).
+   * Core wraps it in the document shell before sending to the client.
+   *
+   * If not implemented, core falls back to `renderToHTML()`.
+   */
+  renderToStream?(
+    component: unknown,
+    data: unknown,
+    context: RenderContext,
+  ): NodeJS.ReadableStream;
 }
 
 // ─── End Adapter Types ────────────────────────────────────────────────────────
