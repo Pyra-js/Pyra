@@ -1,5 +1,6 @@
-import { renderToString } from "react-dom/server";
+import { renderToString, renderToPipeableStream } from "react-dom/server";
 import { createElement } from "react";
+import { PassThrough } from "node:stream";
 import type { PyraAdapter, RenderContext } from "@pyra-js/shared";
 import { createFastRefreshPlugin } from "./fast-refresh-plugin.js";
 
@@ -70,6 +71,48 @@ export function createReactAdapter(): PyraAdapter {
       }
 
       return renderToString(element);
+    },
+
+    renderToStream(
+      component: unknown,
+      data: unknown,
+      context: RenderContext,
+    ): NodeJS.ReadableStream {
+      const props: Record<string, unknown> = {};
+      if (data && typeof data === "object") {
+        Object.assign(props, data);
+      }
+      props.params = context.params;
+
+      let element = createElement(
+        component as React.ComponentType<any>,
+        props,
+      );
+
+      if (context.layouts && context.layouts.length > 0) {
+        for (let i = context.layouts.length - 1; i >= 0; i--) {
+          element = createElement(
+            context.layouts[i] as React.ComponentType<any>,
+            null,
+            element,
+          );
+        }
+      }
+
+      const passthrough = new PassThrough();
+
+      const { pipe } = renderToPipeableStream(element, {
+        onShellReady() {
+          pipe(passthrough);
+        },
+        onError(error) {
+          passthrough.destroy(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        },
+      });
+
+      return passthrough;
     },
 
     getHydrationScript(clientEntryPath: string, containerId: string, layoutClientPaths?: string[]): string {
