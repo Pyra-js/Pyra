@@ -171,27 +171,7 @@ export async function handlePageRouteInner(
     }
   }
 
-  // Build RenderContext — CSS link tags are prepended so they load before
-  // any head tags the adapter pushes (e.g. meta, title).
-  const headTags: string[] = [...cssLinkTags];
-  const renderContext: RenderContext = {
-    url: new URL(pathname, `http://${req.headers.host || "localhost"}`),
-    params,
-    pushHead(tag: string) {
-      headTags.push(tag);
-    },
-    layouts: layoutComponents.length > 0 ? layoutComponents : undefined,
-  };
-
-  // Call adapter.renderToHTML() with load data
-  tracer.start("render", `${adapter.name} SSR`);
-  const bodyHtml = await adapter.renderToHTML(component, data, renderContext);
-  tracer.end();
-
-  // Get document shell
-  const shell = adapter.getDocumentShell?.() || DEFAULT_SHELL;
-
-  // Build the client module URL for hydration
+  // Build the client module URL for hydration (needed by both paths)
   const clientModulePath = path.relative(host.root, route.filePath);
   const clientModuleUrl =
     "/__pyra/modules/" + clientModulePath.split(path.sep).join("/");
@@ -204,34 +184,99 @@ export async function handlePageRouteInner(
   );
 
   // Serialize data for client hydration
-  tracer.start("inject-assets");
   const hydrationData: Record<string, unknown> = {};
   if (data && typeof data === "object") {
     Object.assign(hydrationData, data);
   }
   hydrationData.params = params;
-
   const serializedData = escapeJsonForScript(JSON.stringify(hydrationData));
   const dataScript = `<script id="__pyra_data" type="application/json">${serializedData}</script>`;
 
-  // Assemble the full HTML
-  let html = shell;
-  html = html.replace("__CONTAINER_ID__", host.containerId);
-  html = html.replace("<!--pyra-outlet-->", bodyHtml);
-
-  const headContent = headTags.join("\n  ");
-  html = html.replace("<!--pyra-head-->", headContent);
-
-  // Module list for the HMR client — updated on client-side navigations too.
-  // Regular (non-module) script so it runs synchronously before any deferred
-  // module scripts, making the list available when the HMR client fires.
   const allClientModuleUrls = [...layoutClientUrls, clientModuleUrl];
   const hmrModulesScript = `<script>window.__pyra_hmr_modules = ${JSON.stringify(allClientModuleUrls)};</script>`;
-
-  // RFR preamble: must execute before the hydration script's static imports
-  // run so $RefreshReg$ / $RefreshSig$ globals are in place.
   const preamble = host.adapter?.getHMRPreamble?.() ?? "";
 
+  // Get document shell (needed by both paths)
+  const shell = adapter.getDocumentShell?.() || DEFAULT_SHELL;
+  const shellWithId = shell.replace("__CONTAINER_ID__", host.containerId);
+
+  // ── Streaming path ────────────────────────────────────────────────────────
+  if (typeof adapter.renderToStream === "function") {
+    tracer.start("render", `${adapter.name} SSR (streaming)`);
+
+    // pushHead() calls during streaming are collected and injected via a
+    // deferred script at the end of <body> (after the stream completes).
+    const streamedHeadTags: string[] = [];
+    const streamRenderContext: RenderContext = {
+      url: new URL(pathname, `http://${req.headers.host || "localhost"}`),
+      params,
+      pushHead(tag: string) {
+        streamedHeadTags.push(tag);
+      },
+      layouts: layoutComponents.length > 0 ? layoutComponents : undefined,
+    };
+
+    // Split shell at <!--pyra-outlet-->
+    const outletMarker = "<!--pyra-outlet-->";
+    const outletIdx = shellWithId.indexOf(outletMarker);
+    const rawBefore = shellWithId.slice(0, outletIdx);
+    const rawAfter = shellWithId.slice(outletIdx + outletMarker.length);
+
+    // Inject CSS links into <!--pyra-head--> and add HMR client script
+    const beforeOutlet = injectHMRClient(
+      rawBefore.replace("<!--pyra-head-->", cssLinkTags.join("\n  ")),
+    );
+
+    const reactStream = adapter.renderToStream(component, data, streamRenderContext);
+    const combined = new PassThrough();
+    combined.write(beforeOutlet);
+
+    reactStream.on("data", (chunk: Buffer | string) => combined.write(chunk));
+    reactStream.on("end", () => {
+      const deferredHead = buildDeferredHeadScript(streamedHeadTags);
+      const tailScripts = [
+        hmrModulesScript,
+        dataScript,
+        preamble,
+        `<script type="module">${hydrationScript}</script>`,
+        deferredHead,
+      ].filter(Boolean).join("\n  ");
+      const tail = rawAfter.replace("</body>", `  ${tailScripts}\n</body>`);
+      combined.write(tail);
+      combined.end();
+      tracer.end();
+    });
+    reactStream.on("error", (err: Error) => {
+      combined.destroy(err);
+      tracer.endWithError(err.message);
+    });
+
+    const webStream = Readable.toWeb(combined) as ReadableStream<Uint8Array>;
+    return new Response(webStream, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html",
+        "Cache-Control": "no-cache",
+      },
+    });
+  }
+
+  // ── Buffered path (renderToHTML fallback) ─────────────────────────────────
+  const headTags: string[] = [...cssLinkTags];
+  const renderContext: RenderContext = {
+    url: new URL(pathname, `http://${req.headers.host || "localhost"}`),
+    params,
+    pushHead(tag: string) {
+      headTags.push(tag);
+    },
+    layouts: layoutComponents.length > 0 ? layoutComponents : undefined,
+  };
+
+  tracer.start("render", `${adapter.name} SSR`);
+  const bodyHtml = await adapter.renderToHTML(component, data, renderContext);
+  tracer.end();
+
+  tracer.start("inject-assets");
   const scripts = [
     hmrModulesScript,
     dataScript,
@@ -239,6 +284,9 @@ export async function handlePageRouteInner(
     `<script type="module">${hydrationScript}</script>`,
   ].filter(Boolean).join("\n  ");
 
+  let html = shellWithId;
+  html = html.replace("<!--pyra-outlet-->", bodyHtml);
+  html = html.replace("<!--pyra-head-->", headTags.join("\n  "));
   html = injectHMRClient(html);
   html = html.replace("</body>", `  ${scripts}\n</body>`);
   tracer.end();
