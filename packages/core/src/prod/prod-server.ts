@@ -78,6 +78,7 @@ export class ProdServer {
     this.port = options.port || options.config?.port || 3000;
     this.containerId = options.config?.appContainerId || "app";
     this.config = options.config;
+    this.compress = options.config?.server?.compress ?? true;
     this.clientDir = path.join(this.distDir, "client");
     this.serverDir = path.join(this.distDir, "server");
 
