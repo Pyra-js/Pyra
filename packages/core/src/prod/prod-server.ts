@@ -898,6 +898,47 @@ export class ProdServer {
   }
 
   /**
+   * Send a Response, applying gzip/brotli compression when enabled.
+   * For streaming responses the body is piped through a zlib Transform so
+   * compression and progressive flushing work together without buffering.
+   */
+  private async sendResponse(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+    webResponse: Response,
+  ): Promise<void> {
+    if (this.compress && webResponse.body) {
+      const contentType = webResponse.headers.get("content-type") ?? "";
+      if (isCompressible(contentType)) {
+        const encoding = negotiateEncoding(req);
+        if (encoding) {
+          res.statusCode = webResponse.status;
+          webResponse.headers.forEach((value, key) => {
+            if (key.toLowerCase() !== "content-length") {
+              res.setHeader(key, value);
+            }
+          });
+          res.setHeader("Content-Encoding", encoding);
+          res.setHeader("Vary", "Accept-Encoding");
+
+          const transform = createCompressStream(encoding);
+          const readable = Readable.fromWeb(
+            webResponse.body as import("node:stream/web").ReadableStream<Uint8Array>,
+          );
+          await new Promise<void>((resolve, reject) => {
+            transform.on("finish", resolve);
+            transform.on("error", reject);
+            readable.on("error", (err) => transform.destroy(err));
+            readable.pipe(transform).pipe(res);
+          });
+          return;
+        }
+      }
+    }
+    await this.sendWebResponse(res, webResponse);
+  }
+
+  /**
    * Convert a Web standard Response to a Node ServerResponse.
    * Uses Readable.fromWeb() so streaming responses are piped directly without
    * buffering the full body in memory first.
