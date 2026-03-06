@@ -140,7 +140,7 @@ The `pyrajs-shared`, `pyrajs-core`, `pyrajs-adapter-react`, and `pyrajs-cli` pac
 
 Pyra follows [Semantic Versioning 2.0.0](https://semver.org).
 
-- **Patch** (`0.27.x`): bug fixes, documentation, performance improvements — no API changes
+- **Patch** (`0.27.x`): bug fixes, documentation, performance improvements, no API changes
 - **Minor** (`0.x.0`): new features, new optional config fields, new optional adapter methods, backward compatible; experimental APIs may change
 - **Major** (`x.0.0`): breaking changes to stable APIs only
 
