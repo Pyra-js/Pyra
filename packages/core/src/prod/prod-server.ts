@@ -32,6 +32,12 @@ import {
   getContentType,
 } from "./prod-assets.js";
 import { DEFAULT_SHELL, getErrorHTML, get404HTML } from "./prod-html.js";
+import {
+  isCompressible,
+  negotiateEncoding,
+  createCompressStream,
+  compressBuffer,
+} from "./prod-compress.js";
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -60,6 +66,7 @@ export class ProdServer {
   private containerId: string;
   private config: PyraConfig | undefined;
   private moduleCache: Map<string, Promise<any>> = new Map();
+  private compress: boolean;
   // v1.0: Graceful shutdown
   private inflightCount = 0;
   private isShuttingDown = false;
