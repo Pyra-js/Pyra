@@ -63,6 +63,12 @@ export type DevServerConfig = {
   cors?: boolean | CorsConfig;
   /** Proxy configuration for API requests */
   proxy?: Record<string, string | { target: string; changeOrigin?: boolean; rewrite?: (path: string) => string }>;
+  /**
+   * Enable gzip / brotli response compression in the production server.
+   * Defaults to `true`. Set to `false` when a reverse proxy (nginx, Caddy,
+   * Cloudflare) handles compression upstream.
+   */
+  compress?: boolean;
   /** Custom middleware */
   middleware?: any[];
 };
