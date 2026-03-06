@@ -23,3 +23,6 @@ export type {
 } from '@pyra-js/shared';
 
 export { defineConfig, defineConfigFn } from '@pyra-js/shared';
+
+// Plugin factories — re-exported here so users only need @pyra-js/cli in their config
+export { pyraImages, pyraFramerMotion } from '@pyra-js/core';
