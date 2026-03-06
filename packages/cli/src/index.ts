@@ -24,5 +24,6 @@ export type {
 
 export { defineConfig, defineConfigFn } from '@pyra-js/shared';
 
-// Plugin factories — re-exported here so users only need @pyra-js/cli in their config
-export { pyraImages, pyraFramerMotion } from '@pyra-js/core';
+// Plugin factories — inline so users only need @pyra-js/cli in their config files
+export { pyraImages } from '@pyra-js/core';
+export { pyraFramerMotion } from './plugins/framer-motion-plugin.js';
