@@ -56,9 +56,9 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.2.0",
+    "@inquirer/prompts": "^8.3.0",
     "chalk": "^5.6.2",
-    "commander": "^12.1.0",
+    "commander": "^14.0.3",
 "picocolors": "^1.1.1",
     "@pyra-js/core": "workspace:*",
     "@pyra-js/shared": "workspace:*"
