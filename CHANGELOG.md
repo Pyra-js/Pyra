@@ -5,6 +5,20 @@ All notable changes to Pyra.js are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.10] - 2026-03-09
+
+### Fixed
+- **All 5 example apps were unrunnable** - every `pyra.config.ts` in `examples/` was missing `adapter: createReactAdapter()`, causing `pyra dev`/`build`/`start` to fail immediately with a missing-adapter error; all configs now import and set the adapter correctly
+- **Example `package.json` files missing `@pyra-js/adapter-react`** - all 5 example apps now declare `@pyra-js/adapter-react: workspace:*` as a dependency so the adapter resolves correctly when running from the monorepo
+- **HMR error overlay** - compilation and route-scan errors are now broadcast to the browser as `{ type: "error" }` WebSocket messages; an in-browser overlay (dark card, error badge, file pill, stack trace, ESC to dismiss) replaces silent console-only failures; overlay auto-dismisses on the next successful update or reload
+- **Parallel compilation guard** - concurrent requests to the same uncached route no longer each spawn a duplicate esbuild process; a `pendingBundles` map in `bundler.ts` and a `pendingServerCompiles` map in `dev-compiler.ts` deduplicate in-flight compiles so late arrivals await the same Promise
+- **Event loop blocking in static file handler** - `dev-static.ts` `servePublicFile()` switched from `fs.readFileSync` to `fs.promises.readFile`; `dev-server.ts` CSS and static file handlers likewise converted to `fs.promises.stat` and `fs.promises.readFile`, unblocking concurrent requests during large file reads
+
+### Changed
+- **`<Link>` used for all internal navigation in examples** - all layout nav links and intra-app page links across `pyra-blog`, `routing-showcase`, `ssg-cache`, and `middleware-auth` now use `<Link>` from `@pyra-js/adapter-react` instead of raw `<a href>`, enabling client-side SPA navigation without full page reloads
+- **Dead artifacts removed from `examples/`** - removed `Kubo/` (orphaned dist artifact), `basic-ts/` (pre-routing SPA era), `test-config/` (internal test fixture), `example.sh` (empty file), and 6 stale `pyra.config.*.ts` files (`basic`, `full`, `library`, `minimal`, `mode`, `react`) that described a superseded config API; `QUICK_START.md` and `USAGE.md` also removed as they documented the same obsolete format
+- **`examples/pyra.config.reference.ts`** added — single accurate reference file documenting every real `PyraConfig` field with inline comments, including a `defineConfigFn` mode-aware example at the bottom
+
 ## [0.30.6] - 2026-03-06
 
 ### Added
