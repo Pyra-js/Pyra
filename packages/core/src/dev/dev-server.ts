@@ -611,7 +611,7 @@ export class DevServer
           const pub = _resolvePublicFilePath(this, cleanUrl);
           if (pub) {
             tracer.end();
-            _servePublicFile(this, res, pub);
+            await _servePublicFile(this, res, pub);
             return;
           }
           tracer.end();
