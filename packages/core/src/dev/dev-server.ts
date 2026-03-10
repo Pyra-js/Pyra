@@ -625,7 +625,7 @@ export class DevServer
       }
 
       // Check if it's a directory, serve index.html
-      const stat = fs.statSync(filePath);
+      const stat = await fs.promises.stat(filePath);
       if (stat.isDirectory()) {
         filePath = path.join(filePath, "index.html");
         if (!fs.existsSync(filePath)) {
