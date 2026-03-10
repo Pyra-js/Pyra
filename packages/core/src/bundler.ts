@@ -258,6 +258,20 @@ export function getCSSOutput(filePath: string): string | null {
   return cssOutputCache.get(filePath)?.css ?? null;
 }
 
+/** Remove a single entry from dependencyGraph + reverseDependencyIndex. */
+function evictFromGraph(entryPath: string): void {
+  const deps = dependencyGraph.get(entryPath);
+  if (!deps) return;
+  for (const dep of deps) {
+    const entries = reverseDependencyIndex.get(dep);
+    if (entries) {
+      entries.delete(entryPath);
+      if (entries.size === 0) reverseDependencyIndex.delete(dep);
+    }
+  }
+  dependencyGraph.delete(entryPath);
+}
+
 /**
  * Clear the bundle cache (useful for HMR)
  */
@@ -265,22 +279,47 @@ export function clearBundleCache(filePath?: string): void {
   if (filePath) {
     bundleCache.delete(filePath);
     cssOutputCache.delete(filePath);
+    evictFromGraph(filePath);
     log.info(`Cleared cache for ${filePath}`);
   } else {
     bundleCache.clear();
     cssOutputCache.clear();
+    dependencyGraph.clear();
+    reverseDependencyIndex.clear();
     log.info('Cleared all bundle cache');
   }
 }
 
 /**
- * Clear cache entries for any file that depends on the changed file
- * For now, we'll just clear everything to be safe
+ * Evict only the bundle entries that transitively imported changedFile.
+ *
+ * Uses the reverse dependency index built from esbuild metafile data.
+ * Falls back to clearing the whole cache if the changed file is not yet
+ * in the index (e.g. a brand-new file that has never been requested).
  */
 export function invalidateDependentCache(changedFile: string): void {
-  // Simple strategy: clear all cache on any change
-  // TODO: Build a dependency graph for more granular invalidation
-  bundleCache.clear();
-  cssOutputCache.clear();
-  log.info(`Cache invalidated due to change in ${changedFile}`);
+  const affectedEntries = reverseDependencyIndex.get(changedFile);
+
+  if (!affectedEntries || affectedEntries.size === 0) {
+    // File not tracked yet — clear everything to be safe.
+    bundleCache.clear();
+    cssOutputCache.clear();
+    dependencyGraph.clear();
+    reverseDependencyIndex.clear();
+    log.info(`Cache cleared (${path.basename(changedFile)} not yet tracked)`);
+    return;
+  }
+
+  // Snapshot the set before we start mutating the index.
+  const toEvict = [...affectedEntries];
+  for (const entry of toEvict) {
+    bundleCache.delete(entry);
+    cssOutputCache.delete(entry);
+    evictFromGraph(entry);
+  }
+
+  log.info(
+    `Cache invalidated ${toEvict.length} entr${toEvict.length === 1 ? 'y' : 'ies'} ` +
+    `for ${path.basename(changedFile)}`,
+  );
 }
