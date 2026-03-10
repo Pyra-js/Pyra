@@ -640,7 +640,7 @@ export class DevServer
       }
 
       // Read file
-      let content = fs.readFileSync(filePath, "utf-8");
+      let content = await fs.promises.readFile(filePath, "utf-8");
       const ext = path.extname(filePath);
       tracer.end();
 
