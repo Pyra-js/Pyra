@@ -142,14 +142,14 @@ export function resolvePublicFilePath(
  * Serve a file from the `public/` directory.
  * Reads as a Buffer so binary files (images, fonts, etc.) are handled correctly.
  */
-export function servePublicFile(
+export async function servePublicFile(
   host: StaticHost,
   res: http.ServerResponse,
   filePath: string,
-): void {
+): Promise<void> {
   const ext = path.extname(filePath).toLowerCase();
   const contentType = getContentType(ext);
-  const content = fs.readFileSync(filePath);
+  const content = await fs.promises.readFile(filePath);
   res.writeHead(200, {
     "Content-Type": contentType,
     "Content-Length": content.length,
