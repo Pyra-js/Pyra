@@ -58,6 +58,23 @@ const bundleCache = new Map<string, { code: string; timestamp: number }>();
 const cssOutputCache = new Map<string, { css: string; timestamp: number }>();
 
 /**
+ * Dependency graph: maps each bundle entry (absolute path) to the full set
+ * of source files that were imported — directly or transitively — to produce
+ * it.  Built from the esbuild metafile after every successful compile.
+ */
+const dependencyGraph = new Map<string, Set<string>>();
+
+/**
+ * Reverse dependency index: maps each source file (absolute path) to the set
+ * of bundle entry paths that depend on it.  Derived from dependencyGraph and
+ * kept in sync whenever dependencyGraph is updated.
+ *
+ * Used by invalidateDependentCache() to evict only the affected entries
+ * instead of clearing the whole cache on every file change.
+ */
+const reverseDependencyIndex = new Map<string, Set<string>>();
+
+/**
  * One PostCSS plugin instance per project root (created lazily on first use).
  */
 const postcssPluginCache = new Map<string, esbuild.Plugin>();
