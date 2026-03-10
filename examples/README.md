@@ -1,339 +1,126 @@
-# Pyra Configuration Examples
+# Pyra.js Examples
 
-This directory contains example configuration files demonstrating various use cases for Pyra.js.
+Runnable example applications demonstrating Pyra.js features. Each app is self-contained with its own `package.json` and can be started independently.
 
-## Available Examples
+## Example Apps
 
-### 1. **pyra.config.minimal.ts** - Zero Config
+### [`pyra-blog`](./pyra-blog/)
 
-The simplest possible configuration. Pyra works out-of-the-box with sensible defaults.
+The comprehensive reference app. Combines SSR, SSG, API routes, middleware, layouts, error boundaries, and a custom 404 page in a single project.
 
-```bash
-# Just create an empty config or omit it entirely
-```
-
-**Use case**: Quick prototypes, learning Pyra
-
----
-
-### 2. **pyra.config.basic.ts** - Basic Setup
-
-Common options most projects need: custom entry, output directory, port, and path aliases.
-
-```typescript
-import { defineConfig } from '@pyra-js/cli';
-
-export default defineConfig({
-  entry: 'src/main.ts',
-  outDir: 'build',
-  port: 8080,
-  resolve: {
-    alias: {
-      '@': './src',
-    },
-  },
-});
-```
-
-**Use case**: Standard single-page applications
-
----
-
-### 3. **pyra.config.full.ts** - Complete Reference
-
-Comprehensive example showing **all available options** with detailed comments.
-
-Covers:
-
-- Entry points (single & multi-entry)
-- Dev server (port, proxy, HTTPS, HMR)
-- Build options (minify, sourcemaps, targets)
-- Module resolution (aliases, extensions)
-- Environment variables
-- Build-time constants
-- Framework integration
-- Custom plugins
-- Advanced esbuild options
-
-**Use case**: Reference guide, complex production apps
-
----
-
-### 4. **pyra.config.mode.ts** - Environment-Specific Config
-
-Use `defineConfigFn` to return different configurations based on mode (development vs production).
-
-```typescript
-import { defineConfigFn } from '@pyra-js/cli';
-
-export default defineConfigFn((mode) => {
-  return {
-    build: {
-      minify: mode === 'production',
-      sourcemap: mode === 'development' ? 'inline' : false,
-    },
-  };
-});
-```
-
-**Use case**: Different settings for dev vs prod
-
----
-
-### 5. **pyra.config.react.ts** - React Application
-
-Optimized configuration for React projects with Fast Refresh, JSX, and typical React patterns.
-
-Features:
-
-- React Fast Refresh (HMR for React)
-- Automatic JSX runtime
-- Common path aliases for React projects
-- CSS Modules support
-
-**Use case**: React single-page applications
-
----
-
-### 6. **pyra.config.library.ts** - Package/Library Development
-
-Setup for building npm packages or shared libraries.
-
-Features:
-
-- Multiple entry points
-- External dependencies (peer deps)
-- Dual CJS/ESM builds
-- No code splitting
-- Sourcemap generation
-
-**Use case**: Building publishable npm packages
-
----
-
-## Quick Start
-
-### 1. Choose Your Template
-
-Copy the example that best matches your use case:
+**Concepts covered:** `load()`, `prerender`, API routes, middleware auth, nested layouts, error boundaries, `404.tsx`
 
 ```bash
-# For React apps
-cp examples/pyra.config.react.ts pyra.config.ts
-
-# For basic projects
-cp examples/pyra.config.basic.ts pyra.config.ts
-
-# For libraries
-cp examples/pyra.config.library.ts pyra.config.ts
-```
-
-### 2. Customize
-
-Open `pyra.config.ts` and adjust values to match your project structure.
-
-### 3. Use TypeScript Autocomplete
-
-The `defineConfig` helper provides full IntelliSense:
-
-```typescript
-import { defineConfig } from '@pyra-js/cli';
-
-export default defineConfig({
-  // Your editor will autocomplete all options!
-});
+pnpm --filter pyra-blog dev
 ```
 
 ---
 
-## Configuration Discovery
+### [`routing-showcase`](./routing-showcase/)
 
-Pyra automatically searches for configuration files in this order:
+Every routing pattern Pyra supports, each with a live URL you can visit.
 
-1. `pyra.config.ts` (recommended)
-2. `pyra.config.js`
-3. `pyra.config.mjs`
-4. `.pyrarc.ts`
-5. `.pyrarc.js`
+**Concepts covered:** static routes, dynamic `[id]`, catch-all `[...path]`, route groups `(name)`, `load()` with `ctx.params`
 
-**Recommended**: Use `pyra.config.ts` for full TypeScript support.
-
----
-
-## Key Concepts
-
-### Zero Config Philosophy
-
-Pyra works without any configuration:
-
-```typescript
-// pyra.config.ts - or even omit this file!
-export default {};
-```
-
-Defaults:
-
-- **Entry**: `src/index.ts`
-- **Output**: `dist/`
-- **Port**: `3000`
-- **HMR**: Enabled
-- **Target**: `es2020`
-
-### Path Aliases
-
-Avoid deep relative imports:
-
-```typescript
-resolve: {
-  alias: {
-    '@': './src',
-    '@components': './src/components',
-  },
-}
-```
-
-```typescript
-// Instead of: import Button from '../../../components/Button'
-import Button from '@components/Button';
-```
-
-### Environment Variables
-
-Only variables with the specified prefix are exposed to your client bundle:
-
-```typescript
-env: {
-  prefix: 'PYRA_', // Only PYRA_* vars are bundled
-}
-```
-
-```typescript
-// .env
-PYRA_API_URL=https://api.example.com  // ✅ Available in client
-SECRET_KEY=abc123                      // ❌ Server-only
-```
-
-### Build-time Constants
-
-Replace values at build time:
-
-```typescript
-define: {
-  __APP_VERSION__: JSON.stringify('1.0.0'),
-  __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
-}
-```
-
-```typescript
-// In your code
-console.log(__APP_VERSION__); // "1.0.0"
-if (__DEV__) {
-  // Development-only code
-}
-```
-
-### Proxy for API Requests
-
-Avoid CORS during development:
-
-```typescript
-server: {
-  proxy: {
-    '/api': 'http://localhost:4000',
-  },
-}
-```
-
-```typescript
-// Your app makes requests to /api/users
-// Pyra proxies to http://localhost:4000/api/users
-```
-
-### Plugin System
-
-Extend Pyra with custom logic:
-
-```typescript
-plugins: [
-  {
-    name: 'my-plugin',
-    transform(code, id) {
-      if (id.endsWith('.custom')) {
-        return { code: transformCode(code) };
-      }
-      return null;
-    },
-  },
-],
+```bash
+pnpm --filter routing-showcase dev
 ```
 
 ---
 
-## Common Patterns
+### [`api-crud`](./api-crud/)
 
-### Multi-Page Application
+A pure API example — no meaningful UI, all logic in route handlers. Demonstrates HTTP method dispatch, 405 responses, and in-memory state.
 
-```typescript
-entry: {
-  main: 'src/main.ts',
-  admin: 'src/admin.ts',
-  landing: 'src/landing.ts',
-},
+**Concepts covered:** `GET`/`POST`/`PUT`/`DELETE` exports, 405 Method Not Allowed, catch-all API routes, `ctx.request.json()`
+
+```bash
+pnpm --filter api-crud dev
 ```
 
-### Monorepo Package
+Then exercise the API:
 
-```typescript
-resolve: {
-  alias: {
-    '@shared': '../shared/src',
-    '@utils': '../utils/src',
-  },
-},
-```
-
-### Production Optimization
-
-```typescript
-build: {
-  minify: true,
-  splitting: true, // Code splitting
-  target: ['es2020', 'chrome91'], // Modern browsers
-  chunkSizeWarningLimit: 500, // Warn on large chunks
-},
-```
-
-### Custom Output Structure
-
-```typescript
-build: {
-  outDir: 'dist',
-  publicDir: 'public', // Static assets
-  base: '/my-app/', // Subdirectory deployment
-},
+```bash
+curl http://localhost:3000/api/items
+curl -X POST http://localhost:3000/api/items \
+     -H 'Content-Type: application/json' \
+     -d '{"name":"Widget","value":42}'
+curl http://localhost:3000/api/echo/foo/bar/baz
 ```
 
 ---
 
-## Tips
+### [`middleware-auth`](./middleware-auth/)
 
-1. **Start Minimal**: Begin with `pyra.config.basic.ts` and add options as needed
-2. **Use Type Safety**: Always use `defineConfig` for autocomplete
-3. **Check Defaults**: Many options have good defaults - only override when necessary
-4. **Mode-based Config**: Use `defineConfigFn` for environment-specific settings
-5. **Path Aliases**: Set up aliases early to avoid refactoring imports later
-6. **Plugins Last**: Add plugins only when built-in features aren't enough
+Cookie-based auth with stacked middleware. Root middleware stamps every response with request-id and timing headers; dashboard middleware guards the protected route.
 
----
+**Concepts covered:** middleware stacking, short-circuiting, `ctx.cookies`, `Set-Cookie` response headers
 
-## Need Help?
+```bash
+pnpm --filter middleware-auth dev
+```
 
-- **Full API Reference**: See `pyra.config.full.ts`
-- **Type Definitions**: Check `packages/shared/src/types.ts`
-- **Framework Examples**: Check framework-specific configs (React, Vue, etc.)
+1. Visit `http://localhost:3000` — you are not logged in.
+2. Click **Log in → this demo link** to set the session cookie.
+3. Navigate to `/dashboard` — the middleware lets you through.
+4. Click **Log out** to clear the cookie, then try `/dashboard` again.
 
 ---
 
-## Contributing
+### [`ssg-cache`](./ssg-cache/)
 
-Have a useful configuration pattern? Submit a PR with a new example file!
+Static site generation and cache-control headers in one place.
+
+**Concepts covered:** `prerender = true`, `prerender = { paths() }`, `cache = { maxAge, sMaxAge, staleWhileRevalidate }`
+
+```bash
+# Dev — SSG pages rendered on-demand, Cache-Control header still set
+pnpm --filter ssg-cache dev
+
+# Prod — generates actual static HTML files in dist/client/
+pnpm --filter ssg-cache build
+pnpm --filter ssg-cache start
+```
+
+After building, inspect `dist/client/about/index.html` and `dist/client/releases/` for the pre-rendered output.
+
+---
+
+### [`image-optimization`](./image-optimization/)
+
+On-demand and pre-built image optimization using the `pyraImages()` plugin and the `<Image>` component.
+
+**Concepts covered:** `pyraImages()` plugin, `<Image>` component, `/_pyra/image` endpoint, `formats`, `sizes`, `quality`
+
+```bash
+pnpm --filter image-optimization dev
+```
+
+> Requires `sharp` to be installed: `npm install sharp` inside the example directory.
+
+---
+
+## Running all examples
+
+From the repo root:
+
+```bash
+# Install all workspace dependencies
+pnpm install
+
+# Start a specific example
+pnpm --filter pyra-blog dev
+pnpm --filter routing-showcase dev
+pnpm --filter api-crud dev
+pnpm --filter middleware-auth dev
+pnpm --filter ssg-cache dev
+pnpm --filter image-optimization dev
+```
+
+---
+
+## Configuration reference
+
+See [`pyra.config.reference.ts`](./pyra.config.reference.ts) for a fully documented reference of every `PyraConfig` field.
+
+For mode-aware configuration (`defineConfigFn`), see the comment at the bottom of that file.
