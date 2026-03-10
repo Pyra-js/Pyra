@@ -92,6 +92,13 @@ function getPostCSSPlugin(root: string): esbuild.Plugin {
 const CACHE_DURATION = 5000;
 
 /**
+ * In-flight compiles: maps a file path to its pending bundleFile promise.
+ * Concurrent requests for the same uncached file join this promise rather than
+ * each spawning their own esbuild process.
+ */
+const pendingBundles = new Map<string, Promise<string>>();
+
+/**
  * Bundle a file with all its dependencies using esbuild
  * This resolves imports from node_modules and bundles everything together
  */
@@ -114,6 +121,12 @@ export async function bundleFile(
     return cached.code;
   }
 
+  // If an identical compile is already in progress, join it instead of
+  // spawning a duplicate esbuild process.
+  const inflight = pendingBundles.get(filePath);
+  if (inflight) return inflight;
+
+  const compile = (async () => {
   try {
     const startTime = Date.now();
 
