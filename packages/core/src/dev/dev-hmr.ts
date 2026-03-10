@@ -159,6 +159,24 @@ export function notifyClients(host: HMRHost, type: string): void {
   });
 }
 
+/**
+ * Broadcast a build/runtime error to all connected HMR clients so the
+ * in-browser error overlay is shown with the full error details.
+ */
+export function notifyError(
+  host: HMRHost,
+  title: string,
+  message: string,
+  stack?: string,
+  file?: string,
+): void {
+  host.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({ type: "error", title, message, stack, file }));
+    }
+  });
+}
+
 // ── injectHMRClient ───────────────────────────────────────────────────────────
 
 /**
