@@ -1,3 +1,4 @@
+import { Link } from '@pyra-js/adapter-react';
 import type { RequestContext } from '@pyra-js/cli';
 
 export const prerender = {
@@ -29,7 +30,7 @@ export default function PostDetail({ post }: { post: { title: string; content: s
       {post.content.split('\n\n').map((paragraph, i) => (
         <p key={i} style={{ lineHeight: 1.7, color: '#374151' }}>{paragraph}</p>
       ))}
-      <a href="/blog" style={{ color: '#ef4444', marginTop: '2rem', display: 'inline-block' }}>&larr; Back to blog</a>
+      <Link href="/blog" style={{ color: '#ef4444', marginTop: '2rem', display: 'inline-block' }}>&larr; Back to blog</Link>
     </article>
   );
 }
