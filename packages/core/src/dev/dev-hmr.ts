@@ -99,7 +99,14 @@ export function setupFileWatcher(host: HMRHost): void {
         basename.startsWith("layout.") ||
         basename.startsWith("middleware.")
       ) {
-        await host.buildRouteGraph();
+        try {
+          await host.buildRouteGraph();
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          const stack = err instanceof Error ? err.stack : undefined;
+          notifyError(host, "Route Scan Error", message, stack, relativePath);
+          log.error(`Route scan failed: ${message}`);
+        }
       }
     }
 
