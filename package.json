@@ -27,10 +27,10 @@
   "packageManager": "pnpm@10.17.1",
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",
-    "memfs": "^4.56.10",
+    "memfs": "^4.56.11",
     "@pyra-js/cli": "workspace:*",
     "tsup": "^8.5.1",
-    "tsx": "^4.20.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
