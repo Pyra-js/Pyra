@@ -126,6 +126,7 @@ export async function bundleFile(
       target: 'es2020',
       platform: 'browser',
       sourcemap: 'inline',
+      metafile: true,
       // Node.js-only packages used by adapter internals (e.g. the React Fast
       // Refresh esbuild plugin) must never be bundled for the browser. Marking
       // them external prevents esbuild from following their import chains and
@@ -203,6 +204,38 @@ export async function bundleFile(
         code,
         timestamp: Date.now(),
       });
+
+      // Update dependency graph from esbuild metafile so that
+      // invalidateDependentCache() can do targeted eviction instead of
+      // clearing the whole cache on every file change.
+      if (result.metafile) {
+        // Collect the full set of source files that contributed to this entry.
+        // esbuild reports paths relative to absWorkingDir (root), so resolve
+        // them to absolute paths for consistent comparison with chokidar events.
+        const deps = new Set<string>();
+        for (const inputPath of Object.keys(result.metafile.inputs)) {
+          deps.add(path.isAbsolute(inputPath) ? inputPath : path.resolve(root, inputPath));
+        }
+
+        // Remove stale reverse-index entries for this entry before re-registering.
+        const oldDeps = dependencyGraph.get(filePath);
+        if (oldDeps) {
+          for (const dep of oldDeps) {
+            reverseDependencyIndex.get(dep)?.delete(filePath);
+          }
+        }
+
+        // Store the new dependency set and rebuild reverse-index entries.
+        dependencyGraph.set(filePath, deps);
+        for (const dep of deps) {
+          let entries = reverseDependencyIndex.get(dep);
+          if (!entries) {
+            entries = new Set();
+            reverseDependencyIndex.set(dep, entries);
+          }
+          entries.add(filePath);
+        }
+      }
 
       return code;
     }
