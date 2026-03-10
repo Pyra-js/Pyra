@@ -36,6 +36,7 @@ import {
   setupFileWatcher,
   injectHMRClient,
   getHMRClientScript,
+  notifyError,
   type HMRHost,
 } from "./dev-hmr.js";
 import { getDashboardHTML } from "./dev-dashboard.js";
@@ -320,17 +321,32 @@ export class DevServer
           return;
         }
 
-        const compiled = await bundleFile(
-          absolutePath,
-          this.root,
-          this.config?.resolve,
-          this.adapter?.esbuildPlugins?.() ?? [],
-        );
-        res.writeHead(200, {
-          "Content-Type": "application/javascript",
-          "Cache-Control": "no-cache",
-        });
-        res.end(compiled);
+        try {
+          const compiled = await bundleFile(
+            absolutePath,
+            this.root,
+            this.config?.resolve,
+            this.adapter?.esbuildPlugins?.() ?? [],
+          );
+          res.writeHead(200, {
+            "Content-Type": "application/javascript",
+            "Cache-Control": "no-cache",
+          });
+          res.end(compiled);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          const stack = err instanceof Error ? err.stack : undefined;
+          // Tell all connected browser tabs to show the error overlay.
+          notifyError(this, "Compilation Error", message, stack, modulePath);
+          // Respond with a valid JS module that throws the error so that
+          // dynamic imports (Fast Refresh, PyraApp navigate) reject with the
+          // real compilation message instead of an opaque fetch failure.
+          res.writeHead(200, {
+            "Content-Type": "application/javascript",
+            "Cache-Control": "no-cache",
+          });
+          res.end(`throw new Error(${JSON.stringify(message)});`);
+        }
         return;
       }
 
