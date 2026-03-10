@@ -1,3 +1,4 @@
+import { Link } from '@pyra-js/adapter-react';
 import type { RequestContext } from '@pyra-js/cli';
 
 export async function load(ctx: RequestContext) {
@@ -19,7 +20,7 @@ export default function Dashboard({ user }: { user: string }) {
         The root middleware also fired — check <code>X-Request-Id</code> and{' '}
         <code>X-Response-Time</code> in the response headers (DevTools → Network).
       </p>
-      <a href="/" style={{ color: '#7c3aed' }}>← Home</a>
+      <Link href="/" style={{ color: '#7c3aed' }}>← Home</Link>
     </div>
   );
 }
