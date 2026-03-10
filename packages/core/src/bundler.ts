@@ -260,7 +260,13 @@ export async function bundleFile(
       log.error(`Failed to bundle ${filePath}: ${error.message}`);
     }
     throw error;
+  } finally {
+    pendingBundles.delete(filePath);
   }
+  })();
+
+  pendingBundles.set(filePath, compile);
+  return compile;
 }
 
 /**
