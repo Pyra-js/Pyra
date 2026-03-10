@@ -15,6 +15,13 @@ export interface CompilerHost {
 // ── compileForServer ──────────────────────────────────────────────────────────
 
 /**
+ * In-flight server compiles: maps a file path to its pending compileForServer
+ * promise. Concurrent SSR requests for the same uncached route share this
+ * promise instead of each spawning a duplicate esbuild process.
+ */
+const pendingServerCompiles = new Map<string, Promise<string>>();
+
+/**
  * Compile a route/middleware/layout module for server-side execution.
  *
  * Uses esbuild with:
@@ -52,35 +59,49 @@ export async function compileForServer(
     }
   }
 
-  // Ensure output directory exists
-  fs.mkdirSync(host.pyraTmpDir, { recursive: true });
+  // If an identical compile is already in progress, join it instead of
+  // spawning a duplicate esbuild process.
+  const inflight = pendingServerCompiles.get(filePath);
+  if (inflight) return inflight;
 
-  // Compile with esbuild
-  await esbuild.build({
-    entryPoints: [filePath],
-    outfile: outPath,
-    bundle: true,
-    format: "esm",
-    platform: "node",
-    target: "es2020",
-    jsx: "automatic",
-    jsxImportSource: "react",
-    // All node_modules packages stay external — they are available at runtime
-    // when the compiled file is import()-ed. Bundling them is unnecessary and
-    // can break packages that rely on Node.js built-ins (e.g. @babel/core).
-    packages: "external",
-    sourcemap: "inline",
-    logLevel: "silent",
-    absWorkingDir: host.root,
-  });
+  const compile = (async () => {
+    try {
+      // Ensure output directory exists
+      fs.mkdirSync(host.pyraTmpDir, { recursive: true });
 
-  // Update cache
-  host.serverCompileCache.set(filePath, {
-    outPath,
-    timestamp: Date.now(),
-  });
+      // Compile with esbuild
+      await esbuild.build({
+        entryPoints: [filePath],
+        outfile: outPath,
+        bundle: true,
+        format: "esm",
+        platform: "node",
+        target: "es2020",
+        jsx: "automatic",
+        jsxImportSource: "react",
+        // All node_modules packages stay external — they are available at runtime
+        // when the compiled file is import()-ed. Bundling them is unnecessary and
+        // can break packages that rely on Node.js built-ins (e.g. @babel/core).
+        packages: "external",
+        sourcemap: "inline",
+        logLevel: "silent",
+        absWorkingDir: host.root,
+      });
 
-  return outPath;
+      // Update cache
+      host.serverCompileCache.set(filePath, {
+        outPath,
+        timestamp: Date.now(),
+      });
+
+      return outPath;
+    } finally {
+      pendingServerCompiles.delete(filePath);
+    }
+  })();
+
+  pendingServerCompiles.set(filePath, compile);
+  return compile;
 }
 
 // ── loadMiddlewareChain ───────────────────────────────────────────────────────
